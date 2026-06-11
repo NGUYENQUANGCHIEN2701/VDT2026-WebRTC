@@ -1,0 +1,162 @@
+# Roadmap: VDT WebRTC — Realtime Video Call
+
+## Overview
+
+The journey runs identity → connectivity → core call → robustness → data & admin → scale → architecture-exercising features → operations. Phase 1 establishes auth, persistence, and the Docker/CI skeleton. Phase 2 adds the authenticated WebSocket layer and Redis-backed presence with the routing abstractions that make later scaling a swap, not a rewrite. Phase 3 delivers the core value — a 1-1 P2P video call that works across real NATs (coturn + HTTPS from day one) with perfect negotiation and candidate buffering in the first commit. Phase 4 builds the server-authoritative call state machine and full in-call experience (ringing, busy, missed, glare, reconnection). Phase 5 wires the RabbitMQ history pipeline and admin tooling on top of the state machine's guarantees. Phase 6 demonstrates horizontal scaling across 2 instances via Redis pub/sub. Phases 7-8 exercise the architecture with group mesh calls, screen sharing, recording, and device control. Phase 9 caps delivery with monitoring, E2E call tests in CI, and the one-command `docker compose up` demo.
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 1: Foundation — Auth, Roles & Project Skeleton** - JWT register/login with Admin/User roles, PostgreSQL + Flyway, React shell, Compose + CI skeleton
+- [ ] **Phase 2: Realtime Presence & WebSocket Layer** - Authenticated WebSocket, Redis TTL presence, realtime online-user list, single-session policy
+- [ ] **Phase 3: 1-1 P2P Call Core & NAT Traversal** - Working P2P video call with perfect negotiation, coturn TURN relay, HTTPS/WSS, quality diagnostics
+- [ ] **Phase 4: Call Lifecycle & In-Call Experience** - Server-authoritative state machine: ringing, busy, missed, glare, hangup reasons, reconnection, in-call UX
+- [ ] **Phase 5: Call History & Admin** - Async history via RabbitMQ, user history view, admin user management and live dashboard
+- [ ] **Phase 6: Horizontal Scaling** - 2+ signaling instances behind nginx, Redis pub/sub cross-instance routing, all shared state in Redis
+- [ ] **Phase 7: Group Mesh Calls** - Room-based P2P mesh calls up to 4 people with server-enforced cap and bitrate management
+- [ ] **Phase 8: Screen Share, Recording & Device Control** - Screen sharing, client-side 1-1 recording, camera/mic/speaker selection mid-call
+- [ ] **Phase 9: Monitoring, CI/CD & Full Delivery** - Prometheus + Grafana per-instance metrics, Playwright E2E call test in CI, one-command full-stack startup
+
+## Phase Details
+
+### Phase 1: Foundation — Auth, Roles & Project Skeleton
+**Goal**: Users can create accounts and securely access a running app skeleton delivered as versioned, reproducible infrastructure
+**Mode:** mvp
+**Depends on**: Nothing (first phase)
+**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-05, INFR-07
+**Success Criteria** (what must be TRUE):
+  1. User can register with username/email and password, then log in and receive a JWT; the session persists across browser refresh
+  2. User can log out from any page and is returned to the login screen
+  3. Admin-only REST endpoints reject regular users; role checks are enforced server-side for both roles
+  4. Backend + frontend + PostgreSQL start via Docker Compose; the database schema is applied through versioned Flyway SQL migrations with setup documentation
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 2: Realtime Presence & WebSocket Layer
+**Goal**: Logged-in users see who is online in realtime over an authenticated WebSocket whose identity the server owns
+**Mode:** mvp
+**Depends on**: Phase 1
+**Requirements**: AUTH-04, PRES-01, PRES-02, PRES-03
+**Success Criteria** (what must be TRUE):
+  1. User sees a realtime list of online users with status (online / in-call) that updates without refresh as others connect and disconnect
+  2. A WebSocket connection without a valid JWT is rejected at handshake; every message is attributed server-side from the authenticated principal (client `from` field never trusted)
+  3. Killing a client or instance without a clean disconnect shows that user offline automatically within ~60s (Redis TTL heartbeat)
+  4. Opening a new tab or device kicks the old session — only one active session per user
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 3: 1-1 P2P Call Core & NAT Traversal
+**Goal**: Two users on different real networks can place a video/audio call where media flows peer-to-peer, with connection quality visible
+**Mode:** mvp
+**Depends on**: Phase 2
+**Requirements**: CALL-01, MEDIA-02, MEDIA-05, STAB-03, STAB-04, INFR-01, INFR-03
+**Success Criteria** (what must be TRUE):
+  1. User can call an online user and both parties see and hear each other; media flows peer-to-peer (SDP/ICE relayed opaquely over WebSocket, perfect negotiation + candidate buffering from the first implementation)
+  2. User sees a mirrored self-view preview before the call; getUserMedia failures (permission denied, no device, device busy) show actionable errors with an audio-only fallback
+  3. Calls connect across real NATs via coturn with ephemeral HMAC credentials; a forced-relay test mode (`iceTransportPolicy: 'relay'`) proves TURN relaying works
+  4. The app is served over HTTPS/WSS so getUserMedia works on devices other than localhost
+  5. In-call user sees a network quality indicator (RTT/packet loss) and a debug panel showing codec, bitrate, resolution, and ICE candidate type (host/srflx/relay)
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 4: Call Lifecycle & In-Call Experience
+**Goal**: Calls behave like a real product through every lifecycle edge — ringing, busy, missed, glare, clean endings, and recovery from network blips
+**Mode:** mvp
+**Depends on**: Phase 3
+**Requirements**: CALL-02, CALL-03, CALL-04, CALL-05, CALL-06, CALL-07, CALL-08, MEDIA-01, MEDIA-06, STAB-01, STAB-02
+**Success Criteria** (what must be TRUE):
+  1. Callee sees an incoming-call screen with ringtone and can accept or reject; caller can cancel while ringing; an unanswered call times out (~30s) and is recorded as missed
+  2. Calling a user already in a call returns "busy" immediately without ringing the callee; simultaneous mutual calls (glare) resolve cleanly on both clients
+  3. Either party can hang up and both sides see the end reason (completed/rejected/cancelled/missed/busy/dropped); the lifecycle is owned by a server-authoritative state machine in Redis with CAS transitions — clients send intents and render state
+  4. User can mute mic and toggle camera without renegotiation; the remote party sees mute/camera-off indicators; in-call UI shows duration, connection status, and a local PiP self-view with echo cancellation/noise suppression on by default
+  5. After a network blip, the WebSocket reconnects with backoff and resyncs state; media recovers via ICE restart; a page refresh or drop within the grace period (~10-15s) does not end the call
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 5: Call History & Admin
+**Goal**: Every call is durably recorded without touching the realtime path, and admins can manage users and observe the system live
+**Mode:** mvp
+**Depends on**: Phase 4
+**Requirements**: HIST-01, HIST-02, HIST-03, ADMN-01, ADMN-02, ADMN-03
+**Success Criteria** (what must be TRUE):
+  1. After any call outcome, the user sees it in their call history with direction (incoming/outgoing/missed), duration, and timestamps
+  2. Call lifecycle events are published to RabbitMQ on state transitions and persisted asynchronously — the realtime path never waits on the database; writes are idempotent (keyed by callId + event type) with a DLQ for failed messages
+  3. Admin can view users, lock/unlock them, and change roles; a locked user is force-disconnected immediately
+  4. Admin can view system-wide call history and a live dashboard showing online users, active calls, and daily stats
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 6: Horizontal Scaling
+**Goal**: The system runs as 2+ signaling instances with no instance-local authoritative state — a call connects even when caller and callee are on different instances
+**Mode:** mvp
+**Depends on**: Phase 4
+**Requirements**: SCAL-01, SCAL-02
+**Success Criteria** (what must be TRUE):
+  1. Docker Compose runs 2+ backend instances behind nginx; a call connects when caller and callee are connected to different instances (Redis pub/sub routing via the route map)
+  2. All shared state (presence, routing map, call/room state) lives in Redis — presence and busy status are consistent regardless of which instance a user lands on
+  3. A standing integration test pins two users to different instances and verifies the call connects (cross-instance ring is the demo)
+**Plans**: TBD
+
+### Phase 7: Group Mesh Calls
+**Goal**: Up to 4 users can join a room-based group call over P2P mesh without degrading each other's experience
+**Mode:** mvp
+**Depends on**: Phase 6
+**Requirements**: ADV-03
+**Success Criteria** (what must be TRUE):
+  1. Up to 4 users can join the same group call and each participant sees and hears all others (P2P mesh, joiner-initiates protocol, per-pair politeness)
+  2. A 5th join attempt is rejected server-side with a clear message (cap enforced by the server, not the client)
+  3. A participant leaving (or dropping) does not break the remaining peers' connections; partial-mesh failures are surfaced in the UI
+  4. Per-sender bitrate caps apply when more than 2 participants are in the room (verifiable in the debug panel)
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 8: Screen Share, Recording & Device Control
+**Goal**: In-call users get full control over what they share and which devices they use
+**Mode:** mvp
+**Depends on**: Phase 4
+**Requirements**: ADV-01, ADV-02, MEDIA-03, MEDIA-04
+**Success Criteria** (what must be TRUE):
+  1. User can share their screen during a call and the remote party sees it; stopping via the browser bar reverts to the camera automatically (track.onended handled)
+  2. User can record a 1-1 call client-side and download the file (MediaRecorder with codec fallback ladder); the remote party sees a recording indicator while it runs
+  3. User can switch camera and microphone before and during a call without dropping the connection (replaceTrack)
+  4. User can select the audio output device on supported browsers; the control is hidden where setSinkId is unsupported
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 9: Monitoring, CI/CD & Full Delivery
+**Goal**: The entire system is observable, continuously tested with a real E2E call, and starts with one command for the demo
+**Mode:** mvp
+**Depends on**: Phase 6
+**Requirements**: INFR-02, INFR-04, INFR-05, INFR-06
+**Success Criteria** (what must be TRUE):
+  1. One `docker compose up` starts the entire system — backend x2, frontend, nginx, PostgreSQL, Redis, RabbitMQ, coturn, Prometheus, Grafana — with healthchecks on every service
+  2. Grafana dashboards show per-instance metrics: WebSocket sessions, active calls, and call success rate (scaling demo visible in graphs)
+  3. GitHub Actions CI builds, runs backend + frontend tests, and packages Docker images on every push
+  4. A Playwright E2E test places a real call between two browser contexts (fake media devices) and passes in CI
+**Plans**: TBD
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Foundation — Auth, Roles & Project Skeleton | 0/TBD | Not started | - |
+| 2. Realtime Presence & WebSocket Layer | 0/TBD | Not started | - |
+| 3. 1-1 P2P Call Core & NAT Traversal | 0/TBD | Not started | - |
+| 4. Call Lifecycle & In-Call Experience | 0/TBD | Not started | - |
+| 5. Call History & Admin | 0/TBD | Not started | - |
+| 6. Horizontal Scaling | 0/TBD | Not started | - |
+| 7. Group Mesh Calls | 0/TBD | Not started | - |
+| 8. Screen Share, Recording & Device Control | 0/TBD | Not started | - |
+| 9. Monitoring, CI/CD & Full Delivery | 0/TBD | Not started | - |
+
+---
+*Roadmap created: 2026-06-11*
+*Coverage: 44/44 v1 requirements mapped*

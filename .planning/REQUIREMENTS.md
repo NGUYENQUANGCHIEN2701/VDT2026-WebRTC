@@ -110,13 +110,56 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by roadmap) | | |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 2 | Pending |
+| AUTH-05 | Phase 1 | Pending |
+| PRES-01 | Phase 2 | Pending |
+| PRES-02 | Phase 2 | Pending |
+| PRES-03 | Phase 2 | Pending |
+| CALL-01 | Phase 3 | Pending |
+| CALL-02 | Phase 4 | Pending |
+| CALL-03 | Phase 4 | Pending |
+| CALL-04 | Phase 4 | Pending |
+| CALL-05 | Phase 4 | Pending |
+| CALL-06 | Phase 4 | Pending |
+| CALL-07 | Phase 4 | Pending |
+| CALL-08 | Phase 4 | Pending |
+| MEDIA-01 | Phase 4 | Pending |
+| MEDIA-02 | Phase 3 | Pending |
+| MEDIA-03 | Phase 8 | Pending |
+| MEDIA-04 | Phase 8 | Pending |
+| MEDIA-05 | Phase 3 | Pending |
+| MEDIA-06 | Phase 4 | Pending |
+| STAB-01 | Phase 4 | Pending |
+| STAB-02 | Phase 4 | Pending |
+| STAB-03 | Phase 3 | Pending |
+| STAB-04 | Phase 3 | Pending |
+| HIST-01 | Phase 5 | Pending |
+| HIST-02 | Phase 5 | Pending |
+| HIST-03 | Phase 5 | Pending |
+| ADV-01 | Phase 8 | Pending |
+| ADV-02 | Phase 8 | Pending |
+| ADV-03 | Phase 7 | Pending |
+| ADMN-01 | Phase 5 | Pending |
+| ADMN-02 | Phase 5 | Pending |
+| ADMN-03 | Phase 5 | Pending |
+| SCAL-01 | Phase 6 | Pending |
+| SCAL-02 | Phase 6 | Pending |
+| INFR-01 | Phase 3 | Pending |
+| INFR-02 | Phase 9 | Pending |
+| INFR-03 | Phase 3 | Pending |
+| INFR-04 | Phase 9 | Pending |
+| INFR-05 | Phase 9 | Pending |
+| INFR-06 | Phase 9 | Pending |
+| INFR-07 | Phase 1 | Pending |
 
 **Coverage:**
-- v1 requirements: 38 total
-- Mapped to phases: 0
-- Unmapped: 38 ⚠️ (pending roadmap)
+- v1 requirements: 44 total *(corrected from 38 — recount during roadmap creation)*
+- Mapped to phases: 44
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-11*
-*Last updated: 2026-06-11 after initial definition*
+*Last updated: 2026-06-11 after roadmap creation (traceability populated)*
