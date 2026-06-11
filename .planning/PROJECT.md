@@ -64,6 +64,7 @@ Hai người dùng gọi video 1-1 cho nhau ổn định, realtime, theo đúng 
 | Redis pub/sub cho cross-instance signaling + presence | Demo scale ngang là yêu cầu; presence cần shared state | — Pending |
 | RabbitMQ cho ghi call history bất đồng bộ | Học message queue với use case thực tế, tách write path khỏi realtime path | — Pending |
 | 2 role Admin/User (RBAC đơn giản) | Đủ demo phân quyền tử tế, không over-engineer | — Pending |
+| Access token ngắn hạn + refresh token (rotation) | Chuẩn production; TTL ngắn giảm rủi ro lộ token qua WS query param; admin khóa user thu hồi nhanh | — Pending |
 | Docker Compose full stack + coturn | Demo scale ngay trên 1 máy, TURN sẵn sàng cho NAT thật | — Pending |
 
 ## Evolution

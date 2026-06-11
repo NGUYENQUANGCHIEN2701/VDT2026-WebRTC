@@ -10,7 +10,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Authentication & Authorization
 
 - [ ] **AUTH-01**: User can register an account with username/email and password
-- [ ] **AUTH-02**: User can log in and receive a JWT; session persists across browser refresh
+- [ ] **AUTH-02**: User can log in and receive a short-lived access token (15-30 min) + refresh token; the session auto-renews (axios interceptor on 401, refresh rotation) and persists across browser refresh
 - [ ] **AUTH-03**: System enforces two roles (Admin, User) on both REST API and WebSocket
 - [ ] **AUTH-04**: WebSocket connections are authenticated at handshake; server binds identity server-side (client `from` field never trusted)
 - [ ] **AUTH-05**: User can log out from any page
