@@ -1,7 +1,7 @@
 ---
 phase: 1
 slug: foundation-auth-roles-project-skeleton
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-06-12
@@ -63,13 +63,13 @@ Exceptions:
 | Role    | Size  | Weight          | Line Height | Usage                                              |
 |---------|-------|-----------------|-------------|----------------------------------------------------|
 | Body    | 16px  | 400 (regular)   | 1.5         | Form labels, help text, paragraph copy             |
-| Label   | 14px  | 500 (medium)    | 1.4         | Input field labels, badge text, nav items          |
+| Label   | 14px  | 400 (regular)   | 1.4         | Input field labels, badge text, nav items          |
 | Heading | 20px  | 600 (semibold)  | 1.2         | Auth form card title ("Đăng nhập", "Đăng ký")     |
-| Display | 28px  | 700 (bold)      | 1.15        | Home page greeting "Xin chào {username}"           |
+| Display | 28px  | 600 (semibold)  | 1.15        | Home page greeting "Xin chào {username}"           |
 
-**Weights in use:** 400 (regular), 600 (semibold). Weight 500 (medium) is used only for Label
-role — acceptable as an intermediate; the two "primary" weights for the design system are
-400 and 600. Weight 700 is reserved exclusively for the Display greeting on the Home page.
+**Weights in use:** exactly two — 400 (regular) and 600 (semibold). Size alone drives the
+Body/Label distinction (16px vs 14px); the 28px Display greeting reads as prominent at 600
+without needing 700. No 500 or 700 weights anywhere in the system.
 
 **Font stack (source: Design System table above):**
 ```css
@@ -141,7 +141,7 @@ Wraps label + input + error message. Error message: `text-sm text-red-600 mt-1`.
 ### `<Badge>` (role badge on Home page)
 
 Variants: `admin` (amber) and `user` (emerald) per Color section above.
-Size: `text-xs font-medium px-2.5 py-0.5 rounded-full border`.
+Size: `text-xs font-semibold px-2.5 py-0.5 rounded-full border`.
 
 ### `<AuthCard>` (layout wrapper for Login / Register forms)
 
@@ -161,6 +161,8 @@ Content area: `max-w-3xl mx-auto px-4 py-8`.
 ### Login Page (`/login`)
 
 **Layout:** AuthCard centered on gray-100 background.
+
+**Visual entry point:** the card title "Đăng nhập" (Heading, 20px semibold) is the primary anchor; the eye flows title → inputs → primary CTA. (Register mirrors this with "Đăng ký".)
 
 **Elements:**
 - Heading: "Đăng nhập" (20px semibold)
@@ -209,7 +211,7 @@ Content area: `max-w-3xl mx-auto px-4 py-8`.
 - Right: `<Badge>` (role) + username text (14px, text-gray-600) + Logout button (destructive variant)
 
 **Content area elements:**
-- Display greeting: "Xin chào, {username}!" (28px bold, text-gray-900)
+- Display greeting: "Xin chào, {username}!" (28px semibold, text-gray-900)
 - Subtitle: "Bạn đang đăng nhập với vai trò: " + `<Badge role={role}>` (16px regular)
 - Spacer
 - Placeholder text for Phase 2+ content: "Tính năng sẽ được bổ sung ở các phase tiếp theo."
@@ -369,11 +371,11 @@ No registries used. All components are hand-rolled from Tailwind CSS utilities.
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS (FLAG resolved — visual entry point named)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS (revised 4 weights → 2: 400 + 600)
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-06-12
