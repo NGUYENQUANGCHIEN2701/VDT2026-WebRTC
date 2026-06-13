@@ -1,0 +1,12 @@
+# --- Secrets / local env (never commit real values) ---
+.env
+.env.*
+!.env.example
+# Optional gitignored local Spring overrides (if you ever add one)
+application-local.yaml
+application-local.yml
+application-local.properties
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
