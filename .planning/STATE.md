@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 last_updated: "2026-06-13T05:50:33.764Z"
-last_activity: 2026-06-13 -- Phase 01 planning complete
+last_activity: 2026-06-13 -- Completed quick task 260613-khs: Backend config
 progress:
   total_phases: 9
   completed_phases: 0
@@ -74,6 +74,12 @@ None yet.
 - Phase 6: Redis CAS approach (Lua vs WATCH/MULTI) and cross-instance integration test design deserve a validation pass during planning
 - Phase 8: Recording scope decision (local-only vs composited) has real effort implications — decide during phase planning
 - REQUIREMENTS.md originally stated 38 v1 requirements; actual count is 44 (corrected in traceability)
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260613-khs | Backend config (pom deps, application.yaml + docker profile, Flyway V1/V2) | 2026-06-13 | c7796ea | [260613-khs-backend-config](./quick/260613-khs-backend-config/) |
 
 ## Deferred Items
 
