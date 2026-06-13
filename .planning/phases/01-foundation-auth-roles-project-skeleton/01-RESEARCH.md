@@ -1032,27 +1032,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Spring Boot 4.0.7 vs 4.1.0**
+1. **Spring Boot 4.0.7 vs 4.1.0** (RESOLVED)
    - What we know: 4.0.7 is the last 4.0.x patch; 4.1.0 GA released 2026-06-10 and includes all 4.0.7 fixes. STACK.md says "Boot 4.0.x".
-   - What's unclear: Whether any new 4.1.0 Spring Security 7.1 additions change the auth patterns used in Phase 1.
-   - Recommendation: Use 4.1.0 (most current, all fixes included). Fallback: 4.0.7 — patterns shown in this research work on both.
+   - Resolution: **Use Spring Boot 4.0.x latest patch (e.g. 4.0.7).** CLAUDE.md locks Boot to 4.0.x — this is a non-negotiable user decision. 4.1.0 is NOT used. All auth patterns in this RESEARCH.md are verified to work on Boot 4.0.x/Spring Security 7.
 
-2. **Vite 7 vs 8**
+2. **Vite 7 vs 8** (RESOLVED)
    - What we know: STACK.md and CLAUDE.md reference "Vite 7.x" but Vite 8.0.16 is the current stable npm version.
-   - What's unclear: Whether the locked stack constraint (D-05, CLAUDE.md) intends Vite 7 specifically or "latest stable".
-   - Recommendation: Use Vite 8.0.16 — API-compatible and more current. Note the discrepancy in RESEARCH.md and confirm with user if needed.
+   - Resolution: **Use Vite 8.0.16.** CLAUDE.md permits "take 8.x if stable at setup" — this explicit clause authorises the upgrade. Vite 8 is API-compatible with Vite 7 for proxy, React plugin, and TypeScript. Keep 8.0.16 in all plans.
 
-3. **springdoc-openapi 3.0.3 Boot 4 compatibility**
+3. **springdoc-openapi 3.0.3 Boot 4 compatibility** (RESOLVED)
    - What we know: springdoc.org states it supports Boot 4 + Jackson 3; version 3.0.3 confirmed from Maven search results.
-   - What's unclear: Whether 3.0.3 is the latest or if a newer 3.x patch exists.
-   - Recommendation: Verify on [springdoc.org](https://springdoc.org/) at setup time. If unavailable, skip Swagger for Phase 1 and add manual API docs in `docs/setup.md`.
+   - Resolution: **Include springdoc 3.0.3; it is CLAUDE.md-compliant ("3.x for Boot 4").** Runtime compat with Boot 4.0.x is not 100% verified at research time. Plan 01-01 carries a documented fallback: if `./mvnw compile` fails on springdoc, comment it out and document APIs manually in `docs/setup.md`. springdoc cannot block Plan 01.
 
-4. **Refresh endpoint cookie path and Vite proxy**
-   - What we know: Vite proxy can make all requests same-origin, eliminating the cross-origin cookie issue. But the `/api/auth/refresh` endpoint is called by the axios interceptor which fires even on page load before Vite proxy is involved.
-   - What's unclear: Exact cookie path behavior in the Compose environment (nginx proxies `/api` — same-origin there).
-   - Recommendation: Set cookie `path="/api/auth"`, use `withCredentials: true` globally on axios, and proxy all `/api` through Vite in dev. Both dev and Compose are then same-origin from the browser's perspective.
+4. **Refresh endpoint cookie path and Vite proxy** (RESOLVED)
+   - What we know: Vite proxy makes dev requests same-origin. Cookie path scoping limits the refresh cookie to auth endpoints only.
+   - Resolution: **Set cookie `path="/api/auth"`**, use `withCredentials: true` globally on axios. In dev, the Vite proxy proxies all `/api` to `localhost:8080`, making requests same-origin from the browser — the httpOnly cookie set on `localhost:5173` is automatically sent to `/api/auth/refresh`. In Compose, nginx proxies `/api` to `backend:8080` — also same-origin. Both environments work without explicit CORS config for cookies. Confirmed in PATTERNS.md §httpOnly Cookie Policy.
 
 ---
 
