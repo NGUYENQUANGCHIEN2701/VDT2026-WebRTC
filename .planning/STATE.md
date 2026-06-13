@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 last_updated: "2026-06-13T05:50:33.764Z"
-last_activity: 2026-06-13 -- Completed quick task 260613-kxw: Externalize credentials
+last_activity: 2026-06-13 -- Completed quick task 260613-laz: Docker Compose stack
 progress:
   total_phases: 9
   completed_phases: 0
@@ -81,6 +81,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 260613-khs | Backend config (pom deps, application.yaml + docker profile, Flyway V1/V2) | 2026-06-13 | c7796ea | [260613-khs-backend-config](./quick/260613-khs-backend-config/) |
 | 260613-kxw | Externalize DB/JWT credentials via env vars (.env.example, root .gitignore) | 2026-06-13 | 9678bda | [260613-kxw-env-config-credentials](./quick/260613-kxw-env-config-credentials/) |
+| 260613-laz | Docker Compose (postgres + backend) + backend Dockerfile | 2026-06-13 | dd77b42 | [260613-laz-docker-compose-backend](./quick/260613-laz-docker-compose-backend/) |
 
 ## Deferred Items
 
