@@ -1,12 +1,26 @@
 import { create } from 'zustand'
 
-// State đăng nhập dùng chung toàn app.
-interface AuthState {
-  token: string | null
-  // TODO (bạn code): user info (username, role), setAuth(), logout()
+interface User {
+  username: string
+  role: string
 }
 
-export const useAuthStore = create<AuthState>(() => ({
-  token: null,
-  // TODO: khởi tạo token từ localStorage; thêm action setAuth/logout
-}))
+interface AuthState {
+  token: string | null
+  user: User | null
+  setAuth: (token: string, user: User) => void
+  logout: () => void
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  token: localStorage.getItem('token'),
+  user: null,
+  setAuth: (token, user) => {
+    localStorage.setItem('token', token)
+    set({ token, user })
+  },
+  logout: () => {
+    localStorage.removeItem('token')
+    set({ token: null, user: null })
+  }
+})) 

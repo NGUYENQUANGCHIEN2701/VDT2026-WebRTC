@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useAuthStore } from '../store/authStore'
 
 // Bọc các route cần đăng nhập.
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  // TODO (bạn code): đọc token từ useAuthStore;
-  //  - chưa có token → return <Navigate to="/login" replace />
-  //  - có token → render children
+  const token = useAuthStore((state) => state.token)
+  if(!token) {
+    return <Navigate to="/login" replace />
+  } 
   return <>{children}</>
 }
