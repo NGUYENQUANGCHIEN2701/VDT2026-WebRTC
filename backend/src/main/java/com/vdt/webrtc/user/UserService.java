@@ -2,6 +2,7 @@ package com.vdt.webrtc.user;
 
 import org.springframework.stereotype.Service;
 
+import com.vdt.webrtc.common.UserNotFoundException;
 import com.vdt.webrtc.user.dto.UserProfile;
 
 @Service
@@ -14,7 +15,7 @@ public class UserService {
 
     public UserProfile findUserProfileByUsername(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
         
         return new UserProfile(user.getUsername(), user.getEmail(), user.getRole().name());
     }

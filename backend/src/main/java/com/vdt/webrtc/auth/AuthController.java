@@ -2,6 +2,7 @@ package com.vdt.webrtc.auth;
 
 import java.time.Duration;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -23,9 +24,11 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService authService;
+    private final boolean cookieSecure;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, @Value("${app.cookie.secure}") boolean cookieSecure) {
         this.authService = authService;
+        this.cookieSecure = cookieSecure;
     }
 
     @PostMapping("/register")
@@ -79,7 +82,7 @@ public class AuthController {
     private ResponseCookie buildRefreshCookie(String rawToken, Duration maxAge) {
         return ResponseCookie.from("refreshToken", rawToken)
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .sameSite("Lax")
                 .path("/api/auth")
                 .maxAge(maxAge)

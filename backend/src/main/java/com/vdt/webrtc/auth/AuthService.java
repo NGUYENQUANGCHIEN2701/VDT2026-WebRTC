@@ -64,6 +64,7 @@ public class AuthService {
         return new RegisterResponse(username, email, role.name());
     }
 
+    @Transactional
     public LoginResult login(LoginRequest request) {
         String username = request.username();
         String password = request.password();

@@ -10,9 +10,11 @@ export function useLogout() {
         try {
             await api.post('/api/auth/logout')
         } catch {
+            // Cố ý bỏ qua: logout phía client phải luôn thành công dù API lỗi mạng.
+            // Cookie/token sẽ được dọn ở finally bất kể server có phản hồi hay không.
         } finally {
-            clearAuth()                                 
-            navigate('/login', { replace: true })      
+            clearAuth()
+            navigate('/login', { replace: true })
         }
     }
 }

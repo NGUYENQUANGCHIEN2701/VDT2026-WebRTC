@@ -36,6 +36,12 @@ public class GlobalExceptionHandler {
                 .body(build(HttpStatus.UNAUTHORIZED, ex.getMessage(), null, request));
     }
 
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ApiError> handleUserNotFound(UserNotFoundException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(build(HttpStatus.NOT_FOUND, ex.getMessage(), null, request));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
             HttpServletRequest request) {

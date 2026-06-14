@@ -26,3 +26,6 @@ management:
 jwt:
   secret: ${JWT_SECRET:dev-only-secret-not-for-prod-change-me-min-32-chars-12345}
   access-token-ttl-ms: ${JWT_ACCESS_TTL_MS:3600000} # 1h for dev convenience; tighten (e.g. 900000) in prod
+app:
+  cookie:
+    secure: ${COOKIE_SECURE:false}
