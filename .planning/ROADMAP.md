@@ -70,7 +70,19 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Killing a client or instance without a clean disconnect shows that user offline automatically within ~60s (Redis TTL heartbeat)
   4. Opening a new tab or device kicks the old session — only one active session per user
 
-**Plans**: TBD
+**Plans:** 3 plans
+**Wave 0/1**
+
+- [ ] 02-01-PLAN.md — Wave 0 test scaffolding: Awaitility + StandardWebSocketClient harness, five backend WS integration tests, Vitest + red wsClient unit test
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-02-PLAN.md — Authenticated WS + in-memory presence backend: sealed envelope, PresenceService/MessageRouter seam, handshake interceptor, handler (single-session + heartbeat), TTL sweeper, /ws wiring
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 02-03-PLAN.md — Frontend realtime slice: native WS wrapper, presenceStore, presence UI (list/indicator/kick notice), HomePage online list, App/logout wiring + cross-browser verification
+
 **UI hint**: yes
 
 ### Phase 3: 1-1 P2P Call Core & NAT Traversal
@@ -192,7 +204,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation — Auth, Roles & Project Skeleton | 4/4 | ✅ Complete | 2026-06-14 |
-| 2. Realtime Presence & WebSocket Layer | 0/TBD | Not started | - |
+| 2. Realtime Presence & WebSocket Layer | 0/3 | Not started | - |
 | 3. 1-1 P2P Call Core & NAT Traversal | 0/TBD | Not started | - |
 | 4. Call Lifecycle & In-Call Experience | 0/TBD | Not started | - |
 | 5. Call History & Admin | 0/TBD | Not started | - |
@@ -205,3 +217,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *Roadmap created: 2026-06-11*
 *Coverage: 44/44 v1 requirements mapped*
 *Phase 1 planned: 2026-06-12 — 4 plans in 4 waves*
+*Phase 2 planned: 2026-06-14 — 3 plans in 3 waves*
