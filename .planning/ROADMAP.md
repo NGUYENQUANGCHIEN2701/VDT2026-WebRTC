@@ -13,7 +13,7 @@ The journey runs identity → connectivity → core call → robustness → data
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation — Auth, Roles & Project Skeleton** - JWT register/login with Admin/User roles, PostgreSQL + Flyway, React shell, Compose + CI skeleton
+- [x] **Phase 1: Foundation — Auth, Roles & Project Skeleton** - JWT register/login with Admin/User roles, PostgreSQL + Flyway, React shell, Compose + CI skeleton ✅
 - [ ] **Phase 2: Realtime Presence & WebSocket Layer** - Authenticated WebSocket, Redis TTL presence, realtime online-user list, single-session policy
 - [ ] **Phase 3: 1-1 P2P Call Core & NAT Traversal** - Working P2P video call with perfect negotiation, coturn TURN relay, HTTPS/WSS, quality diagnostics
 - [ ] **Phase 4: Call Lifecycle & In-Call Experience** - Server-authoritative state machine: ringing, busy, missed, glare, hangup reasons, reconnection, in-call UX
@@ -191,7 +191,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation — Auth, Roles & Project Skeleton | 0/4 | Ready to execute | - |
+| 1. Foundation — Auth, Roles & Project Skeleton | 4/4 | ✅ Complete | 2026-06-14 |
 | 2. Realtime Presence & WebSocket Layer | 0/TBD | Not started | - |
 | 3. 1-1 P2P Call Core & NAT Traversal | 0/TBD | Not started | - |
 | 4. Call Lifecycle & In-Call Experience | 0/TBD | Not started | - |
