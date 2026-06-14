@@ -6,14 +6,18 @@ import { useAuthStore } from '../store/authStore'
 export default function ProtectedRoute({ children, requiredRole }: { children: ReactNode; requiredRole?: string }) {
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
-  
-  if(!token) {
+  const isLoading = useAuthStore((state) => state.isLoading)
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+  if (!token) {
     return <Navigate to="/login" replace />
   }
-  
-  if(requiredRole && user?.role !== requiredRole) {
+
+  if (requiredRole && user?.role !== requiredRole) {
     return <Navigate to="/" replace />
   }
-  
+
   return <>{children}</>
 }
