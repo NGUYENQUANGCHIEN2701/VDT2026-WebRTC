@@ -12,7 +12,8 @@ class SingleSessionTest extends WsTestSupport {
 
         connect(mintToken("alice"), new CollectingHandler()); // CÙNG user → đá session 1
 
-        String frame = h1.awaitMessage(3000);
-        assertThat(frame).contains("session-superseded"); // tab cũ nhận lệnh đá
+        // tab cũ nhận lệnh đá (bỏ qua frame snapshot join đến trước)
+        String frame = h1.awaitMatching(f -> f.contains("session-superseded"), 3000);
+        assertThat(frame).isNotNull();
     }
 }

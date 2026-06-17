@@ -12,13 +12,13 @@ class PresenceBroadcastTest extends WsTestSupport {
         CollectingHandler hBob = new CollectingHandler();
         connect(mintToken("bob"), hBob);
 
-        // bob nhận snapshot chứa CẢ hai
-        String snapshot = hBob.awaitMessage(2000);
-        assertThat(snapshot).contains("alice").contains("bob");
+        // bob nhận snapshot chứa CẢ hai (chờ state hội tụ, bỏ qua frame join trung gian)
+        String snapshot = hBob.awaitMatching(f -> f.contains("alice") && f.contains("bob"), 3000);
+        assertThat(snapshot).isNotNull();
 
         // alice rời đi → bob nhận snapshot mới KHÔNG còn alice
         alice.close();
-        String updated = hBob.awaitMessage(2000);
-        assertThat(updated).contains("presence").doesNotContain("alice");
+        String updated = hBob.awaitMatching(f -> f.contains("presence") && !f.contains("alice"), 3000);
+        assertThat(updated).isNotNull().contains("bob");
     }
 }

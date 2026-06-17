@@ -1,6 +1,5 @@
 package com.vdt.webrtc.ws;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -18,12 +17,17 @@ class PresenceSweeperTest extends WsTestSupport {
         // alice kết nối rồi KHÔNG bao giờ ping → sẽ bị quét
         connect(mintToken("alice"), new CollectingHandler());
 
-        await().atMost(Duration.ofSeconds(80))
+        // 1. xác nhận alice đã thực sự online (xuất hiện trong 1 snapshot) — tránh
+        //    false-positive từ snapshot [bob] lúc bob join trước khi alice vào.
+        await().atMost(Duration.ofSeconds(5))
+                .until(() -> hBob.drainMatching(f -> f.contains("alice")));
+
+        // 2. alice ngừng heartbeat → sweeper quét alice khỏi snapshot trong ~60-80s
+        await().atMost(Duration.ofSeconds(90))
                 .pollInterval(Duration.ofSeconds(5))
                 .until(() -> {
                     bob.sendMessage(new TextMessage("{\"type\":\"ping\"}")); // giữ bob sống
-                    String frame = hBob.awaitMessage(2000);
-                    return frame != null && frame.contains("presence") && !frame.contains("alice");
+                    return hBob.drainMatching(f -> f.contains("presence") && !f.contains("alice"));
                 });
     }
 }
