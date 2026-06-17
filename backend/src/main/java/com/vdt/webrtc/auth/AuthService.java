@@ -77,6 +77,7 @@ public class AuthService {
         String accessToken = jwtService.generateToken(user.getUsername(), user.getRole().name());
 
         String rawRefreshToken = generateRawToken();
+        refreshTokenRepository.revokeAllActiveByUser(user);  // Đảm bảo chỉ có 1 refresh token hợp lệ mỗi user
         storeRefreshTokenHash(user, rawRefreshToken);
 
         return new LoginResult(accessToken, user.getUsername(), user.getRole().name(), rawRefreshToken);
