@@ -7,9 +7,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vdt.webrtc.ws.message.ServerMessage;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,7 +29,7 @@ public class LocalMessageRouter implements MessageRouter {
         String json;
         try {
             json = mapper.writeValueAsString(message);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("Không serialize được message", e);
             return; // hỏng từ gốc thì khỏi gửi ai
         }

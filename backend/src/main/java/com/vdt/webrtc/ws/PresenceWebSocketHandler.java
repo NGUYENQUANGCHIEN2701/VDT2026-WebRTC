@@ -10,7 +10,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vdt.webrtc.presence.PresenceService;
 import com.vdt.webrtc.ws.message.ClientMessage;
 import com.vdt.webrtc.ws.message.Ping;
@@ -19,6 +18,7 @@ import com.vdt.webrtc.ws.message.PresenceSnapshot;
 import com.vdt.webrtc.ws.message.SessionSuperseded;
 
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @Component
