@@ -8,15 +8,28 @@ import axios from 'axios'
 import { useEffect, useRef } from 'react'
 import api from './api/axios'
 import HomePage from './pages/HomePage'
+import { connectWs } from './realtime/wsClient'
 
 function App() {
   const setAuth = useAuthStore((state) => state.setAuth)
   const setLoading = useAuthStore((state) => state.setLoading)
   const didRestore = useRef(false)
-
+  const token = useAuthStore((state) => state.token)
+  const didConnect = useRef(false)
   useEffect(() => {
-    // StrictMode chạy effect 2 lần trong dev → chặn restore() chạy trùng
-    // (lần 2 sẽ gửi lại cookie đã bị rotation revoke → 401 → đá ra login)
+    // StrictMode chạy effect 2 lần trong dev → chặn mở 2 WebSocket (2 session tự đá nhau)
+    if (!token) {
+      didConnect.current = false
+      return
+    }
+    if (didConnect.current) return
+    didConnect.current = true
+    connectWs()
+  }, [token])
+
+  // StrictMode chạy effect 2 lần trong dev → chặn restore() chạy trùng
+  // (lần 2 sẽ gửi lại cookie đã bị rotation revoke → 401 → đá ra login)
+  useEffect(() => {
     if (didRestore.current) return
     didRestore.current = true
 
