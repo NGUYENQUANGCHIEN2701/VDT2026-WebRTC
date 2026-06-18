@@ -158,7 +158,7 @@ Browser A (Caller)                     Browser B (Callee)
 │  RTCPeerConnection │◄── P2P media ──►│  RTCPeerConnection │
 │  polite=false      │                 │  polite=true       │
 └──────┬─────────────┘                 └──────────┬─────────┘
-       │ SDP/ICE (call-offer / call-answer /       │
+       │ SDP/ICE (call-offer / sdp /                │
        │ ice-candidate) via WS envelope             │
        ▼                                            ▼
 ┌──────────────────────────────────────────────────────────┐
@@ -182,7 +182,7 @@ Browser A (Caller)                     Browser B (Callee)
 2. Caller sends `{type:"call-offer", to:"callee"}` over WS → Spring routes to callee session
 3. Callee sees incoming-call UI; accepts → sends `{type:"call-accept", to:"caller"}`
 4. Caller (impolite): `onnegotiationneeded` fires → `setLocalDescription()` → sends `call-offer` with SDP
-5. Callee (polite): receives offer → `setRemoteDescription()` → `setLocalDescription()` → sends `call-answer`
+5. Callee (polite): receives offer → `setRemoteDescription()` → `setLocalDescription()` → sends the SDP answer over `sdp` (relayed as `sdp-received`)
 6. Both sides exchange `ice-candidate` messages; server relays opaquely
 7. ICE completes; DTLS-SRTP established; media flows P2P (or via TURN relay)
 
@@ -355,22 +355,55 @@ public void sendToUser(String userId, ServerMessage message) {
 
 ### Pattern 4: Sealed Envelope Extension
 
+#### CANONICAL WIRE-NAME CONTRACT (single source of truth)
+
+This table is the ONE authoritative mapping for Phase 3 signaling wire `type` names.
+Plan 01 (`CallSignalingTest`), Plan 02 (`@JsonSubTypes`), and Plan 03 (`messages.ts` +
+`wsClient.ts` dispatch keys) MUST all match this table exactly. Convention decision:
+**every server→client message uses the `*-received` suffix**; every client→server message
+uses the bare name. This keeps the two directions distinct everywhere (no name collision
+between an outbound command and the inbound notification it triggers — including `sdp` vs
+`sdp-received` and `ice-candidate` vs `ice-candidate-received`), so the FE never silently
+fails to dispatch a server message.
+
+| Direction | Wire `type` | Fields | Java record | TS variant |
+|-----------|-------------|--------|-------------|------------|
+| client → server | `call-offer` | {to, callId} | `CallOffer` | `{type:'call-offer'; to; callId}` |
+| client → server | `call-accept` | {to, callId} | `CallAccept` | `{type:'call-accept'; to; callId}` |
+| client → server | `call-reject` | {to, callId} | `CallReject` | `{type:'call-reject'; to; callId}` |
+| client → server | `call-cancel` | {to, callId} | `CallCancel` | `{type:'call-cancel'; to; callId}` |
+| client → server | `hang-up` | {to, callId} | `HangUp` | `{type:'hang-up'; to; callId}` |
+| client → server | `sdp` | {to, callId, sdp} | `SdpMessage` | `{type:'sdp'; to; callId; sdp}` |
+| client → server | `ice-candidate` | {to, callId, candidate} | `IceCandidateMessage` | `{type:'ice-candidate'; to; callId; candidate}` |
+| server → client | `call-offer-received` | {from, callId} | `CallOfferReceived` | `{type:'call-offer-received'; from; callId}` |
+| server → client | `call-accept-received` | {from, callId} | `CallAcceptReceived` | `{type:'call-accept-received'; from; callId}` |
+| server → client | `call-reject-received` | {from, callId} | `CallRejectReceived` | `{type:'call-reject-received'; from; callId}` |
+| server → client | `call-cancel-received` | {from, callId} | `CallCancelReceived` | `{type:'call-cancel-received'; from; callId}` |
+| server → client | `hang-up-received` | {from, callId} | `HangUpReceived` | `{type:'hang-up-received'; from; callId}` |
+| server → client | `sdp-received` | {from, callId, sdp} | `SdpReceived` | `{type:'sdp-received'; from; callId; sdp}` |
+| server → client | `ice-candidate-received` | {from, callId, candidate} | `IceCandidateReceived` | `{type:'ice-candidate-received'; from; callId; candidate}` |
+
+> Note: the earlier `call-answer` / `call-answer-received` idea is dropped — D-01's simple
+> handshake uses `call-accept` (callee accepts) and then perfect negotiation drives SDP via
+> `sdp`/`sdp-received`. There is no separate `call-answer` signaling type.
+
 **Adding call messages — backend (Java):**
 ```java
-// ServerMessage.java — add new permit types
+// ServerMessage.java — add new permit types (names MUST match the canonical table above)
 @JsonSubTypes({
     // ... existing: PresenceSnapshot, SessionSuperseded, Pong ...
     @JsonSubTypes.Type(value = CallOfferReceived.class, name = "call-offer-received"),
-    @JsonSubTypes.Type(value = CallAnswerReceived.class, name = "call-answer-received"),
-    @JsonSubTypes.Type(value = IceCandidateReceived.class, name = "ice-candidate"),
-    @JsonSubTypes.Type(value = HangUpReceived.class, name = "hang-up"),
-    @JsonSubTypes.Type(value = CallRejectReceived.class, name = "call-reject"),
-    @JsonSubTypes.Type(value = CallCancelReceived.class, name = "call-cancel"),
+    @JsonSubTypes.Type(value = CallAcceptReceived.class, name = "call-accept-received"),
+    @JsonSubTypes.Type(value = CallRejectReceived.class, name = "call-reject-received"),
+    @JsonSubTypes.Type(value = CallCancelReceived.class, name = "call-cancel-received"),
+    @JsonSubTypes.Type(value = HangUpReceived.class, name = "hang-up-received"),
+    @JsonSubTypes.Type(value = SdpReceived.class, name = "sdp-received"),
+    @JsonSubTypes.Type(value = IceCandidateReceived.class, name = "ice-candidate-received"),
 })
 public sealed interface ServerMessage permits 
     PresenceSnapshot, SessionSuperseded, Pong,
-    CallOfferReceived, CallAnswerReceived, IceCandidateReceived,
-    HangUpReceived, CallRejectReceived, CallCancelReceived {}
+    CallOfferReceived, CallAcceptReceived, CallRejectReceived, CallCancelReceived,
+    HangUpReceived, SdpReceived, IceCandidateReceived {}
 
 // ClientMessage.java — add client-initiated call messages
 @JsonSubTypes({
@@ -392,19 +425,19 @@ public sealed interface ClientMessage permits
 **Frontend (TypeScript) — discriminated union extension:**
 ```typescript
 // messages.ts — extend existing ServerMessage + ClientMessage types
+// type strings MUST match the canonical wire-name table above
 export type ServerMessage =
     | { type: 'presence'; users: OnlineUser[] }
     | { type: 'session-superseded'; reason: string }
     | { type: 'pong' }
-    // Phase 3 call messages (server → client):
+    // Phase 3 call messages (server → client) — all `*-received`:
     | { type: 'call-offer-received'; from: string; callId: string }
-    | { type: 'call-answer-received'; from: string; callId: string }
-    | { type: 'call-accept'; from: string; callId: string }
-    | { type: 'call-reject'; from: string; callId: string }
-    | { type: 'call-cancel'; from: string; callId: string }
-    | { type: 'hang-up'; from: string; callId: string }
-    | { type: 'sdp'; from: string; callId: string; sdp: RTCSessionDescriptionInit }
-    | { type: 'ice-candidate'; from: string; callId: string; candidate: RTCIceCandidateInit }
+    | { type: 'call-accept-received'; from: string; callId: string }
+    | { type: 'call-reject-received'; from: string; callId: string }
+    | { type: 'call-cancel-received'; from: string; callId: string }
+    | { type: 'hang-up-received'; from: string; callId: string }
+    | { type: 'sdp-received'; from: string; callId: string; sdp: RTCSessionDescriptionInit }
+    | { type: 'ice-candidate-received'; from: string; callId: string; candidate: RTCIceCandidateInit }
 
 export type ClientMessage =
     | { type: 'ping' }
