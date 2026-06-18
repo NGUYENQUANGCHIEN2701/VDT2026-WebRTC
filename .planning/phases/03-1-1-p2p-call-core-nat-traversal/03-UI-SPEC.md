@@ -1,7 +1,8 @@
 ---
 phase: 3
 slug: 1-1-p2p-call-core-nat-traversal
-status: draft
+status: approved
+reviewed_at: 2026-06-18
 shadcn_initialized: false
 preset: none
 created: 2026-06-18
@@ -77,7 +78,7 @@ Inherits Phase 2 system exactly (400 regular + 600 semibold; no third weight).
 | Body | 16px | 400 | 1.5 | MediaErrorNotice message body; IncomingCallCard sub-text; pre-call instruction copy |
 | Label | 14px | 600 | 1.4 | QualityIndicator values (RTT, loss); DebugPanel key-value rows; call control button labels (if shown); ICE state badge text |
 
-**Monospace exception:** DebugPanel raw values (codec string, bitrate number, resolution, candidate type) use `var(--mono)` at 13px/400/1.4 — readable as technical data without introducing a new named typographic role.
+**Monospace note:** DebugPanel raw values (codec string, bitrate number, resolution, candidate type) use `var(--mono)` at the **Label size (14px/400)** — only the font stack changes to monospace; **no new font size is introduced** (total sizes remain 4: 28/20/16/14).
 
 **Font:** `var(--sans)` throughout. `var(--mono)` for DebugPanel data only. No web-font fetch.
 
@@ -216,12 +217,12 @@ Hidden by default. Toggled by a button in the CallPage top bar (labelled "Debug"
 
 | Label | Value example | Font |
 |-------|---------------|------|
-| Codec | `video/VP8` | `var(--mono)` 13px/400 |
-| Bitrate | `842 kbps` | `var(--mono)` 13px/400 |
-| Resolusi | `1280×720` | `var(--mono)` 13px/400 |
-| ICE | `relay` | `var(--mono)` 13px/400, colour: relay→`#dc2626`, srflx→`#d97706`, host→`var(--text)` |
-| RTT | `47 ms` | `var(--mono)` 13px/400 |
-| Loss | `0.3%` | `var(--mono)` 13px/400 |
+| Codec | `video/VP8` | `var(--mono)` 14px/400 |
+| Bitrate | `842 kbps` | `var(--mono)` 14px/400 |
+| Resolusi | `1280×720` | `var(--mono)` 14px/400 |
+| ICE | `relay` | `var(--mono)` 14px/400, colour: relay→`#dc2626`, srflx→`#d97706`, host→`var(--text)` |
+| RTT | `47 ms` | `var(--mono)` 14px/400 |
+| Loss | `0.3%` | `var(--mono)` 14px/400 |
 
 - Label text: 14px/600 `var(--text)`.
 - Shows "—" for unavailable values.
