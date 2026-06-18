@@ -99,7 +99,27 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. The app is served over HTTPS/WSS so getUserMedia works on devices other than localhost
   5. In-call user sees a network quality indicator (RTT/packet loss) and a debug panel showing codec, bitrate, resolution, and ICE candidate type (host/srflx/relay)
 
-**Plans**: TBD
+**Plans:** 5 plans
+**Wave 1** *(Wave 0 test scaffolding)*
+
+- [ ] 03-01-PLAN.md — Wave 0 RED tests: CallSignalingTest + TurnControllerTest (BE), PeerManager/media/stats Vitest (FE)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 03-02-PLAN.md — Backend signaling slice: call message records + sealed envelope, SessionRegistry, sendToUser impl, opaque routing, TURN ephemeral-HMAC endpoint
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 03-03-PLAN.md — Frontend call core slice (STUN): media.ts, PeerManager (perfect negotiation + buffering), callStore, signaling dispatch, call UI (/call route, self-view, incoming card, hang up) — the core-value slice
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 03-04-PLAN.md — Quality + diagnostics slice: stats.ts (getStats), QualityIndicator + togglable DebugPanel wired into CallPage
+
+**Wave 5** *(blocked on Waves 2-4 completion)*
+
+- [ ] 03-05-PLAN.md — NAT traversal + HTTPS slice: coturn service + turnserver.conf, forced-relay proof, mkcert HTTPS/WSS, setup docs, 2-device verification
+
 **UI hint**: yes
 
 ### Phase 4: Call Lifecycle & In-Call Experience
@@ -205,7 +225,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Foundation — Auth, Roles & Project Skeleton | 4/4 | ✅ Complete | 2026-06-14 |
 | 2. Realtime Presence & WebSocket Layer | 0/3 | Not started | - |
-| 3. 1-1 P2P Call Core & NAT Traversal | 0/TBD | Not started | - |
+| 3. 1-1 P2P Call Core & NAT Traversal | 0/5 | Not started | - |
 | 4. Call Lifecycle & In-Call Experience | 0/TBD | Not started | - |
 | 5. Call History & Admin | 0/TBD | Not started | - |
 | 6. Horizontal Scaling | 0/TBD | Not started | - |
@@ -218,3 +238,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *Coverage: 44/44 v1 requirements mapped*
 *Phase 1 planned: 2026-06-12 — 4 plans in 4 waves*
 *Phase 2 planned: 2026-06-14 — 3 plans in 3 waves*
+*Phase 3 planned: 2026-06-18 — 5 plans in 5 waves*
