@@ -8,7 +8,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(value = PresenceSnapshot.class, name = "presence"),
     @JsonSubTypes.Type(value = SessionSuperseded.class, name = "session-superseded"),
     @JsonSubTypes.Type(value = Pong.class, name = "pong"),
+    @JsonSubTypes.Type(value = CallOfferReceived.class, name = "call-offer-received")
 })
-public sealed interface ServerMessage permits PresenceSnapshot, SessionSuperseded, Pong {
+public sealed interface ServerMessage permits PresenceSnapshot, SessionSuperseded, Pong , CallOfferReceived {
     
 }

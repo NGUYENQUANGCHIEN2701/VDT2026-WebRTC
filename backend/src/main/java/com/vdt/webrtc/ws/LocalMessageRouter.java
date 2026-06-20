@@ -19,9 +19,10 @@ import lombok.extern.slf4j.Slf4j;
 public class LocalMessageRouter implements MessageRouter {
 
     private final ObjectMapper mapper;
-
-    public LocalMessageRouter(ObjectMapper mapper) {
+    private final SessionRegistry sessionRegistry;
+    public LocalMessageRouter(ObjectMapper mapper, SessionRegistry sessionRegistry) {
         this.mapper = mapper;
+        this.sessionRegistry = sessionRegistry;
     }
 
     @Override
@@ -50,6 +51,27 @@ public class LocalMessageRouter implements MessageRouter {
 
     @Override
     public void sendToUser(String userId, ServerMessage message) {
-        throw new UnsupportedOperationException("sendToUser: để dành Phase 3 signaling");
+        String json;
+        try {
+            json = mapper.writeValueAsString(message);
+        } catch (JacksonException e) {
+            log.error("Không serialize được message", e);
+            return; // hỏng từ gốc thì khỏi gửi ai
+        }
+
+        TextMessage textMessage = new TextMessage(json);
+        sessionRegistry.get(userId).ifPresentOrElse(session -> {
+            try {
+                synchronized (session) {
+                    if (session.isOpen()) {
+                        session.sendMessage(textMessage);
+                    }
+                }
+            } catch (IOException e) {
+                log.warn("Gửi thất bại tới user {}", userId, e);
+            }
+        }, () -> {
+            log.warn("User {} không tồn tại hoặc không hoạt động", userId);
+        });
     }
 }

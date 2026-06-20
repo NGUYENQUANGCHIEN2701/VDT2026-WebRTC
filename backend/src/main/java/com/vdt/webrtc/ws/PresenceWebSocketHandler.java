@@ -1,8 +1,6 @@
 package com.vdt.webrtc.ws;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -11,6 +9,8 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.vdt.webrtc.presence.PresenceService;
+import com.vdt.webrtc.ws.message.CallOffer;
+import com.vdt.webrtc.ws.message.CallOfferReceived;
 import com.vdt.webrtc.ws.message.ClientMessage;
 import com.vdt.webrtc.ws.message.Ping;
 import com.vdt.webrtc.ws.message.Pong;
@@ -27,18 +27,20 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
     private final MessageRouter router;
     private final ObjectMapper mapper;
 
-    private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+    private final SessionRegistry sessionRegistry;
 
-    public PresenceWebSocketHandler(PresenceService presence, MessageRouter router, ObjectMapper mapper) {
+    public PresenceWebSocketHandler(PresenceService presence, MessageRouter router, ObjectMapper mapper,
+            SessionRegistry sessionRegistry) {
         this.presence = presence;
         this.router = router;
         this.mapper = mapper;
+        this.sessionRegistry = sessionRegistry;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         String username = username(session);
-        WebSocketSession old = sessions.put(username, session);
+        WebSocketSession old = sessionRegistry.register(username, session);
         if (old != null && old.isOpen() && !old.getId().equals(session.getId())) {
             router.broadcast(new SessionSuperseded("Đăng nhập ở nơi khác"), List.of(old));
             old.close(new CloseStatus(4001, "superseded"));
@@ -54,13 +56,17 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         if (clientMessage instanceof Ping) {
             presence.heartbeat(username);
             router.broadcast(new Pong(), List.of(session));
+        } else if (clientMessage instanceof CallOffer offer) {
+            // from = username (từ token), KHÔNG tin body → chống spoof
+            CallOfferReceived received = new CallOfferReceived(username, offer.callId());
+            router.sendToUser(offer.to(), received);
         }
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         String username = username(session);
-        if (sessions.remove(username, session)) {
+        if (sessionRegistry.deregister(username, session)) {
             presence.leave(username);
             broadcastSnapshot();
         }
@@ -68,7 +74,7 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
 
     public void broadcastSnapshot() {
         PresenceSnapshot snapshot = new PresenceSnapshot(presence.snapshot());
-        router.broadcast(snapshot, sessions.values());
+        router.broadcast(snapshot, sessionRegistry.all());
     }
 
     private String username(WebSocketSession session) {

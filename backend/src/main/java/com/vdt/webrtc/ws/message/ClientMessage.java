@@ -8,7 +8,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = Ping.class, name = "ping"),
+        @JsonSubTypes.Type(value = CallOffer.class, name = "call-offer")
 })
-public sealed interface ClientMessage permits Ping {
+public sealed interface ClientMessage permits Ping , CallOffer {
 
 }
