@@ -12,9 +12,11 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = CallAcceptReceived.class, name = "call-accept-received"),
         @JsonSubTypes.Type(value = CallRejectReceived.class, name = "call-reject-received"),
         @JsonSubTypes.Type(value = CallCancelReceived.class, name = "call-cancel-received"),
-        @JsonSubTypes.Type(value = HangUpReceived.class, name = "hang-up-received")
+        @JsonSubTypes.Type(value = HangUpReceived.class, name = "hang-up-received"),
+        @JsonSubTypes.Type(value = SdpReceived.class, name = "sdp-received"),
+        @JsonSubTypes.Type(value = IceCandidateReceived.class, name = "ice-candidate-received")
 })
 public sealed interface ServerMessage permits PresenceSnapshot, SessionSuperseded, Pong, CallOfferReceived,
-        CallAcceptReceived, CallRejectReceived, CallCancelReceived, HangUpReceived {
+        CallAcceptReceived, CallRejectReceived, CallCancelReceived, HangUpReceived, SdpReceived, IceCandidateReceived {
 
 }

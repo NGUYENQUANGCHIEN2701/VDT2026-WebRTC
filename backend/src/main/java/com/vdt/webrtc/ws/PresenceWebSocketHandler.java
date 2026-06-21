@@ -20,9 +20,13 @@ import com.vdt.webrtc.ws.message.CallRejectReceived;
 import com.vdt.webrtc.ws.message.ClientMessage;
 import com.vdt.webrtc.ws.message.HangUp;
 import com.vdt.webrtc.ws.message.HangUpReceived;
+import com.vdt.webrtc.ws.message.IceCandidateMessage;
+import com.vdt.webrtc.ws.message.IceCandidateReceived;
 import com.vdt.webrtc.ws.message.Ping;
 import com.vdt.webrtc.ws.message.Pong;
 import com.vdt.webrtc.ws.message.PresenceSnapshot;
+import com.vdt.webrtc.ws.message.SdpMessage;
+import com.vdt.webrtc.ws.message.SdpReceived;
 import com.vdt.webrtc.ws.message.SessionSuperseded;
 
 import lombok.extern.slf4j.Slf4j;
@@ -80,6 +84,15 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         } else if (clientMessage instanceof HangUp hangUp) {
             HangUpReceived received = new HangUpReceived(username, hangUp.callId());
             router.sendToUser(hangUp.to(), received);
+        } else if (clientMessage instanceof SdpMessage sdpMessage) {
+            SdpReceived received = new SdpReceived(username, sdpMessage.callId(), sdpMessage.sdp());
+            router.sendToUser(sdpMessage.to(), received);
+        } else if (clientMessage instanceof IceCandidateMessage iceCandidateMessage) {
+            IceCandidateReceived received = new IceCandidateReceived(username, iceCandidateMessage.callId(),
+                    iceCandidateMessage.candidate());
+            router.sendToUser(iceCandidateMessage.to(), received);
+        } else {
+            log.warn("Unknown message type: {}", clientMessage.getClass().getName());
         }
     }
 
