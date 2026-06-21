@@ -9,9 +9,17 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.vdt.webrtc.presence.PresenceService;
+import com.vdt.webrtc.ws.message.CallAccept;
+import com.vdt.webrtc.ws.message.CallAcceptReceived;
+import com.vdt.webrtc.ws.message.CallCancel;
+import com.vdt.webrtc.ws.message.CallCancelReceived;
 import com.vdt.webrtc.ws.message.CallOffer;
 import com.vdt.webrtc.ws.message.CallOfferReceived;
+import com.vdt.webrtc.ws.message.CallReject;
+import com.vdt.webrtc.ws.message.CallRejectReceived;
 import com.vdt.webrtc.ws.message.ClientMessage;
+import com.vdt.webrtc.ws.message.HangUp;
+import com.vdt.webrtc.ws.message.HangUpReceived;
 import com.vdt.webrtc.ws.message.Ping;
 import com.vdt.webrtc.ws.message.Pong;
 import com.vdt.webrtc.ws.message.PresenceSnapshot;
@@ -60,6 +68,18 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
             // from = username (từ token), KHÔNG tin body → chống spoof
             CallOfferReceived received = new CallOfferReceived(username, offer.callId());
             router.sendToUser(offer.to(), received);
+        } else if (clientMessage instanceof CallAccept accept) {
+            CallAcceptReceived received = new CallAcceptReceived(username, accept.callId());
+            router.sendToUser(accept.to(), received);
+        } else if (clientMessage instanceof CallReject reject) {
+            CallRejectReceived received = new CallRejectReceived(username, reject.callId());
+            router.sendToUser(reject.to(), received);
+        } else if (clientMessage instanceof CallCancel cancel) {
+            CallCancelReceived received = new CallCancelReceived(username, cancel.callId());
+            router.sendToUser(cancel.to(), received);
+        } else if (clientMessage instanceof HangUp hangUp) {
+            HangUpReceived received = new HangUpReceived(username, hangUp.callId());
+            router.sendToUser(hangUp.to(), received);
         }
     }
 
