@@ -29,3 +29,7 @@ jwt:
 app:
   cookie:
     secure: ${COOKIE_SECURE:false}
+turn:
+  secret: ${TURN_SECRET:dev-turn-secret}
+  server: ${TURN_SERVER:127.0.0.1:3478}
+  credential-ttl-seconds: ${TURN_TTL:86400}
