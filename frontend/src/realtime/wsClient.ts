@@ -1,9 +1,7 @@
 // frontend/src/realtime/wsClient.ts
 import { useAuthStore } from '../store/authStore'
-import { useCallStore } from '../store/callStore'
 import { usePresenceStore } from '../store/presenceStore'
-import type { PeerManager } from '../webrtc/PeerManager'
-import type { ClientMessage, ServerMessage } from './messages'
+import type { CallServerSignal, ClientMessage, ServerMessage } from './messages'
 
 const HEARTBEAT_MS = 25_000
 const INITIAL_BACKOFF_MS = 1_000
@@ -16,9 +14,9 @@ let backoff = INITIAL_BACKOFF_MS
 let kicked = false // bị đá (đăng nhập nơi khác) → cấm reconnect
 
 
-let activePeer: PeerManager | null = null
-export function setActivePeer(pm: PeerManager | null): void {
-    activePeer = pm
+let callSignalHandler: ((msg: CallServerSignal) => void) | null = null
+export function setCallSignalHandler(h: (msg: CallServerSignal) => void): void {
+    callSignalHandler = h
 }
 
 // Gửi tín hiệu cuộc gọi qua WS (chỉ khi link mở) — PeerManager.sendSignal sẽ trỏ vào đây
@@ -49,10 +47,7 @@ export function connectWs(): void {
     socket.onmessage = (e: MessageEvent) => {
         const msg = JSON.parse(e.data) as ServerMessage
         const presence = usePresenceStore.getState()
-        const call = useCallStore.getState()
-
         switch (msg.type) {
-            // ── presence (như cũ) ──
             case 'presence':
                 presence.setOnline(msg.users)
                 break
@@ -63,26 +58,8 @@ export function connectWs(): void {
                 break
             case 'pong':
                 break
-
-            // ── cuộc gọi: chỉ dispatch trên tên *-received ──
-            case 'call-offer-received':
-                call.startIncoming(msg.from, msg.callId) // hiện IncomingCallCard
-                break
-            case 'call-accept-received':
-                call.setCallState('connecting') // đối phương đã Nhận → bắt tay WebRTC
-                break
-            case 'call-reject-received':
-            case 'call-cancel-received':
-            case 'hang-up-received':
-                activePeer?.close()
-                setActivePeer(null)
-                call.reset() // về Home
-                break
-            case 'sdp-received':
-                activePeer?.handleSignalingMessage({ sdp: msg.sdp }) // đưa vào PeerManager
-                break
-            case 'ice-candidate-received':
-                activePeer?.handleSignalingMessage({ candidate: msg.candidate })
+            default:
+                callSignalHandler?.(msg)   // mọi *-received → callActions
                 break
         }
     }

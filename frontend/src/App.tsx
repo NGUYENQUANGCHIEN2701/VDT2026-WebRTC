@@ -9,6 +9,8 @@ import { useEffect, useRef } from 'react'
 import api from './api/axios'
 import HomePage from './pages/HomePage'
 import { connectWs } from './realtime/wsClient'
+import CallPage from './pages/CallPage'
+import CallLayer from './components/call/CallLayer'
 
 function App() {
   const setAuth = useAuthStore((state) => state.setAuth)
@@ -58,18 +60,23 @@ function App() {
     restore()
   }, [setAuth, setLoading])
   return (
-    <Routes>
-      <Route path="/admin" element={
-        <ProtectedRoute requiredRole="ADMIN"><AdminPage /></ProtectedRoute>
-      } />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/" element={
-        <ProtectedRoute><HomePage /></ProtectedRoute>
-      } />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+    <>
+      <CallLayer />
+      <Routes>
+        <Route path="/admin" element={
+          <ProtectedRoute requiredRole="ADMIN"><AdminPage /></ProtectedRoute>
+        } />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/" element={
+          <ProtectedRoute><HomePage /></ProtectedRoute>
+        } />
+        <Route path="/call" element={
+          <ProtectedRoute><CallPage /></ProtectedRoute>
+        } />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </>
   )
 }
-
-export default App
+  export default App

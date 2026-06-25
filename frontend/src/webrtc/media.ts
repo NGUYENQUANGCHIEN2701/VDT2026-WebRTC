@@ -12,9 +12,11 @@ export type MediaErrorType =
 
 // Lỗi có kiểu rõ ràng để UI map sang câu tiếng Việt tương ứng
 export class MediaAcquisitionError extends Error {
-    constructor(public readonly type: MediaErrorType) {
+    readonly type: MediaErrorType
+    constructor(type: MediaErrorType) {
         super(type)
         this.name = 'MediaAcquisitionError'
+        this.type = type
     }
 }
 

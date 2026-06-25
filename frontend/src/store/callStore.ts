@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { MediaErrorType } from '../webrtc/media'
 
 // Vòng đời 1 cuộc gọi
 export type CallState =
@@ -17,7 +18,9 @@ interface CallStoreState {
     remoteUserId: string | null   // người mình đang gọi với (chỉ username — serializable)
     callId: string | null
     mediaMode: MediaMode | null
+    mediaError: MediaErrorType | null
 
+    setMediaError: (error: MediaErrorType | null) => void
     setCallState: (s: CallState) => void
     startOutgoing: (remoteUserId: string, callId: string) => void
     startIncoming: (remoteUserId: string, callId: string) => void
@@ -30,10 +33,11 @@ export const useCallStore = create<CallStoreState>((set) => ({
     remoteUserId: null,
     callId: null,
     mediaMode: null,
-
+    mediaError: null,
+    setMediaError: (mediaError) => set({ mediaError }),
     setCallState: (callState) => set({ callState }),
     startOutgoing: (remoteUserId, callId) => set({ callState: 'outgoing', remoteUserId, callId }),
     startIncoming: (remoteUserId, callId) => set({ callState: 'incoming', remoteUserId, callId }),
     setMediaMode: (mediaMode) => set({ mediaMode }),
-    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null }),
+    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null }),
 }))
