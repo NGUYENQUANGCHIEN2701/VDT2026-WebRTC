@@ -810,19 +810,19 @@ interface CallStoreState {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Who generates `callId` — client or server?**
+1. **Who generates `callId` — client or server?** — **RESOLVED (Plan 04-03):** server generates canonical `callId` via `UUID.randomUUID()` on the first valid `call-invite`; client's proposed ID is discarded.
    - What we know: Phase 3 uses `crypto.randomUUID()` on client; server accepts it in messages
    - What's unclear: Security and state integrity implications when server must own the record
    - Recommendation: Server generates canonical `callId` on first valid `call-invite`; discard client's proposed ID. Store client's proposed ID as `clientCallIdHint` if idempotency is needed.
 
-2. **Glare: should the loser's offer be silently dropped, or should the server send an explicit `glare-resolved` event?**
+2. **Glare: should the loser's offer be silently dropped, or should the server send an explicit `glare-resolved` event?** — **RESOLVED (Plan 04-03/04-04):** reuse `CallStateChanged` — no dedicated glare message type.
    - What we know: D-04 says loser auto-becomes callee for winner's call
    - What's unclear: Whether the client needs a special "your role is now callee, here is the winner's callId" message vs. a standard `CallStateChanged{state:ringing, callerId:winner}` which the client interprets normally
    - Recommendation: Reuse `CallStateChanged` — server sends `{state:ringing, callerId:winner, calleeId:loser}` to both. Loser client sees `incoming` for winner's call and renders `IncomingCallCard`. No special message type needed.
 
-3. **Should `PresenceWebSocketHandler` be split into separate handlers for presence and call signaling?**
+3. **Should `PresenceWebSocketHandler` be split into separate handlers for presence and call signaling?** — **RESOLVED (Plan 04-03):** keep the single WS endpoint; `PresenceWebSocketHandler` delegates lifecycle intents to `CallService` (separation via service, not a second handler); SDP/ICE/media-state stay opaque relay.
    - What we know: Current handler is 116 lines and growing; Phase 4 adds 8+ new message types
    - What's unclear: Spring WebSocket supports only one `WebSocketHandler` per endpoint by default; wrapping with a delegating handler pattern is needed for clean separation
    - Recommendation: Create a `CallSignalingHandler` separate class that `PresenceWebSocketHandler` delegates call-related messages to; this maintains single WS endpoint while separating concerns.
