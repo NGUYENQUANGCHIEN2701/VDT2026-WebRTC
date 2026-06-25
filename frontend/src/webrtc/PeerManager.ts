@@ -34,10 +34,11 @@ export class PeerManager {
         iceServers: RTCIceServer[],
         polite: boolean,
         sendSignal: (s: OutboundSignal) => void,
+        iceTransportPolicy?: RTCIceTransportPolicy, // 'relay' → ép đi qua TURN (forced-relay)
     ) {
         this.polite = polite
         this.sendSignal = sendSignal
-        this.pc = new RTCPeerConnection({ iceServers })
+        this.pc = new RTCPeerConnection({ iceServers, iceTransportPolicy })
         this.setupHandlers()
     }
 

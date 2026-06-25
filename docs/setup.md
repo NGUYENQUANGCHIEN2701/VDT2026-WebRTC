@@ -105,3 +105,48 @@ cd frontend
 npm run lint
 npm run build
 ```
+
+## Phase 3: HTTPS, coturn & gọi 2 thiết bị
+
+Cuộc gọi 1-1 trên **1 máy / 2 tab (localhost)** chạy ngay không cần phần này.
+Phần dưới chỉ cần khi demo trên **2 thiết bị thật qua LAN** và/hoặc chứng minh **TURN relay**.
+
+### 1. HTTPS bằng mkcert (để getUserMedia chạy trên thiết bị thứ 2)
+
+Trình duyệt chặn camera trên `http://<IP>` (chỉ cho localhost) → cần HTTPS.
+
+```bash
+# Cài mkcert (Windows: choco install mkcert  | Linux: apt install libnss3-tools && tải mkcert)
+mkcert -install            # cài CA local vào trust store
+
+# Cert cho frontend (Vite). Thay 192.168.1.100 = IP LAN máy bạn (ipconfig / ip addr)
+cd frontend && mkdir -p certs
+mkcert -key-file certs/localhost-key.pem -cert-file certs/localhost.pem localhost 127.0.0.1 192.168.1.100
+
+# Cert cho backend (Spring, PKCS12). Mật khẩu file mặc định: changeit
+cd ../backend/src/main/resources && mkdir -p certs
+mkcert -pkcs12 -p12-file certs/backend.p12 localhost 127.0.0.1 192.168.1.100
+```
+Cert đã **gitignore** (không commit). Có cert → Vite tự bật HTTPS. Backend bật HTTPS khi chạy profile `dev`:
+```bash
+cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+Frontend: tạo `frontend/.env.local` (gitignored) trỏ `VITE_API_URL=https://<IP>:8080`, `VITE_WS_URL=wss://<IP>:8080/ws`.
+Thiết bị thứ 2: cài CA mkcert (chạy `mkcert -CAROOT` để lấy file CA) hoặc chấp nhận cert, rồi mở `https://<IP>:5173`.
+
+### 2. coturn (TURN server) cho NAT khó
+
+```bash
+# Trong .env (gốc), đặt (TURN_SECRET phải GIỐNG turn.secret backend):
+#   TURN_SECRET=$(openssl rand -hex 32)
+#   HOST_IP=192.168.1.100
+#   TURN_SERVER=192.168.1.100:3478
+docker compose up coturn          # Linux: network_mode host. Windows/Mac: bỏ comment khối ports.
+```
+coturn xác thực bằng credential tạm từ `GET /api/turn-credentials` (HMAC-SHA1, không có mật khẩu tĩnh nào tới trình duyệt).
+
+### 3. Test forced-relay (chứng minh TURN thật sự relay)
+
+1. Đặt cuộc gọi bình thường → mở debug panel (nút ⚙) → ICE thường là `host`/`srflx` (cùng LAN).
+2. Mở app với `?relay=1` (vd `https://<IP>:5173/?relay=1`) → đặt cuộc gọi mới → ICE phải là **`relay`** = media đi qua coturn.
+

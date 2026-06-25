@@ -33,6 +33,8 @@ services:
       DB_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      TURN_SECRET: ${TURN_SECRET}
+      TURN_SERVER: ${TURN_SERVER}
     ports:
       - "8080:8080"
     healthcheck:
@@ -42,5 +44,24 @@ services:
       retries: 10
       start_period: 40s
 
+  coturn:                                    # ← 2 dấu cách (ngang postgres/backend)
+    image: coturn/coturn:4.6
+    restart: unless-stopped
+    # LINUX (máy demo): host networking — UDP relay qua Docker bridge NAT là lỗi TURN #1.
+    network_mode: host
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    # Secret + external-ip inject qua command (compose interpolate ${...} từ .env).
+    command: >
+      -c /etc/coturn/turnserver.conf
+      --static-auth-secret=${TURN_SECRET}
+      --external-ip=${HOST_IP}
+    # --- WINDOWS/MAC fallback (bỏ network_mode:host, mở port tay) ---
+    # ports:
+    #   - "3478:3478/udp"
+    #   - "3478:3478/tcp"
+    #   - "49160-49200:49160-49200/udp"
+
 volumes:
   pgdata:
+

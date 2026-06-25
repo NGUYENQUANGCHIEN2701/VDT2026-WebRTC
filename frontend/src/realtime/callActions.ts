@@ -28,13 +28,18 @@ async function getMedia(): Promise<boolean> {
     }
 }
 
+// Forced-relay (dev): mở app với ?relay=1 → ép media đi qua TURN để chứng minh coturn relay.
+function forceRelayEnabled(): boolean {
+    return new URLSearchParams(window.location.search).get('relay') === '1'
+}
+
 // Tạo PeerManager + nối sendSignal (tên trần) ra wsClient (thêm to + callId)
 async function createPeer(remoteUserId: string, callId: string, polite: boolean) {
-    const { iceServers } = await fetchIceConfig()
+    const { iceServers, iceTransportPolicy } = await fetchIceConfig(forceRelayEnabled())
     peer = new PeerManager(iceServers, polite, (sig) => {
         if (sig.type === 'sdp') sendSignal({ type: 'sdp', to: remoteUserId, callId, sdp: sig.sdp })
         else sendSignal({ type: 'ice-candidate', to: remoteUserId, callId, candidate: sig.candidate })
-    })
+    }, iceTransportPolicy)
     if (localStream) peer.addLocalStream(localStream)
 }
 

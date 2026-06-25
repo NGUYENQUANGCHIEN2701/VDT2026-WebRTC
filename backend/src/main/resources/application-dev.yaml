@@ -1,0 +1,15 @@
+# Profile "dev" — CHỈ load khi chạy với --spring.profiles.active=dev.
+# Bật HTTPS/WSS để getUserMedia hoạt động trên thiết bị thứ 2 qua IP LAN (INFR-03).
+#
+# backend.p12 do BẠN tạo bằng mkcert (đã gitignore — repo KHÔNG ship):
+#   cd backend/src/main/resources
+#   mkcert -pkcs12 -p12-file certs/backend.p12 localhost 127.0.0.1 <LAN_IP>   # mật khẩu mặc định: changeit
+#
+# Profile mặc định (application.yaml) KHÔNG có server.ssl → ./mvnw test và
+# spring-boot:run thường vẫn chạy không cần keystore.
+server:
+  ssl:
+    enabled: true
+    key-store: classpath:certs/backend.p12
+    key-store-type: PKCS12
+    key-store-password: ${SSL_KEYSTORE_PASSWORD:changeit}

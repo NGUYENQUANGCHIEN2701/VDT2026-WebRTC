@@ -7,6 +7,12 @@ application-local.yaml
 application-local.yml
 application-local.properties
 
+# --- mkcert certs (operator-provided, never commit) ---
+frontend/certs/
+backend/src/main/resources/certs/
+*.p12
+*.pem
+
 # --- OS / editor ---
 .DS_Store
 Thumbs.db
