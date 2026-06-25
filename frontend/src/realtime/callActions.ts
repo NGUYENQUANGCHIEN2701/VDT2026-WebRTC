@@ -11,6 +11,7 @@ let peer: PeerManager | null = null
 
 export function getLocalStream() { return localStream }
 export function getRemoteStream() { return peer?.remoteStream ?? null }
+export function getActivePeer(): PeerManager | null { return peer }
 
 // Lấy camera/mic; trả true nếu OK, false nếu lỗi (đã set callStore.mediaError)
 async function getMedia(): Promise<boolean> {

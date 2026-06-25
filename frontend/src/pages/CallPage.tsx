@@ -1,23 +1,18 @@
-import { useEffect, useRef } from 'react'
-import { useCallStore, type CallState } from '../store/callStore'
-import { getLocalStream, getRemoteStream, hangUp } from '../realtime/callActions'
+import { useEffect, useRef, useState } from 'react'
+import { useCallStore } from '../store/callStore'
+import { getActivePeer, getLocalStream, getRemoteStream, hangUp } from '../realtime/callActions'
 import { HangUpButton } from '../components/call/CallButtons'
 import AudioOnlyBadge from '../components/call/AudioOnlyBadge'
-
-const ICE_TEXT: Partial<Record<CallState, string>> = {
-    connecting: 'Đang kết nối…',
-    connected: 'Đã kết nối',
-    reconnecting: 'Đang kết nối lại…',
-    failed: 'Kết nối thất bại',
-}
-const DOT: Partial<Record<CallState, string>> = {
-    connecting: '#6b7280', connected: '#16a34a', reconnecting: '#dc2626', failed: '#dc2626',
-}
+import { startStatsPolling, type StatsSample } from '../webrtc/stats'
+import QualityIndicator from '../components/call/QualityIndicator'
+import DebugPanel, { DebugToggle } from '../components/call/DebugPanel'
 
 export default function CallPage() {
     const callState = useCallStore((s) => s.callState)
     const remoteUserId = useCallStore((s) => s.remoteUserId)
     const mediaMode = useCallStore((s) => s.mediaMode)
+    const [debugOpen, setDebugOpen] = useState(false)
+    const [stats, setStats] = useState<StatsSample | null>(null)
     const remoteRef = useRef<HTMLVideoElement>(null)
     const selfRef = useRef<HTMLVideoElement>(null)
 
@@ -27,13 +22,19 @@ export default function CallPage() {
         if (selfRef.current) selfRef.current.srcObject = getLocalStream()
     }, [callState])
 
+    // Poll getStats CHỈ khi panel mở (STAB-04: không poll khi ẩn)
+    useEffect(() => {
+        if (!debugOpen) { setStats(null); return }
+        const peer = getActivePeer()
+        if (!peer) return
+        return startStatsPolling(peer, setStats, 1000)   // trả stop() → cleanup tự gọi
+    }, [debugOpen])
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)' }}>
-            {/* thanh trạng thái ICE */}
-            <div role="status" aria-live="polite"
-                style={{ height: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', fontSize: 14, fontWeight: 600 }}>
-                <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: DOT[callState] ?? '#6b7280' }} />
-                <span>{ICE_TEXT[callState] ?? ''}</span>
+            {/* TOP BAR: chất lượng kết nối + nút bật/tắt debug */}
+            <div style={{ height: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px' }}>
+                <QualityIndicator callState={callState} stats={stats} />
+                <DebugToggle open={debugOpen} onClick={() => setDebugOpen((v) => !v)} />
             </div>
 
             {/* video đối phương (full) + self-view PiP */}
@@ -49,6 +50,9 @@ export default function CallPage() {
             <div style={{ display: 'flex', justifyContent: 'center', padding: 16 }}>
                 <HangUpButton onClick={hangUp} />
             </div>
+
+            {/* bảng debug: hiện dưới control bar khi mở */}
+            {debugOpen && <DebugPanel stats={stats} />}
         </div>
     )
 }

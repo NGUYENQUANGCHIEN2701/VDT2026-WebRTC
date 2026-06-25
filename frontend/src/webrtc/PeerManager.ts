@@ -94,6 +94,11 @@ export class PeerManager {
         this.remoteStream = null
     }
 
+    /** Cho stats.ts poll chỉ số kết nối. */
+    getStats(): Promise<RTCStatsReport> {
+        return this.pc.getStats()
+    }
+
     private setupHandlers() {
         // Khi cần đàm phán (vd vừa addTrack) → tạo offer rồi gửi
         this.pc.onnegotiationneeded = () => this.handleNegotiationNeeded()
