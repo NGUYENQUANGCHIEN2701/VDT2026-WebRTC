@@ -136,7 +136,36 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. User can mute mic and toggle camera without renegotiation; the remote party sees mute/camera-off indicators; in-call UI shows duration, connection status, and a local PiP self-view with echo cancellation/noise suppression on by default
   5. After a network blip, the WebSocket reconnects with backoff and resyncs state; media recovers via ICE restart; a page refresh or drop within the grace period (~10-15s) does not end the call
 
-**Plans**: TBD
+**Plans:** 7 plans
+
+**Wave 1** *(Wave 0 RED test scaffolding)*
+
+- [ ] 04-01-PLAN.md — RED tests: CallLifecycleTest + CallStateMachineTest + Testcontainers Redis (BE), callStore/mediaControls stubs (FE)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 04-02-PLAN.md — Redis infra + CAS core: pom/compose/yaml, Lua scripts, CallStateMachine, CallTimerService, CallStateRepository, new message records (CALL-08)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 04-03-PLAN.md — Control-plane refactor: CallService + PresenceWebSocketHandler dispatch, glare/busy/missed/grace timers, broadcast CallStateChanged (CALL-02..08, STAB-01/02 server side)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 04-04-PLAN.md — Frontend render-state slice: callStore/callActions refactor, incoming ringtone + accept/reject/cancel, busy + missed toasts, glare loser auto-callee (CALL-02..08)
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 04-05-PLAN.md — In-call experience: mute/cam via track.enabled + relay, remote indicators, PiP, duration timer, EC/NS (MEDIA-01, MEDIA-06)
+
+**Wave 6** *(blocked on Wave 5)*
+
+- [ ] 04-06-PLAN.md — Recovery + end-of-call: WS reconnect resync, ICE restart, grace rejoin via sessionStorage, ReconnectOverlay, shared CallSummaryScreen (CALL-07, STAB-01, STAB-02)
+
+**Wave 7** *(blocked on Wave 6)*
+
+- [ ] 04-07-PLAN.md — Integration wrap-up: full suites + populated validation map + manual 2-browser/2-device verification
+
 **UI hint**: yes
 
 ### Phase 5: Call History & Admin
@@ -226,7 +255,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 1. Foundation — Auth, Roles & Project Skeleton | 4/4 | ✅ Complete | 2026-06-14 |
 | 2. Realtime Presence & WebSocket Layer | 0/3 | Not started | - |
 | 3. 1-1 P2P Call Core & NAT Traversal | 0/5 | Not started | - |
-| 4. Call Lifecycle & In-Call Experience | 0/TBD | Not started | - |
+| 4. Call Lifecycle & In-Call Experience | 0/7 | Not started | - |
 | 5. Call History & Admin | 0/TBD | Not started | - |
 | 6. Horizontal Scaling | 0/TBD | Not started | - |
 | 7. Group Mesh Calls | 0/TBD | Not started | - |
@@ -239,3 +268,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *Phase 1 planned: 2026-06-12 — 4 plans in 4 waves*
 *Phase 2 planned: 2026-06-14 — 3 plans in 3 waves*
 *Phase 3 planned: 2026-06-18 — 5 plans in 5 waves*
+*Phase 4 planned: 2026-06-26 — 7 plans in 7 waves*
