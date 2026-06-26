@@ -1,10 +1,14 @@
 spring:
   application:
     name: webrtc
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/vdt_webrtc}
-    username: ${DB_USERNAME:vdt}
-    password: ${DB_PASSWORD:vdt_pass}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:27012005}
   jpa:
     hibernate:
       ddl-auto: validate

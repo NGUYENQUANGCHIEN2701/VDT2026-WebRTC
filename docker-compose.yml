@@ -1,6 +1,6 @@
 # Full-stack run: `docker compose up --build`
 # Reads credentials from .env (copy from .env.example first).
-# Scope: postgres + backend only. redis/rabbitmq/frontend/LB are added in later phases.
+# Scope: postgres + redis + backend + coturn. rabbitmq/frontend/LB are added in later phases.
 
 services:
   postgres:
@@ -27,11 +27,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       # Host is the compose service name "postgres", internal port 5432.
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       DB_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # Redis runs as the compose service "redis" on its default port 6379.
+      REDIS_HOST: redis
       JWT_SECRET: ${JWT_SECRET}
       TURN_SECRET: ${TURN_SECRET}
       TURN_SERVER: ${TURN_SERVER}
@@ -61,6 +65,18 @@ services:
       - "49160-49200:49160-49200/udp"
     # --- LINUX (máy demo) thay 3 dòng ports trên + bỏ comment dòng dưới (relay UDP qua bridge hay hỏng) ---
     # network_mode: host
+  redis:
+    image: redis:7-alpine
+    # No persistence: call-state is ephemeral (TTL ~300s), losing it on restart is fine.
+    ports:
+      # Optional host mapping — backend connects internally as "redis:6379".
+      # Handy for redis-cli / RedisInsight from the host.
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   pgdata:
