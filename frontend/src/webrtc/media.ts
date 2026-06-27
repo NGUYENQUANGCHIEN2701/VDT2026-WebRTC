@@ -25,6 +25,15 @@ export interface LocalMedia {
     mode: 'video' | 'audio-only'   // 'audio-only' khi phải fallback vì không có camera
 }
 
+// Ràng buộc audio: bật khử vọng (echo) + khử ồn + tự chỉnh gain.
+// Trình duyệt thường bật sẵn, nhưng khai báo tường minh để rõ ý đồ và để
+// 2 tab cùng máy bớt hú/vọng khi test.
+const AUDIO_CONSTRAINTS: MediaTrackConstraints = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+}
+
 /**
  * Xin camera+mic. Nếu hỏng:
  *  - permission-denied / device-busy / security-error → ném luôn (fallback vô nghĩa)
@@ -33,7 +42,7 @@ export interface LocalMedia {
  */
 export async function acquireLocalMedia(): Promise<LocalMedia> {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: AUDIO_CONSTRAINTS })
         return { stream, mode: 'video' }
     } catch (err) {
         const name = (err as DOMException).name
@@ -46,7 +55,7 @@ export async function acquireLocalMedia(): Promise<LocalMedia> {
         // nhóm CÓ fallback audio-only: không có camera, hoặc ràng buộc video bất khả thi
         if (name === 'NotFoundError' || name === 'OverconstrainedError') {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true })
+                const stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: AUDIO_CONSTRAINTS })
                 return { stream, mode: 'audio-only' }
             } catch {
                 // ngay cả audio-only cũng hỏng → báo lỗi gốc

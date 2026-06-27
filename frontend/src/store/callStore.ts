@@ -22,6 +22,8 @@ interface CallStoreState {
     mediaMode: MediaMode | null
     mediaError: MediaErrorType | null
     endReason: EndReason | null
+    connectedAt: number | null   // mốc media thông (ms) — bắt đầu đếm thời lượng
+    durationMs: number | null    // chốt khi kết thúc, dùng cho CallSummaryScreen (mục 8)
     micMuted: boolean
     camOff: boolean
     setMicMuted: (b: boolean) => void
@@ -47,6 +49,8 @@ export const useCallStore = create<CallStoreState>((set) => ({
     mediaMode: null,
     mediaError: null,
     endReason: null,
+    connectedAt: null,
+    durationMs: null,
     micMuted: false,
     camOff: false,
     setMicMuted: (micMuted) => set({ micMuted }),
@@ -57,11 +61,23 @@ export const useCallStore = create<CallStoreState>((set) => ({
     setRemoteMicMuted: (remoteMicMuted) => set({ remoteMicMuted }),
     setRemoteCamOff: (remoteCamOff) => set({ remoteCamOff }),
     setMediaError: (mediaError) => set({ mediaError }),
-    setCallState: (callState) => set({ callState }),
+    // Lần ĐẦU vào 'connected' thì chốt mốc đếm giờ; lần sau (reconnecting→connected) giữ nguyên
+    setCallState: (callState) =>
+        set((s) =>
+            callState === 'connected' && s.connectedAt == null
+                ? { callState, connectedAt: Date.now() }
+                : { callState }
+        ),
     startOutgoing: (remoteUserId, callId) => set({ callState: 'outgoing', remoteUserId, callId }),
     startIncoming: (remoteUserId, callId) => set({ callState: 'incoming', remoteUserId, callId }),
     setMediaMode: (mediaMode) => set({ mediaMode }),
-    endCall: (endReason) => set({ callState: 'ended', endReason }),
+    // Kết thúc: chốt thời lượng (0 nếu chưa từng 'connected', vd missed/rejected)
+    endCall: (endReason) =>
+        set((s) => ({
+            callState: 'ended',
+            endReason,
+            durationMs: s.connectedAt != null ? Date.now() - s.connectedAt : 0,
+        })),
 
-    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null, endReason: null, micMuted: false, camOff: false, remoteMicMuted: false, remoteCamOff: false }),
+    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null, endReason: null, connectedAt: null, durationMs: null, micMuted: false, camOff: false, remoteMicMuted: false, remoteCamOff: false }),
 }))
