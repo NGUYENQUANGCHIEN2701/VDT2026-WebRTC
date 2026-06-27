@@ -4,6 +4,7 @@ import { useCallStore } from '../../store/callStore'
 import { acceptCall, rejectCall, cancelCall, getLocalStream } from '../../realtime/callActions'
 import IncomingCallCard from './IncomingCallCard'
 import SelfViewPreview from './SelfViewPreview'
+import CallSummaryScreen from './CallSummaryScreen'
 
 const IN_CALL = ['connecting', 'connected', 'reconnecting', 'failed']
 
@@ -14,6 +15,9 @@ export default function CallLayer() {
     const remoteUserId = useCallStore((s) => s.remoteUserId)
     const mediaMode = useCallStore((s) => s.mediaMode)
     const mediaError = useCallStore((s) => s.mediaError)
+    const endReason = useCallStore((s) => s.endReason)
+    const durationMs = useCallStore((s) => s.durationMs)
+    const reset = useCallStore((s) => s.reset)
 
     // Điều hướng theo state: vào cuộc gọi → /call; idle → về Home
     useEffect(() => {
@@ -24,6 +28,9 @@ export default function CallLayer() {
         }
     }, [callState, location.pathname, navigate])
 
+    if (callState === 'ended' && endReason) {
+        return <CallSummaryScreen reason={endReason} durationMs={durationMs} onClose={reset} />
+    }
     if (callState === 'incoming' && remoteUserId) {
         return <IncomingCallCard callerUsername={remoteUserId} onAccept={acceptCall} onReject={rejectCall} />
     }
