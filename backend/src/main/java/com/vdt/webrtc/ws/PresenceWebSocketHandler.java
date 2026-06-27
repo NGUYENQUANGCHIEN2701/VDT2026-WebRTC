@@ -8,18 +8,14 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import com.vdt.webrtc.call.CallService;
 import com.vdt.webrtc.presence.PresenceService;
 import com.vdt.webrtc.ws.message.CallAccept;
-import com.vdt.webrtc.ws.message.CallAcceptReceived;
 import com.vdt.webrtc.ws.message.CallCancel;
-import com.vdt.webrtc.ws.message.CallCancelReceived;
-import com.vdt.webrtc.ws.message.CallOffer;
-import com.vdt.webrtc.ws.message.CallOfferReceived;
+import com.vdt.webrtc.ws.message.CallInvite;
 import com.vdt.webrtc.ws.message.CallReject;
-import com.vdt.webrtc.ws.message.CallRejectReceived;
 import com.vdt.webrtc.ws.message.ClientMessage;
 import com.vdt.webrtc.ws.message.HangUp;
-import com.vdt.webrtc.ws.message.HangUpReceived;
 import com.vdt.webrtc.ws.message.IceCandidateMessage;
 import com.vdt.webrtc.ws.message.IceCandidateReceived;
 import com.vdt.webrtc.ws.message.Ping;
@@ -38,14 +34,15 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
     private final PresenceService presence;
     private final MessageRouter router;
     private final ObjectMapper mapper;
-
+    private final CallService callService;
     private final SessionRegistry sessionRegistry;
 
     public PresenceWebSocketHandler(PresenceService presence, MessageRouter router, ObjectMapper mapper,
-            SessionRegistry sessionRegistry) {
+            CallService callService, SessionRegistry sessionRegistry) {
         this.presence = presence;
         this.router = router;
         this.mapper = mapper;
+        this.callService = callService;
         this.sessionRegistry = sessionRegistry;
     }
 
@@ -68,22 +65,16 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         if (clientMessage instanceof Ping) {
             presence.heartbeat(username);
             router.broadcast(new Pong(), List.of(session));
-        } else if (clientMessage instanceof CallOffer offer) {
-            // from = username (từ token), KHÔNG tin body → chống spoof
-            CallOfferReceived received = new CallOfferReceived(username, offer.callId());
-            router.sendToUser(offer.to(), received);
+        } else if (clientMessage instanceof CallInvite invite) {
+            callService.handleInvite(username, invite.to());
         } else if (clientMessage instanceof CallAccept accept) {
-            CallAcceptReceived received = new CallAcceptReceived(username, accept.callId());
-            router.sendToUser(accept.to(), received);
+            callService.handleAccept(username, accept.callId());
         } else if (clientMessage instanceof CallReject reject) {
-            CallRejectReceived received = new CallRejectReceived(username, reject.callId());
-            router.sendToUser(reject.to(), received);
+            callService.handleReject(username, reject.callId());
         } else if (clientMessage instanceof CallCancel cancel) {
-            CallCancelReceived received = new CallCancelReceived(username, cancel.callId());
-            router.sendToUser(cancel.to(), received);
+            callService.handleCancel(username, cancel.callId());
         } else if (clientMessage instanceof HangUp hangUp) {
-            HangUpReceived received = new HangUpReceived(username, hangUp.callId());
-            router.sendToUser(hangUp.to(), received);
+            callService.handleHangUp(username, hangUp.callId());
         } else if (clientMessage instanceof SdpMessage sdpMessage) {
             SdpReceived received = new SdpReceived(username, sdpMessage.callId(), sdpMessage.sdp());
             router.sendToUser(sdpMessage.to(), received);

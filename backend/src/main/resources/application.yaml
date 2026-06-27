@@ -37,3 +37,6 @@ turn:
   secret: ${TURN_SECRET:dev-turn-secret}
   server: ${TURN_SERVER:127.0.0.1:3478}
   credential-ttl-seconds: ${TURN_TTL:86400}
+call:
+  ring-timeout-seconds: ${CALL_RING_TIMEOUT_SECONDS:30}
+  grace-period-seconds: ${CALL_GRACE_PERIOD_SECONDS:15}
