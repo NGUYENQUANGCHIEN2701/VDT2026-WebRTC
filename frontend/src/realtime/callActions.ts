@@ -17,6 +17,7 @@ export function getActivePeer(): PeerManager | null { return peer }
 
 // Lấy camera/mic; true nếu OK, false nếu lỗi (đã set callStore.mediaError)
 async function getMedia(): Promise<boolean> {
+    if (localStream) return true   // đã có sẵn (vd glare: bên thua đã xin media lúc bấm Gọi)
     const call = useCallStore.getState()
     call.setMediaError(null)
     try {
@@ -106,8 +107,16 @@ function handleCallState(msg: CallStateChanged) {
 
     switch (msg.state) {
         case 'ringing':
-            if (amCaller) call.startOutgoing(remote, msg.callId)   // điền callId thật
-            else call.startIncoming(remote, msg.callId)            // → IncomingCallCard
+            if (amCaller) {
+                call.startOutgoing(remote, msg.callId)   // điền callId thật
+            } else {
+                // GLARE (D-04): mình đang GỌI ĐI chính người này thì lại nhận 'ringing'
+                // với vai callee → Redis CAS đã giữ 1 cuộc và lật mình thành người nhận.
+                // Tự động Nhận để nối liền 1 cuộc, không bắt user bấm lại.
+                const isGlare = call.callState === 'outgoing' && call.remoteUserId === remote
+                call.startIncoming(remote, msg.callId)               // → IncomingCallCard
+                if (isGlare) acceptCall()
+            }
             break
         case 'active':
             // cả 2 tạo peer: caller=impolite, callee=polite (perfect negotiation)
