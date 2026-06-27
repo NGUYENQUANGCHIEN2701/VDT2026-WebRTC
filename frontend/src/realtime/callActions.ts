@@ -15,6 +15,24 @@ export function getLocalStream() { return localStream }
 export function getRemoteStream() { return peer?.remoteStream ?? null }
 export function getActivePeer(): PeerManager | null { return peer }
 
+// ── FE-C: nhớ cuộc đang diễn ra qua sessionStorage để sống sót F5 ──
+// sessionStorage tự xóa khi đóng tab → key chỉ tồn tại đúng trường hợp REFRESH giữa cuộc.
+const SAVED_CALL_KEY = 'activeCallId'
+const SAVED_REMOTE_KEY = 'activeCallRemote'
+function saveActiveCall(callId: string, remote: string) {
+    sessionStorage.setItem(SAVED_CALL_KEY, callId)
+    sessionStorage.setItem(SAVED_REMOTE_KEY, remote)
+}
+export function clearSavedCall() {
+    sessionStorage.removeItem(SAVED_CALL_KEY)
+    sessionStorage.removeItem(SAVED_REMOTE_KEY)
+}
+export function readSavedCall(): { callId: string; remote: string } | null {
+    const callId = sessionStorage.getItem(SAVED_CALL_KEY)
+    const remote = sessionStorage.getItem(SAVED_REMOTE_KEY)
+    return callId && remote ? { callId, remote } : null
+}
+
 // Lấy camera/mic; true nếu OK, false nếu lỗi (đã set callStore.mediaError)
 async function getMedia(): Promise<boolean> {
     if (localStream) return true   // đã có sẵn (vd glare: bên thua đã xin media lúc bấm Gọi)
@@ -42,6 +60,24 @@ async function createPeer(remoteUserId: string, callId: string, polite: boolean)
         else sendSignal({ type: 'ice-candidate', to: remoteUserId, callId, candidate: sig.candidate })
     }, iceTransportPolicy)
     if (localStream) peer.addLocalStream(localStream)
+}
+
+// ── Vào cuộc 'active' (dùng cho cả lần đầu LẪN resync sau F5) ──
+// FE-A: sau refresh store đã reset (callId rỗng) + mất localStream → phải dựng lại
+// context từ message + xin lại camera/mic TRƯỚC khi tạo peer. getMedia idempotent
+// nên lần đầu (đã có media) chỉ là no-op.
+async function enterActiveCall(msg: CallStateChanged, amCaller: boolean, remote: string) {
+    const call = useCallStore.getState()
+    if (!call.callId) {
+        // resync: store trống → tái tạo context từ server (server là nguồn sự thật)
+        if (amCaller) call.startOutgoing(remote, msg.callId)
+        else call.startIncoming(remote, msg.callId)
+        call.setCallState('reconnecting') // tránh nhấp nháy card incoming/outgoing khi chờ getMedia
+    }
+    saveActiveCall(msg.callId, remote)               // FE-C: nhớ để sống sót F5 kế tiếp
+    if (!(await getMedia())) return                  // sau F5 phải xin lại media
+    await createPeer(remote, msg.callId, !amCaller)  // caller=impolite, callee=polite
+    call.setCallState('connecting')
 }
 
 // ── CALLER bấm Gọi → gửi INTENT; callId do server sinh, về qua 'ringing' ──
@@ -75,6 +111,7 @@ function teardownMedia() {
     peer = null
     localStream?.getTracks().forEach((t) => t.stop())  // tắt đèn camera
     localStream = null
+    clearSavedCall()   // FE-C: cuộc đã kết thúc → quên đi, F5 không khôi phục nữa
 }
 
 // ── Nhận tín hiệu từ server ──
@@ -119,8 +156,7 @@ function handleCallState(msg: CallStateChanged) {
             }
             break
         case 'active':
-            // cả 2 tạo peer: caller=impolite, callee=polite (perfect negotiation)
-            createPeer(remote, msg.callId, !amCaller).then(() => call.setCallState('connecting'))
+            enterActiveCall(msg, amCaller, remote)
             break
         case 'ended': {
             teardownMedia()

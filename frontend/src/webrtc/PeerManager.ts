@@ -137,13 +137,20 @@ export class PeerManager {
     }
 
     private mapIceState() {
+        // FE-B (STAB-02): ICE chết hẳn → tự thử nối lại bằng ICE restart.
+        // restartIce() chỉ ĐÁNH DẤU; nó kích onnegotiationneeded → gửi offer mới có
+        // ufrag/pwd mới. Cả 2 bên cùng restart cũng không sao — perfect negotiation
+        // hoá giải va chạm offer. Đây là "mạng chớp" KHÔNG reload trang.
+        if (this.pc.iceConnectionState === 'failed') {
+            this.pc.restartIce()
+        }
         const map: Record<string, CallState> = {
             new: 'connecting',
             checking: 'connecting',
             connected: 'connected',
             completed: 'connected',
             disconnected: 'reconnecting',
-            failed: 'failed',
+            failed: 'reconnecting', // đang auto-restart → "đang kết nối lại" thay vì "thất bại"
             closed: 'idle',
         }
         const next = map[this.pc.iceConnectionState]

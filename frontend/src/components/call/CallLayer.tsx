@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useCallStore } from '../../store/callStore'
-import { acceptCall, rejectCall, cancelCall, getLocalStream } from '../../realtime/callActions'
+import { acceptCall, rejectCall, cancelCall, getLocalStream, readSavedCall, clearSavedCall, getActivePeer } from '../../realtime/callActions'
 import IncomingCallCard from './IncomingCallCard'
 import SelfViewPreview from './SelfViewPreview'
 import CallSummaryScreen from './CallSummaryScreen'
@@ -18,6 +18,25 @@ export default function CallLayer() {
     const endReason = useCallStore((s) => s.endReason)
     const durationMs = useCallStore((s) => s.durationMs)
     const reset = useCallStore((s) => s.reset)
+
+    // FE-C: vừa F5 giữa cuộc → hiện overlay "đang kết nối lại" NGAY, chờ server resync
+    // (handleCallState 'active'). Nếu server không resync trong 8s (cuộc đã dropped quá
+    // grace) thì bỏ về Home.
+    useEffect(() => {
+        const saved = readSavedCall()
+        if (!saved || useCallStore.getState().callState !== 'idle') return
+        const call = useCallStore.getState()
+        call.startIncoming(saved.remote, saved.callId) // tạm điền context (remote/callId)
+        call.setCallState('reconnecting')              // → CallPage hiện overlay
+        const bail = setTimeout(() => {
+            const c = useCallStore.getState()
+            if (c.callState === 'reconnecting' && getActivePeer() == null) {
+                clearSavedCall()
+                c.reset()
+            }
+        }, 8000)
+        return () => clearTimeout(bail)
+    }, [])
 
     // Điều hướng theo state: vào cuộc gọi → /call; idle → về Home
     useEffect(() => {

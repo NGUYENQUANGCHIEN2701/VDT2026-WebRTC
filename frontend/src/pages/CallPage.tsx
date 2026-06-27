@@ -58,6 +58,13 @@ export default function CallPage() {
                 {remoteCamOff && remoteUserId && <RemoteCamOffOverlay username={remoteUserId} />}
                 {remoteMicMuted && <RemoteMuteIndicator />}
                 {mediaMode === 'audio-only' && <AudioOnlyBadge />}
+                {callState === 'reconnecting' && (
+                    <div role="status" aria-live="polite"
+                        style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, background: 'rgba(0,0,0,0.45)', color: '#fff' }}>
+                        <span className="spinner" aria-hidden="true" />
+                        <span style={{ fontSize: 15, fontWeight: 600 }}>Đang kết nối lại…</span>
+                    </div>
+                )}
                 <video ref={selfRef} autoPlay muted playsInline aria-label="Camera của bạn"
                     style={{ position: 'absolute', bottom: 8, right: 8, width: 160, height: 120, objectFit: 'cover', transform: 'scaleX(-1)', borderRadius: 4, border: '2px solid var(--bg)', background: '#000' }} />
             </div>
