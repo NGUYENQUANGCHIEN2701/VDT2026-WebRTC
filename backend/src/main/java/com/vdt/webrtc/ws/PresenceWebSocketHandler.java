@@ -58,6 +58,7 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         }
         presence.join(username);
         broadcastSnapshot();
+        callService.handleReconnect(username);
     }
 
     @Override
@@ -97,6 +98,7 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         String username = username(session);
         if (sessionRegistry.deregister(username, session)) {
+            callService.handleDisconnect(username); // ← rớt THẬT → đặt grace (không phải đổi tab)
             presence.leave(username);
             broadcastSnapshot();
         }

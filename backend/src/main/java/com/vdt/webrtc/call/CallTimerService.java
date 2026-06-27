@@ -41,11 +41,10 @@ public class CallTimerService {
     // đặt grace-timer (giống scheduleRingTimeout nhưng dùng
     // graceTimers).
     public void scheduleGrace(String callId, Duration grace, Runnable onExpired) {
-        ScheduledFuture<?> f = scheduler.schedule(() -> {
-            graceTimers.remove(callId); // timer đã bắn → tự gỡ khỏi map
-            onExpired.run(); // chạy việc do CallService truyền vào (vd: transition→missed)
-        }, Instant.now().plus(grace));
-        graceTimers.put(callId, f); // cất vé để có thể hủy
+        graceTimers.computeIfAbsent(callId, id -> scheduler.schedule(() -> {
+            graceTimers.remove(id);
+            onExpired.run();
+        }, Instant.now().plus(grace)));
     }
 
     // hủy grace-timer (giống cancelRingTimer nhưng dùng

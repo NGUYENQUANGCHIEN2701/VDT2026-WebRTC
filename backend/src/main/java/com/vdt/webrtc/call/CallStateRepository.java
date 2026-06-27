@@ -14,7 +14,7 @@ public class CallStateRepository {
         this.redis = redis;
     }
 
-    public Optional<CallSnapshot> find(String callId){
+    public Optional<CallSnapshot> find(String callId) {
         Map<Object, Object> h = redis.opsForHash().entries("call:" + callId);
         if (h.isEmpty()) {
             return Optional.empty();
@@ -24,7 +24,12 @@ public class CallStateRepository {
                 (String) h.get("state"),
                 (String) h.get("reason"),
                 (String) h.get("callerId"),
-                (String) h.get("calleeId")
-        ));
+                (String) h.get("calleeId")));
+    }
+
+    public Optional<String> findCallIdByUser(String userId) {
+        // GET user-call:{userId} — trả null nếu user không ở cuộc nào
+        String callId = redis.opsForValue().get("user-call:" + userId);
+        return Optional.ofNullable(callId);
     }
 }

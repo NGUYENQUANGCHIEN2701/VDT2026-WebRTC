@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import com.vdt.webrtc.ws.MessageRouter;
 import com.vdt.webrtc.ws.message.CallStateChanged;
 
-
 @Service
 public class CallService {
     private final CallStateMachine stateMachine;
@@ -17,15 +16,18 @@ public class CallService {
     private final CallStateRepository repo;
     private final MessageRouter router;
     private final Duration ringTimeout;
+    private final Duration gracePeriod;
 
     public CallService(CallStateMachine stateMachine, CallTimerService timers,
             CallStateRepository repo, MessageRouter router,
-            @Value("${call.ring-timeout-seconds}") long ringSeconds) {
+            @Value("${call.ring-timeout-seconds}") long ringSeconds,
+            @Value("${call.grace-period-seconds}") long graceSeconds) {
         this.stateMachine = stateMachine;
         this.timers = timers;
         this.repo = repo;
         this.router = router;
         this.ringTimeout = Duration.ofSeconds(ringSeconds);
+        this.gracePeriod = Duration.ofSeconds(graceSeconds);
     }
 
     // bắn event cho cả caller và callee.
@@ -34,7 +36,7 @@ public class CallService {
         router.sendToUser(callerId, event);
         router.sendToUser(calleeId, event);
     }
-    
+
     public void handleInvite(String callerId, String calleeId) {
         String callId = UUID.randomUUID().toString();
         CreateResult result = stateMachine.createCall(callId, callerId, calleeId);
@@ -114,6 +116,43 @@ public class CallService {
                 broadcast(callId, "ended", "completed", call.callerId(), call.calleeId());
             }
         });
+    }
+
+    public void handleDisconnect(String userId) {
+        repo.findCallIdByUser(userId)
+                .flatMap(repo::find)
+                .filter(call -> "active".equals(call.state())) // chỉ grace cho cuộc đang nói chuyện
+                .ifPresent(call -> {
+                    // ĐẶT grace: đừng kết thúc ngay, cho 15s để nối lại (D-12)
+                    timers.scheduleGrace(call.callId(), gracePeriod,
+                            () -> onGraceExpired(call.callId()));
+                });
+    }
+
+    private void onGraceExpired(String callId) {
+        repo.find(callId).ifPresent(call -> {
+            // CAS: chỉ thành công nếu cuộc VẪN đang active.
+            // Nếu trong 15s đó cuộc đã ended vì lý do khác (bên kia hangup,
+            // hoặc user nối lại rồi hangup...) → transition trả false → không broadcast
+            // nhầm.
+            boolean ok = stateMachine.transition(callId, "active", "ended", "dropped",
+                    call.callerId(), call.calleeId());
+            if (ok) {
+                broadcast(callId, "ended", "dropped", call.callerId(), call.calleeId());
+            }
+        });
+    }
+
+    public void handleReconnect(String userId) {
+        repo.findCallIdByUser(userId)
+                .flatMap(repo::find)
+                .filter(call -> "active".equals(call.state()))
+                .ifPresent(call -> {
+                    timers.cancelGrace(call.callId()); // hủy "án dropped" nếu đang treo
+                    // RESYNC: gửi RIÊNG cho user vừa nối, không broadcast.
+                    router.sendToUser(userId, new CallStateChanged(
+                            call.callId(), "active", null, call.callerId(), call.calleeId()));
+                });
     }
 
 }
