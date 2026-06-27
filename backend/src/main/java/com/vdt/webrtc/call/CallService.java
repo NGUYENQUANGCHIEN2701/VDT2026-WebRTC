@@ -149,9 +149,10 @@ public class CallService {
                 .filter(call -> "active".equals(call.state()))
                 .ifPresent(call -> {
                     timers.cancelGrace(call.callId()); // hủy "án dropped" nếu đang treo
-                    // RESYNC: gửi RIÊNG cho user vừa nối, không broadcast.
-                    router.sendToUser(userId, new CallStateChanged(
-                            call.callId(), "active", null, call.callerId(), call.calleeId()));
+                    // RESYNC cho CẢ HAI: bên vừa nối có PC mới (DTLS mới) nên bên sống sót
+                    // cũng phải dựng lại PC mới — đổi DTLS fingerprint trên PC cũ là bất khả.
+                    // Cả 2 dựng mới = đúng luồng 'active' lần đầu (perfect negotiation lo offer).
+                    broadcast(call.callId(), "active", null, call.callerId(), call.calleeId());
                 });
     }
 

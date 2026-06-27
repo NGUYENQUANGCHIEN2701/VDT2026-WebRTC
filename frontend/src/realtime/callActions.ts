@@ -68,14 +68,24 @@ async function createPeer(remoteUserId: string, callId: string, polite: boolean)
 // nên lần đầu (đã có media) chỉ là no-op.
 async function enterActiveCall(msg: CallStateChanged, amCaller: boolean, remote: string) {
     const call = useCallStore.getState()
+    // RECONNECT (không phải active lần đầu) khi: đang giữ peer cũ (bên sống sót) HOẶC
+    // store đã bị reset (bên vừa F5, callId rỗng).
+    const isRebuild = peer != null || !call.callId
+
     if (!call.callId) {
-        // resync: store trống → tái tạo context từ server (server là nguồn sự thật)
+        // resync sau F5: store trống → tái tạo context từ server (server là nguồn sự thật)
         if (amCaller) call.startOutgoing(remote, msg.callId)
         else call.startIncoming(remote, msg.callId)
-        call.setCallState('reconnecting') // tránh nhấp nháy card incoming/outgoing khi chờ getMedia
     }
+    if (isRebuild) call.setCallState('reconnecting') // overlay spinner; tránh nhấp nháy card
+
     saveActiveCall(msg.callId, remote)               // FE-C: nhớ để sống sót F5 kế tiếp
     if (!(await getMedia())) return                  // sau F5 phải xin lại media
+
+    // Đóng PC CŨ trước khi dựng mới: bên kia đã có PC mới (DTLS mới) → không thể tái dùng
+    // PC cũ. Cả 2 dựng lại từ đầu = đúng luồng active lần đầu.
+    peer?.close()
+    peer = null
     await createPeer(remote, msg.callId, !amCaller)  // caller=impolite, callee=polite
     call.setCallState('connecting')
 }

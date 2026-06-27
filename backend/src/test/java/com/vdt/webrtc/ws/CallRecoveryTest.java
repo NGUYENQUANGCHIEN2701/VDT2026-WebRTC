@@ -85,7 +85,13 @@ class CallRecoveryTest extends WsTestSupport {
                 f -> f.contains("call-state-changed") && f.contains("\"state\":\"active\""), 3000))
                 .as("bob nối lại phải nhận resync active").isNotNull();
 
-        // alice KHÔNG bị dropped (chờ qua mốc grace cho chắc grace đã bị hủy)
+        // alice (bên sống sót) CŨNG nhận resync 'active' → để dựng lại PC mới (DTLS mới);
+        // tái dùng PC cũ sẽ làm media đứng hình vĩnh viễn.
+        assertThat(hAlice.awaitMatching(
+                f -> f.contains("call-state-changed") && f.contains("\"state\":\"active\""), 3000))
+                .as("alice cũng phải nhận resync active để rebuild peer").isNotNull();
+
+        // không bên nào bị dropped (chờ qua mốc grace cho chắc grace đã bị hủy)
         assertThat(hAlice.awaitMatching(f -> f.contains("\"reason\":\"dropped\""), 4000))
                 .as("nối lại trong grace → cuộc được cứu, không dropped").isNull();
     }
