@@ -31,7 +31,7 @@ export default function CallSummaryScreen({ reason, durationMs, onClose }: Props
             aria-modal="true"
             aria-labelledby="call-summary-heading"
             style={{
-                position: 'fixed', inset: 0, display: 'flex',
+                position: 'fixed', inset: 0, zIndex: 1000, display: 'flex',
                 alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)',
             }}
         >
