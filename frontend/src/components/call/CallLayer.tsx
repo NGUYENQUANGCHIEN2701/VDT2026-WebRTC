@@ -19,9 +19,12 @@ export default function CallLayer() {
     const durationMs = useCallStore((s) => s.durationMs)
     const reset = useCallStore((s) => s.reset)
 
-    // FE-C: vừa F5 giữa cuộc → hiện overlay "đang kết nối lại" NGAY, chờ server resync
-    // (handleCallState 'active'). Nếu server không resync trong 8s (cuộc đã dropped quá
-    // grace) thì bỏ về Home.
+    // FE-C: vừa F5 giữa cuộc → hiện overlay "đang kết nối lại" NGAY, chờ server resync.
+    // Đường BÌNH THƯỜNG: WS nối lại → server gửi 'active' (còn grace) HOẶC 'ended/dropped'
+    // (quá grace) → 2 message này tự lái FE, bail không đụng tới.
+    // Bail chỉ là lưới an toàn cho trường hợp WS KHÔNG BAO GIỜ nối lại (offline hẳn).
+    // Phải DÀI HƠN backend grace (CALL_GRACE_PERIOD_SECONDS, mặc định 15s) + đệm nối lại,
+    // nếu không sẽ bỏ cuộc oan trong khi server vẫn còn cứu được.
     useEffect(() => {
         const saved = readSavedCall()
         if (!saved || useCallStore.getState().callState !== 'idle') return
@@ -34,7 +37,7 @@ export default function CallLayer() {
                 clearSavedCall()
                 c.reset()
             }
-        }, 8000)
+        }, 20_000)
         return () => clearTimeout(bail)
     }, [])
 
