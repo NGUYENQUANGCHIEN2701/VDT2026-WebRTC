@@ -2,7 +2,8 @@ import { acquireLocalMedia, MediaAcquisitionError } from '../webrtc/media'
 import { PeerManager } from '../webrtc/PeerManager'
 import { sendSignal, setCallSignalHandler } from './wsClient'
 import { useCallStore } from '../store/callStore'
-import type { CallServerSignal } from './messages'
+import { useAuthStore } from '../store/authStore'
+import type { CallServerSignal, CallStateChanged } from './messages'
 import { fetchIceConfig } from '../api/turn'
 
 // Object KHÔNG-serializable sống ở module scope (không vào Zustand)
@@ -13,7 +14,7 @@ export function getLocalStream() { return localStream }
 export function getRemoteStream() { return peer?.remoteStream ?? null }
 export function getActivePeer(): PeerManager | null { return peer }
 
-// Lấy camera/mic; trả true nếu OK, false nếu lỗi (đã set callStore.mediaError)
+// Lấy camera/mic; true nếu OK, false nếu lỗi (đã set callStore.mediaError)
 async function getMedia(): Promise<boolean> {
     const call = useCallStore.getState()
     call.setMediaError(null)
@@ -28,12 +29,10 @@ async function getMedia(): Promise<boolean> {
     }
 }
 
-// Forced-relay (dev): mở app với ?relay=1 → ép media đi qua TURN để chứng minh coturn relay.
 function forceRelayEnabled(): boolean {
     return new URLSearchParams(window.location.search).get('relay') === '1'
 }
 
-// Tạo PeerManager + nối sendSignal (tên trần) ra wsClient (thêm to + callId)
 async function createPeer(remoteUserId: string, callId: string, polite: boolean) {
     const { iceServers, iceTransportPolicy } = await fetchIceConfig(forceRelayEnabled())
     peer = new PeerManager(iceServers, polite, (sig) => {
@@ -43,58 +42,44 @@ async function createPeer(remoteUserId: string, callId: string, polite: boolean)
     if (localStream) peer.addLocalStream(localStream)
 }
 
-// ── CALLER bấm Gọi ──
+// ── CALLER bấm Gọi → gửi INTENT; callId do server sinh, về qua 'ringing' ──
 export async function startCall(remoteUsername: string) {
-    const callId = crypto.randomUUID()
-    useCallStore.getState().startOutgoing(remoteUsername, callId)
-    if (!(await getMedia())) return            // lỗi → SelfViewPreview hiện MediaErrorNotice
-    sendSignal({ type: 'call-offer', to: remoteUsername, callId })
-}
-
-// ── CALLEE bấm Nhận ──
-export async function acceptCall() {
-    const { remoteUserId, callId } = useCallStore.getState()
-    if (!remoteUserId || !callId) return
+    useCallStore.getState().startOutgoing(remoteUsername, '')  // UI hiện ngay; callId điền khi ringing về
     if (!(await getMedia())) return
-    sendSignal({ type: 'call-accept', to: remoteUserId, callId })
-    await createPeer(remoteUserId, callId, true)   // callee = polite
-    useCallStore.getState().setCallState('connecting')
+    sendSignal({ type: 'call-invite', to: remoteUsername })
 }
 
-// ── CALLEE Từ chối / CALLER Hủy / HangUp ──
-export function rejectCall() { signalAndTeardown('call-reject') }
-export function cancelCall() { signalAndTeardown('call-cancel') }
-export function hangUp() { signalAndTeardown('hang-up') }
-
-function signalAndTeardown(type: 'call-reject' | 'call-cancel' | 'hang-up') {
-    const { remoteUserId, callId } = useCallStore.getState()
-    if (remoteUserId && callId) sendSignal({ type, to: remoteUserId, callId })
-    teardown()
+// ── CALLEE bấm Nhận → gửi INTENT; peer tạo khi 'active' về (đối xứng 2 bên) ──
+export async function acceptCall() {
+    const { callId } = useCallStore.getState()
+    if (!callId) return
+    if (!(await getMedia())) return
+    sendSignal({ type: 'call-accept', callId })
 }
 
-// Dọn dẹp toàn bộ (dùng cả khi nhận reject/cancel/hangup từ xa)
-function teardown() {
+// ── Từ chối / Hủy / Cúp → gửi INTENT; teardown khi nhận 'ended' từ server ──
+export function rejectCall() { sendIntent('call-reject') }
+export function cancelCall() { sendIntent('call-cancel') }
+export function hangUp() { sendIntent('hang-up') }
+
+function sendIntent(type: 'call-reject' | 'call-cancel' | 'hang-up') {
+    const { callId } = useCallStore.getState()
+    if (callId) sendSignal({ type, callId })
+}
+
+// Dọn MEDIA (peer + stream). KHÔNG đụng store — để 'ended'/summary tự lo.
+function teardownMedia() {
     peer?.close()
     peer = null
-    localStream?.getTracks().forEach((t) => t.stop())   // tắt đèn camera
+    localStream?.getTracks().forEach((t) => t.stop())  // tắt đèn camera
     localStream = null
-    useCallStore.getState().reset()
 }
 
-// ── Não nhận tín hiệu cuộc gọi từ server (wsClient forward vào đây) ──
+// ── Nhận tín hiệu từ server ──
 function handleServerSignal(msg: CallServerSignal) {
-    const call = useCallStore.getState()
     switch (msg.type) {
-        case 'call-offer-received':
-            call.startIncoming(msg.from, msg.callId)        // → IncomingCallCard
-            break
-        case 'call-accept-received':                       // CALLER: đối phương đã Nhận
-            createPeer(msg.from, msg.callId, false).then(() => call.setCallState('connecting'))
-            break
-        case 'call-reject-received':
-        case 'call-cancel-received':
-        case 'hang-up-received':
-            teardown()
+        case 'call-state-changed':
+            handleCallState(msg)
             break
         case 'sdp-received':
             peer?.handleSignalingMessage({ sdp: msg.sdp })
@@ -105,5 +90,32 @@ function handleServerSignal(msg: CallServerSignal) {
     }
 }
 
-// Đăng ký để wsClient forward message cuộc gọi vào đây (gọi 1 lần khi module load)
+// ── TRÁI TIM: render trạng thái server-authoritative ──
+function handleCallState(msg: CallStateChanged) {
+    const call = useCallStore.getState()
+    const me = useAuthStore.getState().user?.username
+    const amCaller = msg.callerId === me
+    const remote = amCaller ? msg.calleeId : msg.callerId
+
+    switch (msg.state) {
+        case 'ringing':
+            if (amCaller) call.startOutgoing(remote, msg.callId)   // điền callId thật
+            else call.startIncoming(remote, msg.callId)            // → IncomingCallCard
+            break
+        case 'active':
+            // cả 2 tạo peer: caller=impolite, callee=polite (perfect negotiation)
+            createPeer(remote, msg.callId, !amCaller).then(() => call.setCallState('connecting'))
+            break
+        case 'ended':
+            call.endCall(msg.reason ?? 'completed')   // state='ended' + lý do (màn summary ở mục 8)
+            teardownMedia()
+            // tạm: tự về idle sau 3s (đúng hành vi auto-Home; visual summary làm sau)
+            setTimeout(() => {
+                if (useCallStore.getState().callState === 'ended') useCallStore.getState().reset()
+            }, 3000)
+            break
+    }
+}
+
+// Đăng ký 1 lần khi module load
 setCallSignalHandler(handleServerSignal)

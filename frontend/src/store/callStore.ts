@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { MediaErrorType } from '../webrtc/media'
+import type { EndReason } from '../realtime/messages'
 
 // Vòng đời 1 cuộc gọi
 export type CallState =
@@ -10,6 +11,7 @@ export type CallState =
     | 'connected'    // media đã thông
     | 'reconnecting' // rớt tạm, đang nối lại
     | 'failed'       // hỏng
+    | 'ended'      // đã kết thúc (cả 2 bên đều rời)
 
 export type MediaMode = 'video' | 'audio-only'   // khớp media.ts
 
@@ -19,12 +21,14 @@ interface CallStoreState {
     callId: string | null
     mediaMode: MediaMode | null
     mediaError: MediaErrorType | null
+    endReason: EndReason | null
 
     setMediaError: (error: MediaErrorType | null) => void
     setCallState: (s: CallState) => void
     startOutgoing: (remoteUserId: string, callId: string) => void
     startIncoming: (remoteUserId: string, callId: string) => void
     setMediaMode: (m: MediaMode | null) => void
+    endCall: (reason: EndReason) => void
     reset: () => void
 }
 
@@ -34,10 +38,13 @@ export const useCallStore = create<CallStoreState>((set) => ({
     callId: null,
     mediaMode: null,
     mediaError: null,
+    endReason: null,
+
     setMediaError: (mediaError) => set({ mediaError }),
     setCallState: (callState) => set({ callState }),
     startOutgoing: (remoteUserId, callId) => set({ callState: 'outgoing', remoteUserId, callId }),
     startIncoming: (remoteUserId, callId) => set({ callState: 'incoming', remoteUserId, callId }),
     setMediaMode: (mediaMode) => set({ mediaMode }),
-    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null }),
+    endCall: (endReason) => set({ callState: 'ended', endReason }),
+    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null, endReason: null }),
 }))

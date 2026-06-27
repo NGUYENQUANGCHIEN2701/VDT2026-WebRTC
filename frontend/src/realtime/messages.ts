@@ -4,30 +4,38 @@ export interface OnlineUser {
     status: PresenceStatus
 }
 
-// ── Tín hiệu cuộc gọi: SERVER → client (tên *-received, khớp @JsonSubTypes của BE) ──
+// trạng thái lifecycle do SERVER sở hữu (khác CallState client trong callStore)
+export type ServerCallState = 'ringing' | 'active' | 'ended'
+export type EndReason = 'completed' | 'rejected' | 'cancelled' | 'missed' | 'busy' | 'dropped'
+
+// ── SERVER → client ──
+export type CallStateChanged = {
+    type: 'call-state-changed'
+    callId: string
+    state: ServerCallState
+    reason: EndReason | null      // null khi chưa kết thúc
+    callerId: string
+    calleeId: string
+}
+
 export type CallServerSignal =
-    | { type: 'call-offer-received'; from: string; callId: string }
-    | { type: 'call-accept-received'; from: string; callId: string }
-    | { type: 'call-reject-received'; from: string; callId: string }
-    | { type: 'call-cancel-received'; from: string; callId: string }
-    | { type: 'hang-up-received'; from: string; callId: string }
+    | CallStateChanged
     | { type: 'sdp-received'; from: string; callId: string; sdp: RTCSessionDescriptionInit }
     | { type: 'ice-candidate-received'; from: string; callId: string; candidate: RTCIceCandidateInit }
 
-// Server → client (gộp presence cũ + call)
 export type ServerMessage =
     | { type: 'presence'; users: OnlineUser[] }
     | { type: 'session-superseded'; reason: string }
     | { type: 'pong' }
     | CallServerSignal
 
-// ── Client → server (tên TRẦN) ──
+// ── client → server (INTENT — tên trần) ──
 export type ClientMessage =
     | { type: 'ping' }
-    | { type: 'call-offer'; to: string; callId: string }
-    | { type: 'call-accept'; to: string; callId: string }
-    | { type: 'call-reject'; to: string; callId: string }
-    | { type: 'call-cancel'; to: string; callId: string }
-    | { type: 'hang-up'; to: string; callId: string }
+    | { type: 'call-invite'; to: string }          // server tự sinh callId
+    | { type: 'call-accept'; callId: string }
+    | { type: 'call-reject'; callId: string }
+    | { type: 'call-cancel'; callId: string }
+    | { type: 'hang-up'; callId: string }
     | { type: 'sdp'; to: string; callId: string; sdp: RTCSessionDescription | null }
     | { type: 'ice-candidate'; to: string; callId: string; candidate: RTCIceCandidateInit }
