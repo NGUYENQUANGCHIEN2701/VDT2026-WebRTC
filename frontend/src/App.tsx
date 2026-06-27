@@ -11,6 +11,8 @@ import HomePage from './pages/HomePage'
 import { connectWs } from './realtime/wsClient'
 import CallPage from './pages/CallPage'
 import CallLayer from './components/call/CallLayer'
+import Toaster from './components/Toaster'
+import Ringtone from './components/call/Ringtone'
 
 function App() {
   const setAuth = useAuthStore((state) => state.setAuth)
@@ -62,6 +64,8 @@ function App() {
   return (
     <>
       <CallLayer />
+      <Toaster />
+      <Ringtone />
       <Routes>
         <Route path="/admin" element={
           <ProtectedRoute requiredRole="ADMIN"><AdminPage /></ProtectedRoute>
@@ -79,4 +83,4 @@ function App() {
     </>
   )
 }
-  export default App
+export default App

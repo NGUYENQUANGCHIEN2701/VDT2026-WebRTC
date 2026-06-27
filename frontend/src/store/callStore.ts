@@ -22,6 +22,14 @@ interface CallStoreState {
     mediaMode: MediaMode | null
     mediaError: MediaErrorType | null
     endReason: EndReason | null
+    micMuted: boolean
+    camOff: boolean
+    setMicMuted: (b: boolean) => void
+    setCamOff: (b: boolean) => void
+    remoteMicMuted: boolean
+    remoteCamOff: boolean
+    setRemoteMicMuted: (b: boolean) => void
+    setRemoteCamOff: (b: boolean) => void
 
     setMediaError: (error: MediaErrorType | null) => void
     setCallState: (s: CallState) => void
@@ -39,12 +47,21 @@ export const useCallStore = create<CallStoreState>((set) => ({
     mediaMode: null,
     mediaError: null,
     endReason: null,
+    micMuted: false,
+    camOff: false,
+    setMicMuted: (micMuted) => set({ micMuted }),
+    setCamOff: (camOff) => set({ camOff }),
 
+    remoteMicMuted: false,
+    remoteCamOff: false,
+    setRemoteMicMuted: (remoteMicMuted) => set({ remoteMicMuted }),
+    setRemoteCamOff: (remoteCamOff) => set({ remoteCamOff }),
     setMediaError: (mediaError) => set({ mediaError }),
     setCallState: (callState) => set({ callState }),
     startOutgoing: (remoteUserId, callId) => set({ callState: 'outgoing', remoteUserId, callId }),
     startIncoming: (remoteUserId, callId) => set({ callState: 'incoming', remoteUserId, callId }),
     setMediaMode: (mediaMode) => set({ mediaMode }),
     endCall: (endReason) => set({ callState: 'ended', endReason }),
-    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null, endReason: null }),
+
+    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null, endReason: null, micMuted: false, camOff: false, remoteMicMuted: false, remoteCamOff: false }),
 }))

@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useCallStore } from '../store/callStore'
 import { getActivePeer, getLocalStream, getRemoteStream, hangUp } from '../realtime/callActions'
-import { HangUpButton } from '../components/call/CallButtons'
+import { CamToggleButton, HangUpButton, MuteButton } from '../components/call/CallButtons'
 import AudioOnlyBadge from '../components/call/AudioOnlyBadge'
 import { startStatsPolling, type StatsSample } from '../webrtc/stats'
 import QualityIndicator from '../components/call/QualityIndicator'
 import DebugPanel, { DebugToggle } from '../components/call/DebugPanel'
+import { toggleCam, toggleMic } from '../realtime/mediaControls'
+import RemoteCamOffOverlay from '../components/call/RemoteCamOffOverlay'
+import RemoteMuteIndicator from '../components/call/RemoteMuteIndicator'
 
 export default function CallPage() {
     const callState = useCallStore((s) => s.callState)
@@ -15,7 +18,11 @@ export default function CallPage() {
     const [stats, setStats] = useState<StatsSample | null>(null)
     const remoteRef = useRef<HTMLVideoElement>(null)
     const selfRef = useRef<HTMLVideoElement>(null)
-
+    const micMuted = useCallStore((s) => s.micMuted)
+    const camOff = useCallStore((s) => s.camOff)
+    const remoteMicMuted = useCallStore((s) => s.remoteMicMuted)
+    const remoteCamOff = useCallStore((s) => s.remoteCamOff)
+    
     // Gắn stream vào <video> mỗi khi state đổi (remote stream tới khi 'connected')
     useEffect(() => {
         if (remoteRef.current) remoteRef.current.srcObject = getRemoteStream()
@@ -41,13 +48,17 @@ export default function CallPage() {
             <div style={{ flex: 1, position: 'relative', background: '#000', overflow: 'hidden' }}>
                 <video ref={remoteRef} autoPlay playsInline aria-label={`Camera của ${remoteUserId ?? ''}`}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: callState === 'reconnecting' ? 0.6 : 1 }} />
+                {remoteCamOff && remoteUserId && <RemoteCamOffOverlay username={remoteUserId} />}
+                {remoteMicMuted && <RemoteMuteIndicator />}
                 {mediaMode === 'audio-only' && <AudioOnlyBadge />}
                 <video ref={selfRef} autoPlay muted playsInline aria-label="Camera của bạn"
                     style={{ position: 'absolute', bottom: 8, right: 8, width: 160, height: 120, objectFit: 'cover', transform: 'scaleX(-1)', borderRadius: 4, border: '2px solid var(--bg)', background: '#000' }} />
             </div>
 
             {/* thanh điều khiển */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, padding: 16 }}>
+                <MuteButton muted={micMuted} onClick={toggleMic} />
+                <CamToggleButton off={camOff} onClick={toggleCam} />
                 <HangUpButton onClick={hangUp} />
             </div>
 

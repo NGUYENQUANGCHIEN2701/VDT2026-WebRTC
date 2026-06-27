@@ -18,6 +18,8 @@ import com.vdt.webrtc.ws.message.ClientMessage;
 import com.vdt.webrtc.ws.message.HangUp;
 import com.vdt.webrtc.ws.message.IceCandidateMessage;
 import com.vdt.webrtc.ws.message.IceCandidateReceived;
+import com.vdt.webrtc.ws.message.MediaState;
+import com.vdt.webrtc.ws.message.MediaStateRelay;
 import com.vdt.webrtc.ws.message.Ping;
 import com.vdt.webrtc.ws.message.Pong;
 import com.vdt.webrtc.ws.message.PresenceSnapshot;
@@ -78,7 +80,11 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         } else if (clientMessage instanceof SdpMessage sdpMessage) {
             SdpReceived received = new SdpReceived(username, sdpMessage.callId(), sdpMessage.sdp());
             router.sendToUser(sdpMessage.to(), received);
-        } else if (clientMessage instanceof IceCandidateMessage iceCandidateMessage) {
+        } else if (clientMessage instanceof MediaState ms) {
+            router.sendToUser(ms.to(), new MediaStateRelay(username, ms.micMuted(), ms.camOff()));
+        } else if (clientMessage instanceof
+
+        IceCandidateMessage iceCandidateMessage) {
             IceCandidateReceived received = new IceCandidateReceived(username, iceCandidateMessage.callId(),
                     iceCandidateMessage.candidate());
             router.sendToUser(iceCandidateMessage.to(), received);

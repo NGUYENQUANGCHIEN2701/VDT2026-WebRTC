@@ -5,6 +5,7 @@ import { useCallStore } from '../store/callStore'
 import { useAuthStore } from '../store/authStore'
 import type { CallServerSignal, CallStateChanged } from './messages'
 import { fetchIceConfig } from '../api/turn'
+import { useToastStore } from '../store/toastStore'
 
 // Object KHÔNG-serializable sống ở module scope (không vào Zustand)
 let localStream: MediaStream | null = null
@@ -87,6 +88,12 @@ function handleServerSignal(msg: CallServerSignal) {
         case 'ice-candidate-received':
             peer?.handleSignalingMessage({ candidate: msg.candidate })
             break
+        case 'media-state-relay': {
+            const call = useCallStore.getState()
+            call.setRemoteMicMuted(msg.micMuted)
+            call.setRemoteCamOff(msg.camOff)
+            break
+        }
     }
 }
 
@@ -106,14 +113,28 @@ function handleCallState(msg: CallStateChanged) {
             // cả 2 tạo peer: caller=impolite, callee=polite (perfect negotiation)
             createPeer(remote, msg.callId, !amCaller).then(() => call.setCallState('connecting'))
             break
-        case 'ended':
-            call.endCall(msg.reason ?? 'completed')   // state='ended' + lý do (màn summary ở mục 8)
+        case 'ended': {
             teardownMedia()
-            // tạm: tự về idle sau 3s (đúng hành vi auto-Home; visual summary làm sau)
-            setTimeout(() => {
-                if (useCallStore.getState().callState === 'ended') useCallStore.getState().reset()
-            }, 3000)
+            const reason = msg.reason ?? 'completed'
+
+            if (reason === 'busy') {
+                // chỉ caller nhận busy → toast trên Home, không vào màn call (D-05)
+                useToastStore.getState().show(`${remote} đang bận`, 'warning')
+                call.reset()
+            } else if (reason === 'missed' && !amCaller) {
+                // callee bỏ lỡ → toast tạm thời (D-09), không hiện summary
+                useToastStore.getState().show(`Bạn đã nhỡ cuộc gọi từ ${remote}`, 'info')
+                call.reset()
+            } else {
+                // completed/rejected/cancelled/dropped + missed phía caller → màn summary 3s
+                call.endCall(reason)
+                setTimeout(() => {
+                    if (useCallStore.getState().callState === 'ended') useCallStore.getState().reset()
+                }, 3000)
+            }
             break
+        }
+
     }
 }
 

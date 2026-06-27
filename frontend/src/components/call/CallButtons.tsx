@@ -9,6 +9,28 @@ const base = {
     cursor: 'pointer',
 } as const
 
+const round = (bg: string) => ({
+    width: 56, height: 56, borderRadius: '50%', border: 'none',
+    color: '#fff', fontSize: 20, cursor: 'pointer', background: bg,
+} as const)
+
+export function MuteButton({ muted, onClick }: { muted: boolean; onClick: () => void }) {
+    return (
+        <button onClick={onClick} aria-label={muted ? 'Bật mic' : 'Tắt mic'}
+            style={round(muted ? '#6b7280' : 'var(--code-bg)')}>
+            {muted ? '🔇' : '🎤'}
+        </button>
+    )
+}
+
+export function CamToggleButton({ off, onClick }: { off: boolean; onClick: () => void }) {
+    return (
+        <button onClick={onClick} aria-label={off ? 'Bật camera' : 'Tắt camera'}
+            style={round(off ? '#6b7280' : 'var(--code-bg)')}>
+            {off ? '📷' : '📹'}
+        </button>
+    )
+}
 export function AcceptButton({ onClick, disabled }: BtnProps) {
     return (
         <button onClick={onClick} disabled={disabled} aria-label="Nhận cuộc gọi"

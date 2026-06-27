@@ -22,6 +22,7 @@ export type CallServerSignal =
     | CallStateChanged
     | { type: 'sdp-received'; from: string; callId: string; sdp: RTCSessionDescriptionInit }
     | { type: 'ice-candidate-received'; from: string; callId: string; candidate: RTCIceCandidateInit }
+    | { type: 'media-state-relay'; from: string; micMuted: boolean; camOff: boolean }
 
 export type ServerMessage =
     | { type: 'presence'; users: OnlineUser[] }
@@ -39,3 +40,4 @@ export type ClientMessage =
     | { type: 'hang-up'; callId: string }
     | { type: 'sdp'; to: string; callId: string; sdp: RTCSessionDescription | null }
     | { type: 'ice-candidate'; to: string; callId: string; candidate: RTCIceCandidateInit }
+    | { type: 'media-state'; to: string; micMuted: boolean; camOff: boolean }
