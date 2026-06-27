@@ -91,6 +91,13 @@ export class PeerManager {
     }
 
     close() {
+        // Gỡ handler TRƯỚC khi đóng: pc.close() bắn oniceconnectionstatechange
+        // ('closed') bất đồng bộ — nếu còn handler, mapIceState sẽ set state về
+        // 'idle' và ghi đè 'ended' → màn summary biến mất ngay.
+        this.pc.oniceconnectionstatechange = null
+        this.pc.onnegotiationneeded = null
+        this.pc.onicecandidate = null
+        this.pc.ontrack = null
         this.pc.close()
         this.remoteStream = null
     }
