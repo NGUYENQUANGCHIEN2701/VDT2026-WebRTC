@@ -19,8 +19,15 @@ export default function LoginPage() {
       setAuth(res.data.token, { username: res.data.username, role: res.data.role })
       navigate('/')
     } catch (err) {
-      const msg = axios.isAxiosError(err) ? err.response?.data?.message : undefined
-      setError(msg ?? 'Đăng nhập thất bại. Vui lòng thử lại.')
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 403) {
+          setError('Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.')
+          return
+        }
+        setError(err.response?.data?.message ?? 'Đăng nhập thất bại. Vui lòng thử lại.')
+        return
+      }
+      setError('Đăng nhập thất bại. Vui lòng thử lại.')
     }
   }
   return (

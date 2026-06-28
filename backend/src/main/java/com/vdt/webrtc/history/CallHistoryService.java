@@ -1,6 +1,7 @@
 package com.vdt.webrtc.history;
 
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -19,7 +20,12 @@ public class CallHistoryService {
     }
 
     public HistoryPageResponse getHistory(String viewerId, String before, int size) {
-        Instant beforeTs = (before == null || before.isBlank()) ? null : Instant.parse(before);
+        Instant beforeTs;
+        try {
+            beforeTs = (before == null || before.isBlank()) ? null : Instant.parse(before);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Con trỏ 'before' không hợp lệ: " + before);
+        }
 
         Page<CallHistory> page = (beforeTs == null)
                 ? callHistoryRepository.findByViewerIdOrderByEndedAtDesc(viewerId, PageRequest.of(0, size))

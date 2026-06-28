@@ -88,7 +88,16 @@ public class AdminService {
         if (user.getUsername().equals(adminUsername)) {
             throw new IllegalArgumentException("Admin không thể thay đổi role của chính mình");
         }
-        user.setRole(Role.valueOf(roleName));
+        if (roleName == null || roleName.isBlank()) {
+            throw new IllegalArgumentException("Role không được để trống");
+        }
+        Role newRole;
+        try {
+            newRole = Role.valueOf(roleName);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Role không hợp lệ: " + roleName);
+        }
+        user.setRole(newRole);
         userRepository.save(user);
     }
 

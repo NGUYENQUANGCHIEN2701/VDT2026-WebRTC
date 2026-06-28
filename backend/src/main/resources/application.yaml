@@ -9,7 +9,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/vdt_webrtc}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:27012005}
+    password: ${DB_PASSWORD:dev-only-postgres-password-change-me}
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
