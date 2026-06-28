@@ -13,6 +13,7 @@ import CallPage from './pages/CallPage'
 import CallLayer from './components/call/CallLayer'
 import Toaster from './components/Toaster'
 import Ringtone from './components/call/Ringtone'
+import HistoryPage from './pages/HistoryPage'
 
 function App() {
   const setAuth = useAuthStore((state) => state.setAuth)
@@ -77,6 +78,9 @@ function App() {
         } />
         <Route path="/call" element={
           <ProtectedRoute><CallPage /></ProtectedRoute>
+        } />
+        <Route path="/history" element={
+          <ProtectedRoute><HistoryPage /></ProtectedRoute>
         } />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
