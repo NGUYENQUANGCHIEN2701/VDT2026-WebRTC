@@ -58,22 +58,24 @@ Declared values (multiples of 4). These are the values already in use across the
 
 ## Typography
 
-Sizes and weights taken from `index.css` and existing components — exactly **4 sizes** and **3 weights** in active use; Phase 5 stays within them.
+**Exactly two weights** for all Phase-5-authored elements: **400 (regular)** for body text, and **600 (semibold)** for every heading, page title, label, button, badge, emphasis, stat number, and modal title. No third weight (e.g. 500) is used. This is a Phase-5 contract decision only — the global `index.css` `h1/h2 { font-weight: 500 }` rule is NOT edited; Phase-5-authored headings/titles render at 600.
+
+Four sizes, two weights:
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Display / page title (`h1`) | 56px (36px ≤1024px via existing `h1` rule) | 500 | ~1.1 (`letter-spacing: -1.68px`, existing) |
-| Heading / section (`h2`, modal title) | 22–24px | 600 (modal) / 500 (`h2`) | 1.18 |
-| Body / table cell / username | 16px | 400 (regular), 600 for emphasis (username, stat number) | 1.45 (root `font: 18px/145%`; cells 16px) |
+| Display / page title | 56px (36px ≤1024px via existing `h1` rule) | 600 | ~1.1 (`letter-spacing: -1.68px`, existing) |
+| Heading / section / modal title | 22–24px | 600 | 1.18 |
+| Body / table cell / username | 16px | 400 (regular); 600 only for emphasis (username, stat number) | 1.45 (root `font: 18px/145%`; cells 16px) |
 | Label / badge / button / meta | 14px | 600 | 1.0–1.2 (badges use `lineHeight: 1`) |
 
 **Phase-5 specifics:**
-- **Stat-card big number:** 40–48px, weight 600, `var(--text-h)`, `fontVariantNumeric: 'tabular-nums'`. This is the one place a larger numeric display is justified ("read clearly during a live demo", D-16) — reuse the `h1`/display scale rather than inventing a new size; specify 44px.
+- **Stat-card big number:** 44px, weight 600, `var(--text-h)`, `fontVariantNumeric: 'tabular-nums'`. This is the one place a larger numeric display is justified ("read clearly during a live demo", D-16) — reuse the display scale rather than inventing a new size.
 - **Stat-card label:** 14px, weight 600, `var(--text)` (muted), uppercase optional.
 - **Day-group header (history):** 14px, weight 600, `var(--text)` muted, with bottom border `1px solid var(--border)` — matches table-header treatment.
-- **Duration column:** 16px, `tabular-nums`, so digits align in the list.
+- **Duration column:** 16px, weight 400, `tabular-nums`, so digits align in the list.
 
-> Note: the legacy root size is 18px and `h1` is 56px. These are pre-existing global rules. Phase 5 does not change globals; it works within them. The 4-row table above is the *contract for Phase-5-authored elements*.
+> Note: the legacy root size is 18px and the global `h1` is 56px/500. These are pre-existing global rules. Phase 5 does not change globals; Phase-5-authored elements follow the 2-weight (400/600) contract above.
 
 ---
 
@@ -166,7 +168,7 @@ Prescriptive notes for the executor; all built as plain inline-styled elements.
 - Container: max-width 800, centered, `padding: 24px`.
 - `useInfiniteQuery` (D-03) with an IntersectionObserver sentinel at list bottom; fetch next page on intersect. Show `Đang tải…` row while fetching next page.
 - Day group: sticky 14px/600 muted header with bottom border; rows newest→oldest within group (D-02).
-- Row layout (flex, `padding: 12px 16px`, `borderBottom: 1px solid var(--border)`): `[direction glyph] [peer username (16/600, var(--text-h), flex:1, text-align:left)] [outcome label (14, semantic color)] [duration (16, tabular-nums)] [timestamp (14, muted)]`. Read-only — no row actions, no delete (D-04).
+- Row layout (flex, `padding: 12px 16px`, `borderBottom: 1px solid var(--border)`): `[direction glyph] [peer username (16/600, var(--text-h), flex:1, text-align:left)] [outcome label (14, semantic color)] [duration (16/400, tabular-nums)] [timestamp (14, muted)]`. Read-only — no row actions, no delete (D-04).
 - Per-side perspective rendering driven by viewer identity (D-06).
 
 **Surface 2 — Admin user management (extend `AdminPage` table):**
