@@ -21,7 +21,10 @@ public class CallHistoryService {
     public HistoryPageResponse getHistory(String viewerId, String before, int size) {
         Instant beforeTs = (before == null || before.isBlank()) ? null : Instant.parse(before);
 
-        Page<CallHistory> page = callHistoryRepository.findByViewer(viewerId, beforeTs, PageRequest.of(0, size));
+        Page<CallHistory> page = (beforeTs == null)
+                ? callHistoryRepository.findByViewerIdOrderByEndedAtDesc(viewerId, PageRequest.of(0, size))
+                : callHistoryRepository.findByViewerIdAndEndedAtLessThanOrderByEndedAtDesc(
+                        viewerId, beforeTs, PageRequest.of(0, size));
 
         List<HistoryRow> items = page.getContent().stream()
                 .map(h -> new HistoryRow(
