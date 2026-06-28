@@ -94,6 +94,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
+		<!-- RabbitMQ (async call-history pipeline) -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
+		</dependency>
 		<!-- Testcontainers (integration test infra) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -5,10 +5,27 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+  
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/vdt_webrtc}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:27012005}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: auto
+        retry:
+          enabled: true
+          initial-interval: 1s
+          multiplier: 2.0
+          max-retries: 3
+          max-interval: 10s
   jpa:
     hibernate:
       ddl-auto: validate

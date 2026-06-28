@@ -1,11 +1,14 @@
 package com.vdt.webrtc.call;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.vdt.webrtc.history.CallHistoryEvent;
+import com.vdt.webrtc.history.CallHistoryPublisher;
 import com.vdt.webrtc.ws.MessageRouter;
 import com.vdt.webrtc.ws.message.CallStateChanged;
 
@@ -17,9 +20,11 @@ public class CallService {
     private final MessageRouter router;
     private final Duration ringTimeout;
     private final Duration gracePeriod;
+    private final CallHistoryPublisher callHistoryPublisher;
 
     public CallService(CallStateMachine stateMachine, CallTimerService timers,
             CallStateRepository repo, MessageRouter router,
+            CallHistoryPublisher callHistoryPublisher,
             @Value("${call.ring-timeout-seconds}") long ringSeconds,
             @Value("${call.grace-period-seconds}") long graceSeconds) {
         this.stateMachine = stateMachine;
@@ -28,6 +33,7 @@ public class CallService {
         this.router = router;
         this.ringTimeout = Duration.ofSeconds(ringSeconds);
         this.gracePeriod = Duration.ofSeconds(graceSeconds);
+        this.callHistoryPublisher = callHistoryPublisher;
     }
 
     // bắn event cho cả caller và callee.
@@ -62,6 +68,8 @@ public class CallService {
                     call.callerId(), call.calleeId());
             if (ok) {
                 broadcast(callId, "ended", "missed", call.callerId(), call.calleeId());
+                callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
+                        "missed", call.startedAt(), Instant.now()));
             }
         });
     }
@@ -75,6 +83,7 @@ public class CallService {
                     call.callerId(), call.calleeId());
             if (ok) {
                 broadcast(callId, "active", null, call.callerId(), call.calleeId());
+                repo.recordStartedAt(callId, Instant.now());
             }
         });
     }
@@ -88,6 +97,8 @@ public class CallService {
                     call.callerId(), call.calleeId());
             if (ok) {
                 broadcast(callId, "ended", "rejected", call.callerId(), call.calleeId());
+                callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
+                        "rejected", call.startedAt(), Instant.now()));
             }
         });
     }
@@ -101,6 +112,8 @@ public class CallService {
                     call.callerId(), call.calleeId());
             if (ok) {
                 broadcast(callId, "ended", "cancelled", call.callerId(), call.calleeId());
+                callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
+                        "cancelled", call.startedAt(), Instant.now()));
             }
         });
     }
@@ -115,6 +128,9 @@ public class CallService {
                     call.callerId(), call.calleeId());
             if (ok) {
                 broadcast(callId, "ended", "completed", call.callerId(), call.calleeId());
+                callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
+                        "completed", call.startedAt(), Instant.now()));
+
             }
         });
     }
@@ -140,6 +156,8 @@ public class CallService {
                     call.callerId(), call.calleeId());
             if (ok) {
                 broadcast(callId, "ended", "dropped", call.callerId(), call.calleeId());
+                callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
+                        "dropped", call.startedAt(), Instant.now()));
             }
         });
     }

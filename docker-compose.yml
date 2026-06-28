@@ -1,6 +1,5 @@
 # Full-stack run: `docker compose up --build`
 # Reads credentials from .env (copy from .env.example first).
-# Scope: postgres + redis + backend + coturn. rabbitmq/frontend/LB are added in later phases.
 
 services:
   postgres:
@@ -29,6 +28,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       # Host is the compose service name "postgres", internal port 5432.
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
@@ -36,6 +37,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       # Redis runs as the compose service "redis" on its default port 6379.
       REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
       JWT_SECRET: ${JWT_SECRET}
       TURN_SECRET: ${TURN_SECRET}
       TURN_SERVER: ${TURN_SERVER}
@@ -75,6 +77,16 @@ services:
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
+      timeout: 5s
+      retries: 10
+  rabbitmq:
+    image: rabbitmq:4.1-management
+    ports:
+      - "5672:5672"     # AMQP (app kết nối)
+      - "15672:15672"   # Management UI — http://localhost:15672 (guest/guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
       timeout: 5s
       retries: 10
 
