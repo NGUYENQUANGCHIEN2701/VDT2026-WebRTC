@@ -1,5 +1,5 @@
 import { acquireLocalMedia, MediaAcquisitionError } from '../webrtc/media'
-import { PeerManager } from '../webrtc/PeerManager'
+import { PeerManager, type InboundSignal } from '../webrtc/PeerManager'
 import { sendSignal, setCallSignalHandler } from './wsClient'
 import { useCallStore } from '../store/callStore'
 import { useAuthStore } from '../store/authStore'
@@ -10,6 +10,13 @@ import { useToastStore } from '../store/toastStore'
 // Object KHÔNG-serializable sống ở module scope (không vào Zustand)
 let localStream: MediaStream | null = null
 let peer: PeerManager | null = null
+// SDP/ICE có thể tới TRƯỚC khi peer kịp tạo (createPeer phải await fetchIceConfig).
+// Đệm lại để KHÔNG rớt offer → tránh deadlock perfect-negotiation (kẹt "đang kết nối").
+let pendingSignals: InboundSignal[] = []
+function deliverSignal(sig: InboundSignal) {
+    if (peer) peer.handleSignalingMessage(sig)
+    else pendingSignals.push(sig)
+}
 
 export function getLocalStream() { return localStream }
 export function getRemoteStream() { return peer?.remoteStream ?? null }
@@ -62,6 +69,10 @@ async function createPeer(remoteUserId: string, callId: string, polite: boolean)
     // remote track tới (có thể SAU khi state đã 'connected') → bump để CallPage gắn lại srcObject
     peer.onRemoteStream = () => useCallStore.getState().bumpRemoteStream()
     if (localStream) peer.addLocalStream(localStream)
+    // Xả tín hiệu đã đệm trong lúc await fetchIceConfig (vd offer của bên kia tới sớm)
+    const buffered = pendingSignals
+    pendingSignals = []
+    for (const sig of buffered) await peer.handleSignalingMessage(sig)
 }
 
 // ── Vào cuộc 'active' (dùng cho cả lần đầu LẪN resync sau F5) ──
@@ -123,6 +134,7 @@ function teardownMedia() {
     peer = null
     localStream?.getTracks().forEach((t) => t.stop())  // tắt đèn camera
     localStream = null
+    pendingSignals = []   // bỏ tín hiệu đệm còn sót của cuộc vừa kết thúc
     clearSavedCall()   // FE-C: cuộc đã kết thúc → quên đi, F5 không khôi phục nữa
 }
 
@@ -133,10 +145,10 @@ function handleServerSignal(msg: CallServerSignal) {
             handleCallState(msg)
             break
         case 'sdp-received':
-            peer?.handleSignalingMessage({ sdp: msg.sdp })
+            deliverSignal({ sdp: msg.sdp })
             break
         case 'ice-candidate-received':
-            peer?.handleSignalingMessage({ candidate: msg.candidate })
+            deliverSignal({ candidate: msg.candidate })
             break
         case 'media-state-relay': {
             const call = useCallStore.getState()
