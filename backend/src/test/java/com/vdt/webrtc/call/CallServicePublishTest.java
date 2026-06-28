@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.vdt.webrtc.history.CallHistoryPublisher;
+import com.vdt.webrtc.metrics.CallMetrics;
 import com.vdt.webrtc.ws.MessageRouter;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,13 +30,15 @@ class CallServicePublishTest {
     MessageRouter router;
     @Mock
     CallHistoryPublisher publisher;
+    @Mock
+    CallMetrics metrics;
 
     CallService callService;
 
     @BeforeEach
     void setUp() {
         // 2 tham số cuối là ring/grace seconds — giá trị bất kỳ cho test
-        callService = new CallService(stateMachine, timers, repo, router, publisher, 30, 15);
+        callService = new CallService(stateMachine, timers, repo, router, publisher, metrics, 30, 15);
     }
 
     // D-05: cuộc gọi tới người đang bận → KHÔNG bao giờ ghi lịch sử
