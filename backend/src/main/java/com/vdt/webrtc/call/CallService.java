@@ -110,6 +110,7 @@ public class CallService {
             if (!actorId.equals(call.callerId()) && !actorId.equals(call.calleeId()))
                 return; // chỉ caller/callee được hangup
             timers.cancelRingTimer(callId); // hủy timer missed (nếu đang ringing)
+            timers.cancelGrace(callId);
             boolean ok = stateMachine.transition(callId, "active", "ended", "completed",
                     call.callerId(), call.calleeId());
             if (ok) {
