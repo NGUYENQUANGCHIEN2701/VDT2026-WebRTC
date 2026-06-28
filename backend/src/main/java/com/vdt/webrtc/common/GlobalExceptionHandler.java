@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(build(HttpStatus.UNAUTHORIZED, "Invalid username or password", null, request));
     }
-    
+
     @ExceptionHandler(InvalidRefreshTokenException.class)
     public ResponseEntity<ApiError> handleInvalidRefreshToken(InvalidRefreshTokenException ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -40,6 +40,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleUserNotFound(UserNotFoundException ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(build(HttpStatus.NOT_FOUND, ex.getMessage(), null, request));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(build(HttpStatus.BAD_REQUEST, ex.getMessage(), null, request));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
