@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.vdt.webrtc.history.CallHistoryEvent;
 import com.vdt.webrtc.history.CallHistoryPublisher;
+import com.vdt.webrtc.metrics.CallMetrics;
 import com.vdt.webrtc.ws.MessageRouter;
 import com.vdt.webrtc.ws.message.CallStateChanged;
 
@@ -21,10 +22,12 @@ public class CallService {
     private final Duration ringTimeout;
     private final Duration gracePeriod;
     private final CallHistoryPublisher callHistoryPublisher;
-
+    private final CallMetrics metrics;
+    
     public CallService(CallStateMachine stateMachine, CallTimerService timers,
             CallStateRepository repo, MessageRouter router,
             CallHistoryPublisher callHistoryPublisher,
+            CallMetrics metrics,
             @Value("${call.ring-timeout-seconds}") long ringSeconds,
             @Value("${call.grace-period-seconds}") long graceSeconds) {
         this.stateMachine = stateMachine;
@@ -34,6 +37,7 @@ public class CallService {
         this.ringTimeout = Duration.ofSeconds(ringSeconds);
         this.gracePeriod = Duration.ofSeconds(graceSeconds);
         this.callHistoryPublisher = callHistoryPublisher;
+        this.metrics = metrics;
     }
 
     // bắn event cho cả caller và callee.
@@ -49,6 +53,7 @@ public class CallService {
         switch (result) {
             case OK -> {
                 broadcast(callId, "ringing", null, callerId, calleeId); // cả 2 thấy ringing
+                metrics.incrementStarted();
                 timers.scheduleRingTimeout(callId, ringTimeout, () -> onRingTimeout(callId));
             }
             case BUSY -> router.sendToUser(callerId, // chỉ caller, callee KHÔNG reo
@@ -70,6 +75,7 @@ public class CallService {
                 broadcast(callId, "ended", "missed", call.callerId(), call.calleeId());
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "missed", call.startedAt(), Instant.now()));
+                metrics.incrementMissed();
             }
         });
     }
@@ -130,6 +136,7 @@ public class CallService {
                 broadcast(callId, "ended", "completed", call.callerId(), call.calleeId());
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "completed", call.startedAt(), Instant.now()));
+                metrics.incrementCompleted();
 
             }
         });
