@@ -2,6 +2,8 @@ import { useEffect, useState } from "react"
 import { fetchUsers, lockUser, unlockUser, changeRole, type AdminUser } from "../api/admin"
 import { useAuthStore } from "../store/authStore"
 import ConfirmModal from "../components/admin/ConfirmModal"
+import DashboardCards from "../components/admin/DashboardCards"
+import SystemHistoryTable from "../components/admin/SystemHistoryTable"
 
 type Pending =
     | { kind: 'lock'; user: AdminUser }
@@ -13,6 +15,7 @@ export default function AdminPage() {
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(true)
     const [pending, setPending] = useState<Pending | null>(null)
+    const [activeTab, setActiveTab] = useState<'users' | 'dashboard' | 'history'>('users')
     const me = useAuthStore((s) => s.user?.username)
 
     const reload = () => {
@@ -47,6 +50,24 @@ export default function AdminPage() {
         <div style={{ maxWidth: 800, margin: '40px auto', fontFamily: 'sans-serif' }}>
             <h1>Quản trị — Danh sách người dùng</h1>
 
+            <nav style={{ display: 'flex', gap: 8, marginBottom: 24, borderBottom: '1px solid var(--border)' }}>
+                {([['users', 'Người dùng'], ['dashboard', 'Bảng điều khiển'], ['history', 'Lịch sử hệ thống']] as const).map(([key, label]) => (
+                    <button key={key} onClick={() => setActiveTab(key)}
+                        style={{
+                            background: 'transparent', border: 'none',
+                            borderBottom: activeTab === key ? '2px solid var(--accent)' : '2px solid transparent',
+                            fontSize: 16, fontWeight: activeTab === key ? 600 : 400, padding: '8px 16px', cursor: 'pointer',
+                        }}>
+                        {label}
+                    </button>
+                ))}
+            </nav>
+
+            {activeTab === 'dashboard' && <DashboardCards />}
+            {activeTab === 'history' && <SystemHistoryTable />}
+
+            {activeTab === 'users' && (
+                <>
             {loading && <p>Đang tải…</p>}
             {error && <p style={{ color: '#dc2626' }}>{error}</p>}
 
@@ -93,6 +114,8 @@ export default function AdminPage() {
 
             {pending && (
                 <ConfirmModal {...modalText()} onConfirm={runPending} onCancel={() => setPending(null)} />
+            )}
+                </>
             )}
         </div>
     )
