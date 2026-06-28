@@ -1,6 +1,7 @@
 import { useState, type SyntheticEvent } from "react"
 import { useAuthStore } from "../store/authStore"
 import { useNavigate } from "react-router-dom"
+import axios from "axios"
 import api from "../api/axios"
 
 export default function LoginPage() {
@@ -18,7 +19,8 @@ export default function LoginPage() {
       setAuth(res.data.token, { username: res.data.username, role: res.data.role })
       navigate('/')
     } catch (err) {
-      setError('Invalid username or password')
+      const msg = axios.isAxiosError(err) ? err.response?.data?.message : undefined
+      setError(msg ?? 'Đăng nhập thất bại. Vui lòng thử lại.')
     }
   }
   return (
