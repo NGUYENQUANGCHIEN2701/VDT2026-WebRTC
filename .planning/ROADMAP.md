@@ -181,7 +181,23 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Admin can view users, lock/unlock them, and change roles; a locked user is force-disconnected immediately
   4. Admin can view system-wide call history and a live dashboard showing online users, active calls, and daily stats
 
-**Plans**: TBD
+**Plans:** 4 plans
+**Wave 1**
+
+- [ ] 05-01-PLAN.md — Wave 0 RED test scaffolding: pom.xml RabbitMQ TC dep, TestcontainersConfiguration RabbitMQContainer, 8 RED test stubs (ConsumerTest, PublisherTest, ApiTest, AdminLockTest, AdminLockWsTest, AdminServiceTest, AdminHistoryApiTest, AdminDashboardApiTest)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 05-02-PLAN.md — Async history pipeline + user history UI: RabbitMQ infra (docker-compose, yaml, pom), Flyway V3 migration, RabbitMqConfig, history domain classes, CallService publisher wiring, HistoryController, HistoryPage (useInfiniteQuery, day-grouped)
+
+**Wave 3** *(blocked on Waves 1-2 completion)*
+
+- [ ] 05-03-PLAN.md — Admin user management: AdminService lock/unlock/changeRole + force-disconnect, AdminController PATCH endpoints, self-protection D-10, ConfirmModal, AdminPage inline actions
+
+**Wave 4** *(blocked on Waves 1-3 completion)*
+
+- [ ] 05-04-PLAN.md — Admin dashboard + system history: CallMetrics (AtomicLong + @Scheduled reset), CallService metric wiring, GET /api/admin/dashboard, GET /api/admin/history, DashboardCards (5s poll), SystemHistoryTable (username filter), AdminPage tabs
+
 **UI hint**: yes
 
 ### Phase 6: Horizontal Scaling
@@ -256,7 +272,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Realtime Presence & WebSocket Layer | 0/3 | Not started | - |
 | 3. 1-1 P2P Call Core & NAT Traversal | 0/5 | Not started | - |
 | 4. Call Lifecycle & In-Call Experience | 0/7 | Not started | - |
-| 5. Call History & Admin | 0/TBD | Not started | - |
+| 5. Call History & Admin | 0/4 | Planned | - |
 | 6. Horizontal Scaling | 0/TBD | Not started | - |
 | 7. Group Mesh Calls | 0/TBD | Not started | - |
 | 8. Screen Share, Recording & Device Control | 0/TBD | Not started | - |
@@ -269,3 +285,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *Phase 2 planned: 2026-06-14 — 3 plans in 3 waves*
 *Phase 3 planned: 2026-06-18 — 5 plans in 5 waves*
 *Phase 4 planned: 2026-06-26 — 7 plans in 7 waves*
+*Phase 5 planned: 2026-06-28 — 4 plans in 4 waves*
