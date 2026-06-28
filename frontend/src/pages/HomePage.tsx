@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useLogout } from "../hooks/useLogout"
 import { useAuthStore } from "../store/authStore"
 import ConnectionIndicator from '../components/presence/ConnectionIndicator'
@@ -17,6 +18,17 @@ export default function HomePage() {
             <h1>Xin chào, {user?.username}</h1>
             <p>Role: {user?.role}</p>
             <button onClick={logout}>Đăng xuất</button>
+
+            <nav style={{ marginTop: 12, display: 'flex', gap: 16 }}>
+                <Link to="/history" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                    Lịch sử cuộc gọi
+                </Link>
+                {user?.role === 'ADMIN' && (
+                    <Link to="/admin" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                        Quản trị
+                    </Link>
+                )}
+            </nav>
 
             <div style={{ marginTop: 16 }}>
                 <ConnectionIndicator />
