@@ -71,6 +71,21 @@ class CallStateMachineTest {
         assertThat(ok).isFalse(); // kỳ vọng active nhưng đang ringing
     }
 
+    // CR-01: vào 'active' phải GIA HẠN TTL (hash + 2 con trỏ) vượt xa ring-TTL,
+    // kẻo cuộc đang nói chết sau ~5 phút và mọi lifecycle thành no-op.
+    @Test
+    void transition_toActive_extendsTtlBeyondRingTimeout() {
+        stateMachine.createCall("X", "alice", "bob"); // ringing, TTL ~300s
+        assertThat(redis.getExpire("call:X")).isLessThanOrEqualTo(300L); // ring-TTL
+
+        stateMachine.transition("X", "ringing", "active", null, "alice", "bob");
+
+        // active-TTL = 14400s → cả 3 key phải được gia hạn vượt xa ring-TTL
+        assertThat(redis.getExpire("call:X")).isGreaterThan(14000L);
+        assertThat(redis.getExpire("user-call:alice")).isGreaterThan(14000L);
+        assertThat(redis.getExpire("user-call:bob")).isGreaterThan(14000L);
+    }
+
     // 20 luồng cùng lúc chuyển ringing→active → CAS đảm bảo đúng 1 luồng thắng (chống race)
     @Test
     void concurrentTransition_onlyOneWinner() throws InterruptedException {

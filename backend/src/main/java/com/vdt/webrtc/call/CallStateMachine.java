@@ -12,6 +12,7 @@ public class CallStateMachine {
     private final StringRedisTemplate redis;
     private final RedisScript<Long> createScript;
     private final RedisScript<Long> transitionScript;
+    private static final String ACTIVE_TTL_SECONDS = "14400";
 
     public CallStateMachine(StringRedisTemplate redis) {
         this.redis = redis;
@@ -43,7 +44,7 @@ public class CallStateMachine {
             String reason, String callerId, String calleeId) {
         Long result = redis.execute(transitionScript,
                 List.of("call:" + callId, "user-call:" + callerId, "user-call:" + calleeId),
-                from, to, reason == null ? "" : reason, String.valueOf(System.currentTimeMillis()));
+                from, to, reason == null ? "" : reason, String.valueOf(System.currentTimeMillis()), ACTIVE_TTL_SECONDS);
 
         if (result == null) {
             throw new IllegalStateException("Redis script execution returned null");

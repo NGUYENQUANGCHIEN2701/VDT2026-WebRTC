@@ -6,6 +6,7 @@
 -- ARGV[2] = state mới     (vd "active")
 -- ARGV[3] = reason        (vd "completed"; "" nếu chưa kết thúc)
 -- ARGV[4] = now epoch-ms  (đóng dấu activeAt/endedAt)
+-- ARGV[5] = TTL giây cho cuộc active (gia hạn khỏi ring-TTL)
 -- Trả: 1 = thành công · 0 = state hiện tại không khớp (caller thua race / transition không hợp lệ)
 
 -- Bước 1: đọc state hiện tại của bản ghi cuộc gọi
@@ -27,7 +28,12 @@ end
 -- Bước 5: vào active → đóng dấu thời điểm
 if ARGV[2] == 'active' then
     redis.call('HSET', KEYS[1], 'activeAt', ARGV[4])
+    -- ARGV[5] = TTL giây cho cuộc đang nói. Gia hạn cả hash lẫn 2 con trỏ user-call.
+    redis.call('EXPIRE', KEYS[1], ARGV[5])
+    if KEYS[2] ~= '' then redis.call('EXPIRE', KEYS[2], ARGV[5]) end
+    if KEYS[3] ~= '' then redis.call('EXPIRE', KEYS[3], ARGV[5]) end
 end
+
 
 -- Bước 6: kết thúc → đóng dấu endedAt + dọn 2 con trỏ user-call (nếu được truyền)
 if ARGV[2] == 'ended' then
