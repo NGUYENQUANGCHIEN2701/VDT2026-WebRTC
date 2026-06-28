@@ -44,7 +44,8 @@ created: 2026-06-28
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
 | TBD | TBD | TBD | HIST-01 | — | Publish event after terminal transition; broadcast NOT blocked | integration | `./mvnw test -Dtest=CallHistoryPublishTest` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | HIST-01 | — | `busy` outcome does NOT publish any event | unit | `./mvnw test -Dtest=CallHistoryPublisherTest` | ❌ W0 | ⬜ pending |
+| TBD | TBD | TBD | HIST-01/D-05 | — | publisher.publish() always forwards to AmqpTemplate regardless of endReason (CallHistoryPublisherTest) | unit | `./mvnw test -Dtest=CallHistoryPublisherTest` | ❌ W0 | ⬜ pending |
+| TBD | TBD | TBD | HIST-01/D-05 | — | `busy` branch in CallService triggers zero publisher.publish() calls (CallServicePublishTest) | unit | `./mvnw test -Dtest=CallServicePublishTest` | ❌ W0 | ⬜ pending |
 | TBD | TBD | TBD | HIST-02 | — | User retrieves own history newest-first with correct per-side direction | integration | `./mvnw test -Dtest=CallHistoryApiTest` | ❌ W0 | ⬜ pending |
 | TBD | TBD | TBD | HIST-02 | — | Cursor pagination returns correct page with hasNextPage | integration | `./mvnw test -Dtest=CallHistoryApiTest` | ❌ W0 | ⬜ pending |
 | TBD | TBD | TBD | HIST-03 | — | Duplicate delivery of same event → single logical record (idempotent) | integration | `./mvnw test -Dtest=CallHistoryConsumerTest` | ❌ W0 | ⬜ pending |
@@ -62,7 +63,8 @@ created: 2026-06-28
 ## Wave 0 Requirements
 
 - [ ] `backend/.../history/CallHistoryConsumerTest.java` — HIST-01/03 async pipeline + idempotency + DLQ
-- [ ] `backend/.../history/CallHistoryPublisherTest.java` — HIST-01 fire-and-forget; `busy` NOT published
+- [ ] `backend/.../history/CallHistoryPublisherTest.java` — HIST-01 fire-and-forget; publisher.publish() always forwards to AmqpTemplate regardless of endReason
+- [ ] `backend/.../call/CallServicePublishTest.java` — HIST-01/D-05 busy exclusion: busy branch in CallService triggers zero publisher.publish() calls
 - [ ] `backend/.../history/CallHistoryApiTest.java` — HIST-02 user endpoint + cursor pagination
 - [ ] `backend/.../admin/AdminLockTest.java` — ADMN-01 lock/unlock REST + login block
 - [ ] `backend/.../admin/AdminLockWsTest.java` — ADMN-01 WS force-close on lock

@@ -68,9 +68,10 @@ path wait on the DB.
 - `.planning/REQUIREMENTS.md` — HIST-01/02/03, ADMN-01/02/03 (lines ~53-67)
 
 ### Stack & conventions (locked)
-- `CLAUDE.md` §"Messaging" — RabbitMQ 4.1 (`rabbitmq:4.1-management`), Spring AMQP, `Jackson2JsonMessageConverter`, publisher confirms, DLQ via `x-dead-letter-exchange`, retry with backoff
+- `CLAUDE.md` §"Messaging" — RabbitMQ 4.1 (`rabbitmq:4.1-management`), Spring AMQP, `JacksonJsonMessageConverter` (NOT `Jackson2JsonMessageConverter` — deprecated for removal in Spring AMQP 4.0; see RESEARCH.md §Pitfall 1), publisher confirms, DLQ via `x-dead-letter-exchange`, retry with backoff
 - `CLAUDE.md` §"Database & Data Layer" — Flyway versioned SQL migrations (the DB-script deliverable), Hibernate `ddl-auto: validate`
 - `CLAUDE.md` §"Monitoring" — custom Micrometer metrics (calls started/completed/missed counters) feed dashboard demo
+  NOTE: daily stats use AtomicLong + @Scheduled(cron) reset, NOT Micrometer Counter (monotonic, no daily reset) — see RESEARCH.md §Pattern 7 and §Pitfall.
 
 ### Cross-phase dependencies
 - `.planning/phases/04-call-lifecycle-in-call-experience/04-CONTEXT.md` — 6 end-reason taxonomy (D-07), busy≠missed (D-06), server-authoritative state machine — the events Phase 5 records originate here

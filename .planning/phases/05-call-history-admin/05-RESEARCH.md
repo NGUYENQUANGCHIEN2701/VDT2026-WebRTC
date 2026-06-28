@@ -793,22 +793,25 @@ Page<CallHistory> findByViewer(
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **startedAt field in CallSnapshot/Redis hash**
    - What we know: `CallStateRepository.find()` currently reads `state`, `reason`, `callerId`, `calleeId`.
    - What's unclear: Phase 4's `create_call.lua` and `transition_call.lua` don't store `startedAt`.
    - Recommendation: Add `startedAt` storage in `handleAccept` (Java code, not Lua) via `redis.opsForHash().put("call:" + callId, "startedAt", String.valueOf(Instant.now().toEpochMilli()))`. Read it back in `CallStateRepository.find()`. Safe additive change.
+   - RESOLVED: Implemented as additive HSET in handleAccept — no Lua script changes needed; safe. Plan 05-02 Task 2 implements this.
 
 2. **Redis SCAN vs KEYS for active-call count**
    - What we know: `user-call:*` keys exist in Redis (Phase 4 confirmed via `CallStateRepository`).
    - What's unclear: KEYS blocks Redis on large datasets.
    - Recommendation: For Phase 5 single-instance demo scale, `keys("user-call:*").size() / 2` is acceptable. Add a TODO comment for Phase 6 to replace with a dedicated `calls:active:count` Redis counter.
+   - RESOLVED: Using StringRedisTemplate.keys("user-call:*").size() / 2 for Phase 5 demo scale; TODO comment added in AdminService for Phase 6 replacement. Tracked as T-05-14 (accepted risk).
 
 3. **Flyway migration version number**
    - What we know: V1 = core schema, V2 = seed admin. Next is V3.
    - What's unclear: Confirm no other migration was added in Phases 2-4.
    - Recommendation: Check `backend/src/main/resources/db/migration/` — no V3 file found in inspection. Use `V3__call_history.sql`.
+   - RESOLVED: Inspected `backend/src/main/resources/db/migration/` — existing files are V1__create_tables.sql and V2__seed_admin.sql only. No V3 was added in Phases 2-4. Next free version is V3. All plans correctly reference V3__call_history.sql.
 
 ---
 
