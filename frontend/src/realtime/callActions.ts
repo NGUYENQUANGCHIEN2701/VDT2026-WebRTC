@@ -59,6 +59,8 @@ async function createPeer(remoteUserId: string, callId: string, polite: boolean)
         if (sig.type === 'sdp') sendSignal({ type: 'sdp', to: remoteUserId, callId, sdp: sig.sdp })
         else sendSignal({ type: 'ice-candidate', to: remoteUserId, callId, candidate: sig.candidate })
     }, iceTransportPolicy)
+    // remote track tới (có thể SAU khi state đã 'connected') → bump để CallPage gắn lại srcObject
+    peer.onRemoteStream = () => useCallStore.getState().bumpRemoteStream()
     if (localStream) peer.addLocalStream(localStream)
 }
 

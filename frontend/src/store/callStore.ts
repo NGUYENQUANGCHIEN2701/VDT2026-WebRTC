@@ -32,6 +32,8 @@ interface CallStoreState {
     remoteCamOff: boolean
     setRemoteMicMuted: (b: boolean) => void
     setRemoteCamOff: (b: boolean) => void
+    remoteStreamVersion: number   // bump mỗi khi remote track tới → CallPage gắn lại srcObject
+    bumpRemoteStream: () => void
 
     setMediaError: (error: MediaErrorType | null) => void
     setCallState: (s: CallState) => void
@@ -60,6 +62,8 @@ export const useCallStore = create<CallStoreState>((set) => ({
     remoteCamOff: false,
     setRemoteMicMuted: (remoteMicMuted) => set({ remoteMicMuted }),
     setRemoteCamOff: (remoteCamOff) => set({ remoteCamOff }),
+    remoteStreamVersion: 0,
+    bumpRemoteStream: () => set((s) => ({ remoteStreamVersion: s.remoteStreamVersion + 1 })),
     setMediaError: (mediaError) => set({ mediaError }),
     // Lần ĐẦU vào 'connected' thì chốt mốc đếm giờ; lần sau (reconnecting→connected) giữ nguyên
     setCallState: (callState) =>
@@ -79,5 +83,5 @@ export const useCallStore = create<CallStoreState>((set) => ({
             durationMs: s.connectedAt != null ? Date.now() - s.connectedAt : 0,
         })),
 
-    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null, endReason: null, connectedAt: null, durationMs: null, micMuted: false, camOff: false, remoteMicMuted: false, remoteCamOff: false }),
+    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null, endReason: null, connectedAt: null, durationMs: null, micMuted: false, camOff: false, remoteMicMuted: false, remoteCamOff: false, remoteStreamVersion: 0 }),
 }))

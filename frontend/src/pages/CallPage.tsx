@@ -23,13 +23,14 @@ export default function CallPage() {
     const camOff = useCallStore((s) => s.camOff)
     const remoteMicMuted = useCallStore((s) => s.remoteMicMuted)
     const remoteCamOff = useCallStore((s) => s.remoteCamOff)
+    const remoteStreamVersion = useCallStore((s) => s.remoteStreamVersion)
     const duration = useCallDuration()
     
     // Gắn stream vào <video> mỗi khi state đổi (remote stream tới khi 'connected')
     useEffect(() => {
         if (remoteRef.current) remoteRef.current.srcObject = getRemoteStream()
         if (selfRef.current) selfRef.current.srcObject = getLocalStream()
-    }, [callState])
+    }, [callState, remoteStreamVersion])
 
     // Poll getStats CHỈ khi panel mở (STAB-04: không poll khi ẩn)
     useEffect(() => {
