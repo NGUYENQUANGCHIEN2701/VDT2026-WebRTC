@@ -20,7 +20,10 @@ services:
       timeout: 5s
       retries: 10
 
-  backend:
+  # Two signaling instances behind nginx (Phase 6 horizontal-scaling demo).
+  # No host port mapping — nginx is the sole external entry point on 8080.
+  # Each instance gets a distinct INSTANCE_ID → distinct Redis route/pub-sub channel.
+  backend-1:
     build:
       context: ./backend
     depends_on:
@@ -41,14 +44,54 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       TURN_SECRET: ${TURN_SECRET}
       TURN_SERVER: ${TURN_SERVER}
-    ports:
-      - "8080:8080"
+      INSTANCE_ID: backend-1
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 40s
+
+  backend-2:
+    build:
+      context: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      JWT_SECRET: ${JWT_SECRET}
+      TURN_SECRET: ${TURN_SECRET}
+      TURN_SERVER: ${TURN_SERVER}
+      INSTANCE_ID: backend-2
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # Load balancer + WebSocket-aware reverse proxy. Sole external entry point.
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      backend-1:
+        condition: service_healthy
+      backend-2:
+        condition: service_healthy
+    ports:
+      # Host 8080 -> nginx 80 (same external port as the old single backend).
+      - "8080:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
 
   coturn:
     image: coturn/coturn:4.6
