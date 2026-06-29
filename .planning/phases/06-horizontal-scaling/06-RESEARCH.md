@@ -786,22 +786,25 @@ redis.convertAndSend(channel, message);   // StringRedisTemplate.convertAndSend
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **`WsTestSupport.drainState()` after Local-to-Redis swap**
+1. **`WsTestSupport.drainState()` after Local-to-Redis swap** — **(RESOLVED)**
    - What we know: `WsTestSupport` autowires `LocalPresenceService presence` and calls `await(() -> presence.snapshot().isEmpty())`.
    - What's unclear: After `LocalPresenceService` loses its `@Service` annotation, this field cannot be autowired. The `RedisPresenceService.snapshot()` reads from Redis — but the sweeper hasn't run yet after test teardown, so `online-users` SET may not be empty immediately after WS close.
    - Recommendation: Change `WsTestSupport` to autowire `PresenceService` (the interface); in `drainState`, call `presence.leave(userId)` explicitly for each connected user, OR use a `flushAll()` via `StringRedisTemplate` before/after each test (same as `CallLifecycleTest.flushRedis()`). The `flushAll` approach is simplest.
+   - **Resolution (Plan 06-01):** `WsTestSupport` field changed to `protected PresenceService presence` (interface type). Per-test teardown in `CrossInstanceCallTest` uses `flushAll()` via `StringRedisTemplate`. Existing single-context tests now receive `RedisPresenceService` as `@Primary`; `drainState()` compiles correctly because `RedisPresenceService.snapshot()` reads the same `online-users` SET that `leave()` clears.
 
-2. **Single-session policy (PRES-03) across instances**
+2. **Single-session policy (PRES-03) across instances** — **(RESOLVED)**
    - What we know: `PresenceWebSocketHandler.afterConnectionEstablished` currently checks `sessionRegistry.register(username, session)` for a non-null old session and kicks it. But `sessionRegistry` is instance-local.
    - What's unclear: If Alice connects to `backend-1`, then reconnects to `backend-2`, `backend-2` has no old session in its local `SessionRegistry`. The old session on `backend-1` is NOT kicked.
    - Recommendation: On WS connect, before registering locally, check `route:{userId}` in Redis. If it points to a DIFFERENT instance, PUBLISH a `session-superseded` message to `inst:{old-instance-id}` with the userId. The receiving instance then kicks the old session from its `SessionRegistry`. This is a new cross-instance message type for session management. Document this as a required task in the plan.
+   - **Resolution (Plan 06-02 Task 2):** `PresenceWebSocketHandler.afterConnectionEstablished` reads `route:{userId}` from Redis; if it points to a different instance, serializes `RoutedEnvelope(username, mapper.writeValueAsString(new SessionSuperseded(...)))` and calls `redis.convertAndSend("inst:" + existingInstance, envelopeJson)`. Reuses existing `SessionSuperseded.java` (Phase 2, `com.vdt.webrtc.ws.message`).
 
-3. **`presencePublisher` vs inline `redis.convertAndSend` in `PresenceWebSocketHandler`**
+3. **`presencePublisher` vs inline `redis.convertAndSend` in `PresenceWebSocketHandler`** — **(RESOLVED)**
    - What we know: `PresenceWebSocketHandler` currently calls `broadcastSnapshot()` inline. After the swap, it should PUBLISH to `presence-events` instead.
    - What's unclear: Should `PresenceWebSocketHandler` get a direct `StringRedisTemplate` dependency, or should this be encapsulated in a `PresencePublisher` helper?
    - Recommendation: Inject `StringRedisTemplate` into `PresenceWebSocketHandler` directly (it already knows about Redis-adjacent concepts). Alternatively, add a `publishPresenceChanged()` method to `RedisPresenceService` and call it after `join/leave`. The latter is cleaner (keeps Redis operations in the service layer).
+   - **Resolution (Plan 06-02 Task 2):** `PresenceWebSocketHandler` receives `StringRedisTemplate` via constructor injection and calls `redis.convertAndSend("presence-events", "changed")` inline in `afterConnectionEstablished` and `afterConnectionClosed`. Direct injection chosen — no `PresencePublisher` helper.
 
 ---
 

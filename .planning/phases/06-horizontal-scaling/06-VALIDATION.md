@@ -2,8 +2,8 @@
 phase: 6
 slug: horizontal-scaling
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-29
 ---
 
@@ -36,13 +36,16 @@ created: 2026-06-29
 
 ## Per-Task Verification Map
 
-> Filled by the planner against the generated PLAN.md task IDs. The keystone row is the
-> cross-instance signaling test (SCAL-01 success criterion #3).
-
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | TBD | SCAL-01 | — | Cross-instance call connects via Redis pub/sub routing | integration | `./mvnw -Dtest=*CrossInstance* test` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | SCAL-02 | — | Presence + busy consistent regardless of instance | integration | `./mvnw -Dtest=*Presence*Redis* test` | ❌ W0 | ⬜ pending |
+| 06-01 Task 1: PresenceSweeper + WsTestSupport refactor | 06-01 | 1 | SCAL-01, SCAL-02 | T-06-SC | No LocalPresenceService autowiring; compiler verifies contract | compile | `cd backend && ./mvnw -pl . compile -q 2>&1 \| tail -5` | Creates PresenceSweeper.java, modifies WsTestSupport.java | ⬜ pending |
+| 06-01 Task 2: CrossInstanceCallTest RED scaffold | 06-01 | 1 | SCAL-01, SCAL-02 | T-06-01 | Tokens minted server-side; cross-instance test compiles and fails RED | integration (RED) | `cd backend && ./mvnw -pl . -Dtest=CrossInstanceCallTest test -DfailIfNoTests=false 2>&1 \| grep -E "(BUILD\|FAIL\|ERROR\|Tests run:[[:space:]]*[1-9])" \| tail -10` | Creates CrossInstanceCallTest.java | ⬜ pending |
+| 06-02 Task 1: Redis impl beans (RedisConfig, RedisMessageRouter, etc.) | 06-02 | 2 | SCAL-01, SCAL-02 | T-06-02, T-06-03, T-06-04, T-06-SC | Redis channels internal; no package installs; ObjectMapper is tools.jackson | compile | `cd backend && ./mvnw -pl . compile -q 2>&1 \| tail -5` | Creates 6 new files; modifies 3 | ⬜ pending |
+| 06-02 Task 2: PresenceWebSocketHandler route-map wiring + CrossInstanceCallTest GREEN | 06-02 | 2 | SCAL-01, SCAL-02 | T-06-02, T-06-05, T-06-06 | Route map key written from server-extracted JWT username; cross-instance kick reuses existing SessionSuperseded | integration (GREEN) | `cd backend && ./mvnw -pl . -Dtest=CrossInstanceCallTest test -DfailIfNoTests=false 2>&1 \| grep -E "(BUILD\|Tests run\|FAIL\|ERROR)" \| tail -10` | Modifies PresenceWebSocketHandler.java | ⬜ pending |
+| 06-03 Task 1: nginx/conf.d/vdt.conf | 06-03 | 3 | SCAL-01 | T-06-07, T-06-08, T-06-09 | Upstream round-robin; no ip_hash; WS upgrade headers present | config grep | `grep -c "proxy_set_header Upgrade" D:/VDTWebRTC/VDT2026-WebRTC/nginx/conf.d/vdt.conf` | Creates nginx/conf.d/vdt.conf | ⬜ pending |
+| 06-03 Task 2: docker-compose.yml backend-1/backend-2 + nginx | 06-03 | 3 | SCAL-01 | T-06-07, T-06-10 | Both backends internal (no host port); INSTANCE_ID set per instance | config grep | `grep -c "INSTANCE_ID:" D:/VDTWebRTC/VDT2026-WebRTC/docker-compose.yml` | Modifies docker-compose.yml | ⬜ pending |
+| 06-04 Task 1: Full test suite green gate | 06-04 | 4 | SCAL-01, SCAL-02 | — | All prior automated tests must pass before human checkpoint | full suite | `cd backend && ./mvnw verify 2>&1 \| grep -E "(BUILD SUCCESS\|BUILD FAILURE\|Tests run)" \| tail -5` | No file changes | ⬜ pending |
+| 06-04 Task 2: Manual browser demo (human verify) | 06-04 | 4 | SCAL-01 | T-06-11 | Two browsers on different instances complete a 1-1 call | manual | Human checkpoint — see `<how-to-verify>` in 06-04-PLAN.md | N/A | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -50,8 +53,8 @@ created: 2026-06-29
 
 ## Wave 0 Requirements
 
-- [ ] Cross-instance integration test scaffold — two Spring contexts + shared Testcontainers Redis (D-06); requires extracting `CollectingHandler` to a shared test class (per RESEARCH).
-- [ ] Update `WsTestSupport.drainState()` so cleanup works against the Redis-backed `PresenceService` (per RESEARCH open question).
+- [x] Cross-instance integration test scaffold — two Spring contexts + shared Testcontainers Redis (D-06); `CollectingHandler` copied as static inner class in `CrossInstanceCallTest` (per RESEARCH Pattern 9). Created in Plan 06-01 Task 2.
+- [x] Update `WsTestSupport.drainState()` so cleanup works against the Redis-backed `PresenceService` (RESEARCH Open Q #1). Resolved in Plan 06-01 Task 1: field changed to `protected PresenceService presence` (interface).
 
 *Existing infrastructure (JUnit 5 + Testcontainers) covers the rest.*
 
@@ -69,11 +72,11 @@ created: 2026-06-29
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 120s (excluding keystone integration test)
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 120s (excluding keystone integration test)
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
