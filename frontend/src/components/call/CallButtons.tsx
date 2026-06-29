@@ -1,71 +1,53 @@
+import { Mic, MicOff, Phone, PhoneOff, Video, VideoOff, X } from "lucide-react"
+
 type BtnProps = { onClick: () => void; disabled?: boolean }
 
-const base = {
-    minWidth: 120,
-    height: 44,
-    borderRadius: 8,
-    border: 'none',
-    fontSize: 16,
-    cursor: 'pointer',
-} as const
-
-const round = (bg: string) => ({
-    width: 56, height: 56, borderRadius: '50%', border: 'none',
-    color: '#fff', fontSize: 20, cursor: 'pointer', background: bg,
-} as const)
-
 export function MuteButton({ muted, onClick }: { muted: boolean; onClick: () => void }) {
-    return (
-        <button onClick={onClick} aria-label={muted ? 'Bật mic' : 'Tắt mic'}
-            style={round(muted ? '#6b7280' : 'var(--code-bg)')}>
-            {muted ? '🔇' : '🎤'}
-        </button>
-    )
+  return (
+    <button className={`call-round-button ${muted ? "call-round-button--muted" : ""}`} onClick={onClick} aria-label={muted ? "Bật mic" : "Tắt mic"} type="button">
+      {muted ? <MicOff size={22} /> : <Mic size={22} />}
+    </button>
+  )
 }
 
 export function CamToggleButton({ off, onClick }: { off: boolean; onClick: () => void }) {
-    return (
-        <button onClick={onClick} aria-label={off ? 'Bật camera' : 'Tắt camera'}
-            style={round(off ? '#6b7280' : 'var(--code-bg)')}>
-            {off ? '📷' : '📹'}
-        </button>
-    )
+  return (
+    <button className={`call-round-button ${off ? "call-round-button--muted" : ""}`} onClick={onClick} aria-label={off ? "Bật camera" : "Tắt camera"} type="button">
+      {off ? <VideoOff size={22} /> : <Video size={22} />}
+    </button>
+  )
 }
+
 export function AcceptButton({ onClick, disabled }: BtnProps) {
-    return (
-        <button onClick={onClick} disabled={disabled} aria-label="Nhận cuộc gọi"
-            style={{ ...base, background: '#16a34a', color: '#fff' }}>
-            Nhận
-        </button>
-    )
+  return (
+    <button className="app-button app-button--success" onClick={onClick} disabled={disabled} aria-label="Nhận cuộc gọi" type="button">
+      <Phone size={17} />
+      Nhận
+    </button>
+  )
 }
 
 export function RejectButton({ onClick, disabled }: BtnProps) {
-    return (
-        <button onClick={onClick} disabled={disabled} aria-label="Từ chối cuộc gọi"
-            style={{ ...base, background: '#dc2626', color: '#fff' }}>
-            Từ chối
-        </button>
-    )
+  return (
+    <button className="app-button app-button--danger" onClick={onClick} disabled={disabled} aria-label="Từ chối cuộc gọi" type="button">
+      <X size={17} />
+      Từ chối
+    </button>
+  )
 }
 
 export function CancelButton({ onClick, disabled }: BtnProps) {
-    return (
-        <button onClick={onClick} disabled={disabled} aria-label="Hủy cuộc gọi"
-            style={{ ...base, background: 'var(--border)', color: 'var(--text-h)' }}>
-            Hủy cuộc gọi
-        </button>
-    )
+  return (
+    <button className="app-button app-button--ghost" onClick={onClick} disabled={disabled} aria-label="Hủy cuộc gọi" type="button">
+      Hủy cuộc gọi
+    </button>
+  )
 }
 
 export function HangUpButton({ onClick }: BtnProps) {
-    return (
-        <button onClick={onClick} aria-label="Kết thúc cuộc gọi"
-            style={{
-                width: 56, height: 56, borderRadius: '50%', border: 'none',
-                background: '#dc2626', color: '#fff', fontSize: 20, fontWeight: 600, cursor: 'pointer',
-            }}>
-            ✕
-        </button>
-    )
+  return (
+    <button className="call-round-button call-round-button--danger" onClick={onClick} aria-label="Kết thúc cuộc gọi" type="button">
+      <PhoneOff size={23} />
+    </button>
+  )
 }
