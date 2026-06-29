@@ -194,6 +194,22 @@ class CrossInstanceCallTest {
         assertThat(snap).as("Bob ở inst2 phải thấy alice online").isNotNull();
     }
 
+    @Test // Regression: user nối SAU phải thấy NGAY người đã online từ trước (instance khác).
+          // Test cũ nối observer trước nên lọt bug "người mới không nhận snapshot lúc connect".
+    void crossInstance_lateJoiner_seesExistingUsers() throws Exception {
+        connect(port1, mint("alice"), new CollectingHandler());
+        awaitRouteRegistered("alice"); // alice đã online HẲN (presence + route) trước khi bob vào
+
+        CollectingHandler hBob = new CollectingHandler();
+        connect(port2, mint("bob"), hBob); // bob nối SAU, ở instance khác
+
+        // Bob phải nhận snapshot chứa alice ngay lúc connect (push đồng bộ),
+        // KHÔNG phụ thuộc một presence-event nào fire sau đó.
+        String snap = hBob.awaitMatching(
+                f -> f.contains("\"type\":\"presence\"") && f.contains("alice"), 10000);
+        assertThat(snap).as("Bob nối sau phải thấy alice đã online từ trước").isNotNull();
+    }
+
     @Test // SCAL-02 / D-04: busy (IN_CALL) suy từ user-call:{userId}, thấy cross-instance
     void crossInstance_inCallStatus_isVisible() throws Exception {
         CollectingHandler hBob = new CollectingHandler();

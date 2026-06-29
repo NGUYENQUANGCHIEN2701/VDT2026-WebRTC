@@ -81,6 +81,11 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         }
         presence.join(username);
         redisTemplate.opsForValue().set("route:" + username, instanceId, Duration.ofSeconds(ROUTE_TTL_SECONDS));
+        // Đẩy snapshot ĐỒNG BỘ cho riêng session vừa kết nối: người mới phải thấy
+        // danh sách online ngay, không phụ thuộc đường async presence-events (vốn chỉ
+        // refresh các client đã online sẵn). Các instance khác được join() ở trên
+        // publish presence-events lo.
+        router.broadcast(new PresenceSnapshot(presence.snapshot()), List.of(session));
         callService.handleReconnect(username);
     }
 
