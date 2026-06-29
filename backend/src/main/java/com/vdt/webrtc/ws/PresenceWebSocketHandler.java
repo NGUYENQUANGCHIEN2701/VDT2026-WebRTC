@@ -1,7 +1,10 @@
 package com.vdt.webrtc.ws;
 
+import java.time.Duration;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -28,6 +31,7 @@ import com.vdt.webrtc.ws.message.SdpReceived;
 import com.vdt.webrtc.ws.message.SessionSuperseded;
 
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
@@ -38,26 +42,45 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper mapper;
     private final CallService callService;
     private final SessionRegistry sessionRegistry;
+    private final StringRedisTemplate redisTemplate;
+    private static final long ROUTE_TTL_SECONDS = 60;
+    private final String instanceId;
 
     public PresenceWebSocketHandler(PresenceService presence, MessageRouter router, ObjectMapper mapper,
-            CallService callService, SessionRegistry sessionRegistry) {
+            CallService callService, SessionRegistry sessionRegistry, StringRedisTemplate redisTemplate,
+            @Value("${app.instance-id:${HOSTNAME:unknown}}") String instanceId) {
         this.presence = presence;
         this.router = router;
         this.mapper = mapper;
         this.callService = callService;
         this.sessionRegistry = sessionRegistry;
+        this.redisTemplate = redisTemplate;
+        this.instanceId = instanceId;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         String username = username(session);
+
+        String existing = redisTemplate.opsForValue().get("route:" + username);
+        if (existing != null && !existing.equals(instanceId)) {
+            // user đang có phiên ở instance KHÁC → bảo instance đó kick phiên cũ
+            try {
+                String payload = mapper.writeValueAsString(new SessionSuperseded("Đăng nhập ở nơi khác"));
+                redisTemplate.convertAndSend("inst:" + existing,
+                        mapper.writeValueAsString(new RoutedEnvelope(username, payload)));
+            } catch (JacksonException e) {
+                log.error("Không serialize được session-superseded", e);
+            }
+        }
+
         WebSocketSession old = sessionRegistry.register(username, session);
         if (old != null && old.isOpen() && !old.getId().equals(session.getId())) {
             router.broadcast(new SessionSuperseded("Đăng nhập ở nơi khác"), List.of(old));
             old.close(new CloseStatus(4001, "superseded"));
         }
         presence.join(username);
-        broadcastSnapshot();
+        redisTemplate.opsForValue().set("route:" + username, instanceId, Duration.ofSeconds(ROUTE_TTL_SECONDS));
         callService.handleReconnect(username);
     }
 
@@ -67,6 +90,7 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         ClientMessage clientMessage = mapper.readValue(message.getPayload(), ClientMessage.class);
         if (clientMessage instanceof Ping) {
             presence.heartbeat(username);
+            redisTemplate.expire("route:" + username, Duration.ofSeconds(ROUTE_TTL_SECONDS));
             router.broadcast(new Pong(), List.of(session));
         } else if (clientMessage instanceof CallInvite invite) {
             callService.handleInvite(username, invite.to());
@@ -100,7 +124,7 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         if (sessionRegistry.deregister(username, session)) {
             callService.handleDisconnect(username); // ← rớt THẬT → đặt grace (không phải đổi tab)
             presence.leave(username);
-            broadcastSnapshot();
+            redisTemplate.delete("route:" + username);
         }
     }
 

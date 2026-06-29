@@ -3,7 +3,6 @@ package com.vdt.webrtc.ws;
 import java.io.IOException;
 import java.util.Collection;
 
-import org.springframework.stereotype.Service;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -15,7 +14,6 @@ import tools.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Service
 public class LocalMessageRouter implements MessageRouter {
 
     private final ObjectMapper mapper;

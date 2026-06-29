@@ -3,12 +3,10 @@ package com.vdt.webrtc.ws;
 import static org.awaitility.Awaitility.await;
 import java.time.Duration;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-@Disabled("Re-enable in Wave 2 — sweeper is now Redis-driven; presence keys written by RedisPresenceService")
 class PresenceSweeperTest extends WsTestSupport {
 
     @Test

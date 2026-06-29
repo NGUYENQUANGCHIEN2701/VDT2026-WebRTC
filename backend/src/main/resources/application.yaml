@@ -50,6 +50,7 @@ jwt:
 app:
   cookie:
     secure: ${COOKIE_SECURE:false}
+  instance-id: ${INSTANCE_ID:${HOSTNAME:unknown}}
 turn:
   secret: ${TURN_SECRET:dev-turn-secret}
   server: ${TURN_SERVER:127.0.0.1:3478}

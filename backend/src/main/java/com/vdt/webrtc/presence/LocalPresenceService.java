@@ -5,11 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.springframework.stereotype.Service;
 
 import com.vdt.webrtc.ws.message.OnlineUser;
 
-@Service
 public class LocalPresenceService implements PresenceService {
     private final Map<String, Long> lastSeen = new ConcurrentHashMap<>();
 
