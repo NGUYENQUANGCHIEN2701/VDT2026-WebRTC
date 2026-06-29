@@ -34,6 +34,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/error").permitAll() // allow the error dispatch (sendError forwards here)
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll() // LB/Docker healthcheck — no auth
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
