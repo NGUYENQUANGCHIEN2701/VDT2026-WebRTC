@@ -212,7 +212,23 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. All shared state (presence, routing map, call/room state) lives in Redis — presence and busy status are consistent regardless of which instance a user lands on
   3. A standing integration test pins two users to different instances and verifies the call connects (cross-instance ring is the demo)
 
-**Plans**: TBD
+**Plans:** 4 plans
+
+**Wave 1** *(TDD Wave 0 — RED tests + codebase pre-conditions)*
+
+- [ ] 06-01-PLAN.md — RED test scaffold: CrossInstanceCallTest (3 tests, two SpringApplicationBuilder contexts, Testcontainers Redis/Postgres/RabbitMQ); refactor WsTestSupport to use PresenceService interface; refactor PresenceSweeper to use StringRedisTemplate directly
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 06-02-PLAN.md — Redis impl swap: RedisConfig + RedisMessageListenerContainer, RedisMessageRouter (@Primary, route-map PUBLISH), RoutingMessageListener, RoutedEnvelope, RedisPresenceService (@Primary, TTL keys + SET + IN_CALL derivation), PresenceEventListener; PresenceWebSocketHandler route-map hooks + cross-instance session-superseded kick; Local impls lose @Service
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 06-03-PLAN.md — Compose + nginx: backend-1/backend-2 with INSTANCE_ID, nginx:1.27-alpine LB (round-robin, WS upgrade headers, 3600s timeout), application.yaml app.instance-id
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 06-04-PLAN.md — Full suite gate + manual compose demo checkpoint: two browsers on different instances complete a call; redis-cli confirms distinct route:{userId} per instance
 
 ### Phase 7: Group Mesh Calls
 
@@ -273,7 +289,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 3. 1-1 P2P Call Core & NAT Traversal | 0/5 | Not started | - |
 | 4. Call Lifecycle & In-Call Experience | 0/7 | Not started | - |
 | 5. Call History & Admin | 0/4 | Planned | - |
-| 6. Horizontal Scaling | 0/TBD | Not started | - |
+| 6. Horizontal Scaling | 0/4 | Planned | - |
 | 7. Group Mesh Calls | 0/TBD | Not started | - |
 | 8. Screen Share, Recording & Device Control | 0/TBD | Not started | - |
 | 9. Monitoring, CI/CD & Full Delivery | 0/TBD | Not started | - |
@@ -286,3 +302,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *Phase 3 planned: 2026-06-18 — 5 plans in 5 waves*
 *Phase 4 planned: 2026-06-26 — 7 plans in 7 waves*
 *Phase 5 planned: 2026-06-28 — 4 plans in 4 waves*
+*Phase 6 planned: 2026-06-29 — 4 plans in 4 waves*
