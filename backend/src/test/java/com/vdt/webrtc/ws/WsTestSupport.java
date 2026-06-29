@@ -4,7 +4,8 @@ import static org.awaitility.Awaitility.await;
 
 import com.vdt.webrtc.TestcontainersConfiguration;
 import com.vdt.webrtc.config.JwtService;
-import com.vdt.webrtc.presence.LocalPresenceService;
+import com.vdt.webrtc.presence.PresenceService;
+
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,7 +35,7 @@ public abstract class WsTestSupport {
     protected JwtService jwtService; // tái dùng để tạo JWT hợp lệ
 
     @Autowired
-    protected LocalPresenceService presence; // để chờ state drain giữa các test
+    protected PresenceService presence; // để chờ state drain giữa các test
 
     protected final StandardWebSocketClient client = new StandardWebSocketClient();
 

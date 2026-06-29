@@ -18,7 +18,7 @@ import com.vdt.webrtc.history.CallHistory;
 import com.vdt.webrtc.history.CallHistoryRepository;
 import com.vdt.webrtc.history.dto.AdminHistoryRow;
 import com.vdt.webrtc.metrics.CallMetrics;
-import com.vdt.webrtc.presence.LocalPresenceService;
+import com.vdt.webrtc.presence.PresenceService;
 import com.vdt.webrtc.user.Role;
 import com.vdt.webrtc.user.User;
 import com.vdt.webrtc.user.UserRepository;
@@ -31,17 +31,17 @@ import lombok.extern.slf4j.Slf4j;
 public class AdminService {
     private final UserRepository userRepository;
     private final SessionRegistry sessionRegistry;
-    private final LocalPresenceService localPresenceService;
+    private final PresenceService presenceService;
     private final StringRedisTemplate redisTemplate;
     private final CallHistoryRepository callHistoryRepository;
     private final CallMetrics callMetrics;
 
     public AdminService(UserRepository userRepository, SessionRegistry sessionRegistry,
-            LocalPresenceService localPresenceService, StringRedisTemplate redisTemplate,
+            PresenceService presenceService, StringRedisTemplate redisTemplate,
             CallHistoryRepository callHistoryRepository, CallMetrics callMetrics) {
         this.userRepository = userRepository;
         this.sessionRegistry = sessionRegistry;
-        this.localPresenceService = localPresenceService;
+        this.presenceService = presenceService;
         this.redisTemplate = redisTemplate;
         this.callHistoryRepository = callHistoryRepository;
         this.callMetrics = callMetrics;
@@ -102,7 +102,7 @@ public class AdminService {
     }
 
     public DashboardDto getDashboard() {
-        long onlineUsers = localPresenceService.snapshot().size();
+        long onlineUsers = presenceService.snapshot().size();
         // mỗi cuộc active có 2 key user-call:* (caller + callee) → /2
         // TODO Phase 6: thay KEYS bằng counter Redis riêng (KEYS blocking khi scale)
         long activeCalls = Optional.ofNullable(redisTemplate.keys("user-call:*"))
