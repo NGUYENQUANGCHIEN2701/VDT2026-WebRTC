@@ -1,50 +1,51 @@
-import { useAuthStore } from '../../store/authStore'
-import { usePresenceStore } from '../../store/presenceStore'
-import OnlineUserRow from './OnlineUserRow'
+import { ChevronRight } from "lucide-react"
+import { Link } from "react-router-dom"
+import { useAuthStore } from "../../store/authStore"
+import { usePresenceStore } from "../../store/presenceStore"
+import OnlineUserRow from "./OnlineUserRow"
 
 export default function OnlineUsersList() {
-    const onlineUsers = usePresenceStore((s) => s.onlineUsers)
-    const connectionState = usePresenceStore((s) => s.connectionState)
-    const me = useAuthStore((s) => s.user?.username)
+  const onlineUsers = usePresenceStore((s) => s.onlineUsers)
+  const connectionState = usePresenceStore((s) => s.connectionState)
+  const me = useAuthStore((s) => s.user?.username)
 
-    const others = onlineUsers.filter((u) => u.username !== me)
+  const others = onlineUsers.filter((u) => u.username !== me)
 
-    const heading = (count?: number) => (
-        <h2 style={{ borderLeft: '3px solid var(--accent)', paddingLeft: 8, textAlign: 'left' }}>
-            Đang trực tuyến{count === undefined ? '' : ` (${count})`}
-        </h2>
-    )
-
-    // Loading: WS chưa từng open (chưa có snapshot)
-    if (connectionState === 'connecting') {
-        return (
-            <section style={{ maxWidth: 480, marginTop: 24 }}>
-                {heading()}
-                <p style={{ fontSize: 14, color: 'var(--text)', textAlign: 'left' }}>Đang kết nối...</p>
-            </section>
-        )
-    }
-
-    // closed = mất kết nối → giữ list cũ nhưng làm mờ (không clear)
-    const dim = connectionState === 'closed'
-
+  if (connectionState === "connecting") {
     return (
-        <section style={{ maxWidth: 480, marginTop: 24, opacity: dim ? 0.6 : 1 }}>
-            {heading(others.length)}
-            {others.length === 0 ? (
-                <div style={{ paddingTop: 32, textAlign: 'center' }}>
-                    <p style={{ fontSize: 16, color: 'var(--text-h)' }}>Chưa có ai trực tuyến</p>
-                    <p style={{ fontSize: 14, color: 'var(--text)' }}>
-                        Hiện chưa có người dùng nào khác đang trực tuyến. Danh sách sẽ tự cập nhật khi có người tham gia.
-                    </p>
-                </div>
-            ) : (
-                <ul style={{ margin: 0, padding: 0 }}>
-                    {others.map((u) => (
-                        <OnlineUserRow key={u.username} user={u} />
-                    ))}
-                </ul>
-            )}
-        </section>
+      <div className="home-panel">
+        <div className="home-panel-header">
+          <h2 className="home-panel-title">Người trực tuyến</h2>
+        </div>
+        <div style={{ padding: 24, color: 'var(--text)' }}>Đang kết nối...</div>
+      </div>
     )
+  }
+
+  const dim = connectionState === "closed"
+
+  return (
+    <div className="home-panel" style={{ opacity: dim ? 0.7 : 1 }}>
+      <div className="home-panel-header">
+        <h2 className="home-panel-title">Người trực tuyến ({others.length})</h2>
+        <Link to="/history" className="home-history-btn">
+          Lịch sử cuộc gọi
+          <ChevronRight size={16} />
+        </Link>
+      </div>
+
+      {others.length === 0 ? (
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text)' }}>
+          <p style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 600, color: 'var(--text-h)' }}>Chưa có ai trực tuyến</p>
+          <p style={{ margin: 0 }}>Danh sách sẽ tự cập nhật khi có người dùng khác tham gia.</p>
+        </div>
+      ) : (
+        <ul className="home-user-list">
+          {others.map((u) => (
+            <OnlineUserRow key={u.username} user={u} />
+          ))}
+        </ul>
+      )}
+    </div>
+  )
 }

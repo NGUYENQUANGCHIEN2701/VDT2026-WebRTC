@@ -26,7 +26,7 @@ export default function SelfViewPreview({ remoteUsername, localStream, mediaErro
 
     return (
         <div style={{
-            position: 'fixed', inset: 0, display: 'flex',
+            position: 'fixed', inset: 0, display: 'flex', zIndex: 1000,
             alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)',
         }}>
             <div style={{ maxWidth: 480, width: '100%', background: 'var(--code-bg)', borderRadius: 8, padding: 24, boxShadow: 'var(--shadow)' }}>

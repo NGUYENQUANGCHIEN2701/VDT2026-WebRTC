@@ -1,32 +1,62 @@
-import { startCall } from '../../realtime/callActions'
-import type { OnlineUser, PresenceStatus } from '../../realtime/messages'
-import { useAuthStore } from '../../store/authStore'
-import { useCallStore } from '../../store/callStore'
-import StatusBadge from './StatusBadge'
+import { Phone } from "lucide-react"
+import { startCall } from "../../realtime/callActions"
+import type { OnlineUser, PresenceStatus } from "../../realtime/messages"
+import { useAuthStore } from "../../store/authStore"
+import { useCallStore } from "../../store/callStore"
 
-// Màu chấm (trang trí); ý nghĩa do StatusBadge text mang.
-const DOT: Record<PresenceStatus, string> = { ONLINE: '#16a34a', IN_CALL: '#d97706' }
+function getAvatarColor(username: string) {
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#f43f5e']
+  const index = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  return colors[index % colors.length]
+}
+
+const STATUS_TEXT: Record<PresenceStatus, string> = {
+  ONLINE: "Trực tuyến",
+  IN_CALL: "Đang bận",
+}
+
+const STATUS_CLASS: Record<PresenceStatus, string> = {
+  ONLINE: "online",
+  IN_CALL: "busy",
+}
 
 export default function OnlineUserRow({ user }: { user: OnlineUser }) {
-    const me = useAuthStore((s) => s.user?.username)
-    const callActive = useCallStore((s) => s.callState) !== 'idle'
-    const canCall = user.status === 'ONLINE' && user.username !== me
+  const me = useAuthStore((s) => s.user?.username)
+  const callActive = useCallStore((s) => s.callState) !== "idle"
+  const canCall = user.status === "ONLINE" && user.username !== me
 
-    return (
-        <li style={{ /* giữ nguyên style cũ */ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderBottom: '1px solid var(--border)', listStyle: 'none' }}>
-            <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: DOT[user.status] }} />
-            <span style={{ flex: 1, fontSize: 16, color: 'var(--text-h)', textAlign: 'left' }}>{user.username}</span>
-            <StatusBadge status={user.status} />
-            {canCall && (
-                <button onClick={() => startCall(user.username)} disabled={callActive}
-                    style={{
-                        fontSize: 14, fontWeight: 600, color: 'var(--accent)', background: 'transparent',
-                        border: '1px solid var(--accent-border)', borderRadius: 4, padding: '4px 8px',
-                        cursor: callActive ? 'not-allowed' : 'pointer', opacity: callActive ? 0.4 : 1,
-                    }}>
-                    Gọi
-                </button>
-            )}
-        </li>
-    )
+  const initial = user.username.charAt(0).toUpperCase()
+  const avatarColor = getAvatarColor(user.username)
+  const statusClass = STATUS_CLASS[user.status]
+
+  return (
+    <li className="home-user-row">
+      <div className="home-user-info">
+        <div className="home-user-avatar-wrapper">
+          <div className="home-user-avatar" style={{ background: avatarColor }}>
+            {initial}
+          </div>
+          <span className={`home-user-status-dot ${statusClass}`} />
+        </div>
+        <div className="home-user-details">
+          <span className="home-user-name">{user.username}</span>
+          <span className={`home-user-status-text ${statusClass}`}>
+            {STATUS_TEXT[user.status]}
+          </span>
+        </div>
+      </div>
+      
+      {canCall && (
+        <button 
+          className="home-call-btn" 
+          onClick={() => startCall(user.username)} 
+          disabled={callActive} 
+          type="button"
+        >
+          <Phone size={18} />
+          Gọi
+        </button>
+      )}
+    </li>
+  )
 }

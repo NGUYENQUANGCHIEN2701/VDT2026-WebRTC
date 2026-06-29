@@ -14,7 +14,7 @@ export default function IncomingCallCard({ callerUsername, onAccept, onReject }:
             aria-modal="true"
             aria-labelledby="incoming-call-heading"
             style={{
-                position: 'fixed', inset: 0, display: 'flex',
+                position: 'fixed', inset: 0, display: 'flex', zIndex: 1000,
                 alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)',
             }}
         >
