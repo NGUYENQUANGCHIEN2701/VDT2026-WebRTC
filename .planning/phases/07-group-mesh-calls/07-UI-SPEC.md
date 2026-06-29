@@ -1,7 +1,7 @@
 ---
 phase: 7
 slug: group-mesh-calls
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-06-29
@@ -215,9 +215,10 @@ protect the existing 1-1 `/call` route (D-02 from CONTEXT.md).
 - Connection state overlay (per-tile partial-mesh failure surface, from D-05 CONTEXT.md):
   - `reconnecting`: semi-transparent overlay `rgba(0,0,0,0.45)` + centered spinner
     (36px, `border: 3px solid rgba(255,255,255,0.3)`, `border-top-color: #fff`) +
-    text "Đang kết nối lại…" (15px 600 `#fff`). Matches 1-1 reconnecting overlay exactly.
-  - `failed`: solid overlay `rgba(31,41,55,0.9)` + centered text "Kết nối thất bại" (15px 600
-    `#fff`) + smaller sub-text "Đã ngắt kết nối với người này" (13px `rgba(255,255,255,0.7)`).
+    text "Đang kết nối lại…" (Label token: 14px 600 `#fff`). Matches 1-1 reconnecting overlay.
+  - `failed`: solid overlay `rgba(31,41,55,0.9)` + centered text "Kết nối thất bại" (Label token:
+    14px 600 `#fff`) + smaller sub-text "Đã ngắt kết nối với người này" (Label token: 14px 400,
+    `rgba(255,255,255,0.7)` — distinguished by weight + opacity, not size).
   - `connected`: no overlay.
   - `connecting`: same as reconnecting but text "Đang kết nối…".
 
@@ -452,11 +453,11 @@ project pattern. Registry safety gate: not required.
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS (FLAG: "Tham gia" is a single-verb CTA — acceptable in card context; "Tham gia nhóm" optional for stronger screen-reader clarity)
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS (overlay text remapped from 15px/13px onto the 14px Label token — now 3 distinct sizes: 14/16/20)
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved (1 non-blocking recommendation)
