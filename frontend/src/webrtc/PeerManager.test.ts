@@ -13,9 +13,11 @@ class MockRTCPeerConnection {
     remoteDescription: unknown = null
     localDescription: unknown = null
     iceConnectionState = 'new'
+    connectionState = 'new'
 
     onnegotiationneeded: (() => void | Promise<void>) | null = null
     oniceconnectionstatechange: (() => void) | null = null
+    onconnectionstatechange: (() => void) | null = null
     onicecandidate: ((e: unknown) => void) | null = null
     ontrack: ((e: unknown) => void) | null = null
 

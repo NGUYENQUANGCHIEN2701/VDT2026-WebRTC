@@ -64,6 +64,7 @@ export function connectWs(): void {
             case 'room-joined':
             case 'participant-joined':
             case 'participant-left':
+            case 'room-invite-declined':
             case 'room-full':
                 roomSignalHandler?.(msg)
                 break

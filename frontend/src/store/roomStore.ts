@@ -22,12 +22,14 @@ interface RoomStoreState {
     members: Record<string, RoomMember>
     incomingInvite: RoomInviteState | null
     outgoingInvitees: string[]
+    declinedInvitees: string[]
     micMuted: boolean
     camOff: boolean
     connectedAt: number | null
     activeMaxBitrate: number | null
     setIncomingInvite: (invite: RoomInviteState | null) => void
     setOutgoingInvitees: (invitees: string[]) => void
+    addDeclinedInvitee: (username: string) => void
     initRoom: (roomId: string, selfId: string, members: string[]) => void
     addMember: (username: string) => void
     removeMember: (username: string) => void
@@ -50,18 +52,26 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
     members: {},
     incomingInvite: null,
     outgoingInvitees: [],
+    declinedInvitees: [],
     micMuted: false,
     camOff: false,
     connectedAt: null,
     activeMaxBitrate: null,
     setIncomingInvite: (incomingInvite) => set({ incomingInvite }),
-    setOutgoingInvitees: (outgoingInvitees) => set({ outgoingInvitees }),
+    setOutgoingInvitees: (outgoingInvitees) => set({ outgoingInvitees, declinedInvitees: [] }),
+    addDeclinedInvitee: (username) =>
+        set((s) => ({
+            declinedInvitees: s.declinedInvitees.includes(username)
+                ? s.declinedInvitees
+                : [...s.declinedInvitees, username],
+        })),
     initRoom: (roomId, selfId, members) =>
         set(() => ({
             roomId,
             selfId,
             incomingInvite: null,
             outgoingInvitees: [],
+            declinedInvitees: [],
             connectedAt: null,
             members: Object.fromEntries([selfId, ...members].map((username) => [username, member(username)])),
         })),
@@ -116,6 +126,7 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
             members: {},
             incomingInvite: null,
             outgoingInvitees: [],
+            declinedInvitees: [],
             micMuted: false,
             camOff: false,
             connectedAt: null,

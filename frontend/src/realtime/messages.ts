@@ -29,6 +29,7 @@ export type RoomServerSignal =
     | { type: 'room-joined'; roomId: string; members: string[] }
     | { type: 'participant-joined'; roomId: string; username: string }
     | { type: 'participant-left'; roomId: string; username: string }
+    | { type: 'room-invite-declined'; roomId: string; username: string }
     | { type: 'room-full'; roomId: string; reason: string }
 
 export type ServerMessage =

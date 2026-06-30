@@ -10,7 +10,11 @@ import { sendSignal, setRoomSignalHandler } from './wsClient'
 
 let localStream: MediaStream | null = null
 let mesh: MeshManager | null = null
-let pendingSignals: Array<{ from: string; signal: InboundSignal }> = []
+let pendingSignals: Array<{ roomId: string; from: string; signal: InboundSignal }> = []
+let creatingRoomId: string | null = null
+let pendingInitialMembers = new Set<string>()
+let initialMembersCanInitiateOffer = false
+let meshSetup: Promise<void> | null = null
 
 export function getRoomLocalStream(): MediaStream | null {
     return localStream
@@ -94,12 +98,34 @@ function forceRelayEnabled(): boolean {
     return new URLSearchParams(window.location.search).get('relay') === '1'
 }
 
-async function createMesh(roomId: string, members: string[]): Promise<void> {
+function createMesh(roomId: string, members: string[], canInitiateInitialMembers = false): Promise<void> {
+    if (creatingRoomId === roomId && meshSetup) {
+        for (const member of members) pendingInitialMembers.add(member)
+        initialMembersCanInitiateOffer = initialMembersCanInitiateOffer || canInitiateInitialMembers
+        return meshSetup
+    }
+
+    creatingRoomId = roomId
+    pendingInitialMembers = new Set(members)
+    initialMembersCanInitiateOffer = canInitiateInitialMembers
+    meshSetup = doCreateMesh(roomId).finally(() => {
+        if (creatingRoomId === roomId) {
+            creatingRoomId = null
+            pendingInitialMembers.clear()
+            initialMembersCanInitiateOffer = false
+            meshSetup = null
+        }
+    })
+    return meshSetup
+}
+
+async function doCreateMesh(roomId: string): Promise<void> {
     const selfId = useAuthStore.getState().user?.username
     if (!selfId || !(await ensureLocalMedia()) || !localStream) return
 
     mesh?.close()
     const { iceServers, iceTransportPolicy } = await fetchIceConfig(forceRelayEnabled())
+    const members = [...pendingInitialMembers]
     mesh = new MeshManager({
         selfId,
         localStream,
@@ -116,23 +142,30 @@ async function createMesh(roomId: string, members: string[]): Promise<void> {
 
     useRoomStore.getState().initRoom(roomId, selfId, members)
     useRoomStore.getState().setOutgoingInvitees([])
-    await mesh.joinExistingMembers(members)
+    await mesh.joinExistingMembers(members, initialMembersCanInitiateOffer)
     useRoomStore.getState().setActiveMaxBitrate(mesh.getActiveMaxBitrate())
 
-    const buffered = pendingSignals
-    pendingSignals = []
+    const buffered = pendingSignals.filter((pending) => pending.roomId === roomId)
+    pendingSignals = pendingSignals.filter((pending) => pending.roomId !== roomId)
     for (const pending of buffered) {
         await mesh.handleSignal(pending.from, pending.signal)
     }
 }
 
 function deliverRoomSignal(roomId: string, from: string, signal: InboundSignal): void {
-    if (roomId !== useRoomStore.getState().roomId) return
-    if (mesh) void mesh.handleSignal(from, signal)
-    else pendingSignals.push({ from, signal })
+    const currentRoomId = useRoomStore.getState().roomId
+    if (mesh && currentRoomId === roomId) {
+        void mesh.handleSignal(from, signal)
+    } else if (!currentRoomId || currentRoomId === roomId || creatingRoomId === roomId) {
+        pendingSignals.push({ roomId, from, signal })
+    }
 }
 
 function teardownRoom(): void {
+    creatingRoomId = null
+    pendingInitialMembers.clear()
+    initialMembersCanInitiateOffer = false
+    meshSetup = null
     mesh?.close()
     mesh = null
     localStream?.getTracks().forEach((track) => track.stop())
@@ -155,12 +188,12 @@ function handleRoomSignal(msg: RoomServerSignal | CallServerSignal): void {
             })
             break
         case 'room-joined':
-            void createMesh(msg.roomId, msg.members)
+            void createMesh(msg.roomId, msg.members, false)
             break
         case 'participant-joined': {
             const room = useRoomStore.getState()
             if (!room.roomId && room.outgoingInvitees.length > 0) {
-                void createMesh(msg.roomId, [msg.username])
+                void createMesh(msg.roomId, [msg.username], true)
                 break
             }
             if (msg.roomId !== room.roomId) return
@@ -175,6 +208,24 @@ function handleRoomSignal(msg: RoomServerSignal | CallServerSignal): void {
             room.removeMember(msg.username)
             const totalParticipants = Object.keys(useRoomStore.getState().members).length
             void mesh?.handleParticipantLeft(msg.username, totalParticipants).then(updateBitrateStore)
+            break
+        }
+        case 'room-invite-declined': {
+            const room = useRoomStore.getState()
+            if (!room.outgoingInvitees.includes(msg.username)) return
+            room.addDeclinedInvitee(msg.username)
+
+            const updated = useRoomStore.getState()
+            const joinedInvitees = Object.keys(updated.members).filter((username) => username !== updated.selfId)
+            const everyoneDeclined = updated.outgoingInvitees.every((username) =>
+                updated.declinedInvitees.includes(username)
+            )
+
+            if (!updated.roomId && joinedInvitees.length === 0 && everyoneDeclined) {
+                sendSignal({ type: 'leave-room', roomId: msg.roomId })
+                useToastStore.getState().show('Tất cả người được mời đã từ chối', 'info')
+                useRoomStore.getState().setOutgoingInvitees([])
+            }
             break
         }
         case 'room-full':

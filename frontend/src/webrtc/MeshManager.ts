@@ -27,6 +27,7 @@ export class MeshManager {
     private readonly onPeerConnectionStateChange?: (userId: string, state: PeerConnectionState) => void
     private readonly onRemoteStream?: (userId: string, stream: MediaStream) => void
     private readonly peers = new Map<string, PeerManager>()
+    private readonly peerInitiators = new Map<string, boolean>()
     private activeMaxBitrate: number | null = null
 
     constructor(options: MeshManagerOptions) {
@@ -40,16 +41,16 @@ export class MeshManager {
         this.onRemoteStream = options.onRemoteStream
     }
 
-    async joinExistingMembers(members: string[]): Promise<void> {
+    async joinExistingMembers(members: string[], canInitiateOffer = false): Promise<void> {
         for (const member of members) {
-            if (member !== this.selfId) this.ensurePeer(member)
+            if (member !== this.selfId) this.ensurePeer(member, canInitiateOffer)
         }
         await this.applyBitrateForRoomSize(members.includes(this.selfId) ? members.length : members.length + 1)
     }
 
     async handleParticipantJoined(username: string, totalParticipants?: number): Promise<void> {
         if (username === this.selfId) return
-        this.ensurePeer(username)
+        this.ensurePeer(username, true)
         await this.applyBitrateForRoomSize(totalParticipants ?? this.peers.size + 1)
     }
 
@@ -58,6 +59,7 @@ export class MeshManager {
         if (peer) {
             peer.close()
             this.peers.delete(username)
+            this.peerInitiators.delete(username)
         }
         remoteStreams.delete(username)
         await this.applyBitrateForRoomSize(totalParticipants ?? this.peers.size + 1)
@@ -70,7 +72,7 @@ export class MeshManager {
     }
 
     async handleSignal(from: string, signal: InboundSignal): Promise<void> {
-        const peer = this.ensurePeer(from)
+        const peer = this.ensurePeer(from, false)
         await peer.handleSignalingMessage(signal)
     }
 
@@ -89,13 +91,15 @@ export class MeshManager {
     close(): void {
         for (const peer of this.peers.values()) peer.close()
         this.peers.clear()
+        this.peerInitiators.clear()
         remoteStreams.clear()
     }
 
-    private ensurePeer(username: string): PeerManager {
+    private ensurePeer(username: string, canInitiateOffer: boolean): PeerManager {
         const existing = this.peers.get(username)
         if (existing) return existing
 
+        this.peerInitiators.set(username, canInitiateOffer)
         const peer = this.createPeer(username)
         peer.onRemoteStream = (stream) => {
             remoteStreams.set(username, stream)
@@ -120,6 +124,7 @@ export class MeshManager {
                     const peer = this.peers.get(username)
                     if (state === 'connected') void peer?.setSendersMaxBitrate(this.activeMaxBitrate)
                 },
+                canInitiateOffer: this.peerInitiators.get(username) ?? true,
             },
         ] as const
 

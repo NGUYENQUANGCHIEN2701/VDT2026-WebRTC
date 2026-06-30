@@ -15,6 +15,7 @@ export interface InboundSignal {
 
 type PeerCallbacks = {
     onConnectionStateChange?: (state: CallState) => void
+    canInitiateOffer?: boolean
 }
 
 export class PeerManager {
@@ -30,6 +31,9 @@ export class PeerManager {
 
     // Đệm ICE candidate đến SỚM (trước khi có remoteDescription)
     private pendingCandidates: RTCIceCandidateInit[] = []
+    private signalingQueue: Promise<void> = Promise.resolve()
+    private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    private restartAttempts = 0
 
     // Stream của ĐỐI PHƯƠNG — giữ ở đây (không vào store); UI lấy qua onRemoteStream
     remoteStream: MediaStream | null = null
@@ -57,7 +61,13 @@ export class PeerManager {
     }
 
     /** Xử lý tín hiệu nhận từ đối phương (sdp hoặc ice-candidate). */
-    async handleSignalingMessage(msg: InboundSignal) {
+    handleSignalingMessage(msg: InboundSignal): Promise<void> {
+        const next = this.signalingQueue.then(() => this.processSignalingMessage(msg))
+        this.signalingQueue = next.catch(() => { })
+        return next
+    }
+
+    private async processSignalingMessage(msg: InboundSignal) {
         if (msg.sdp) {
             // Có sẵn sàng nhận offer không? (đang ở 'stable' hoặc đang chờ set answer)
             const readyForOffer =
@@ -70,8 +80,11 @@ export class PeerManager {
             if (this.ignoreOffer) return
 
             this.isSettingRemoteAnswerPending = msg.sdp.type === 'answer'
-            await this.pc.setRemoteDescription(msg.sdp) // polite + va chạm → tự rollback
-            this.isSettingRemoteAnswerPending = false
+            try {
+                await this.pc.setRemoteDescription(msg.sdp) // polite + va chạm → tự rollback
+            } finally {
+                this.isSettingRemoteAnswerPending = false
+            }
 
             // Đã có remoteDescription → xả hết candidate đã đệm
             for (const c of this.pendingCandidates) {
@@ -102,9 +115,14 @@ export class PeerManager {
         // ('closed') bất đồng bộ — nếu còn handler, mapIceState sẽ set state về
         // 'idle' và ghi đè 'ended' → màn summary biến mất ngay.
         this.pc.oniceconnectionstatechange = null
+        this.pc.onconnectionstatechange = null
         this.pc.onnegotiationneeded = null
         this.pc.onicecandidate = null
         this.pc.ontrack = null
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer)
+            this.reconnectTimer = null
+        }
         this.pc.close()
         this.remoteStream = null
     }
@@ -149,9 +167,11 @@ export class PeerManager {
 
         // Trạng thái kết nối ICE đổi → cập nhật callStore (state dẫn xuất)
         this.pc.oniceconnectionstatechange = () => this.mapIceState()
+        this.pc.onconnectionstatechange = () => this.mapConnectionState()
     }
 
     private async handleNegotiationNeeded() {
+        if (this.callbacks?.canInitiateOffer === false) return
         try {
             this.makingOffer = true
             await this.pc.setLocalDescription() // tự tạo offer
@@ -180,10 +200,61 @@ export class PeerManager {
         }
         const next = map[this.pc.iceConnectionState]
         if (!next) return
+        this.scheduleRecoveryIfNeeded(next)
         if (this.callbacks?.onConnectionStateChange) {
             this.callbacks.onConnectionStateChange(next)
         } else {
             useCallStore.getState().setCallState(next)
         }
+    }
+
+    private mapConnectionState() {
+        const map: Partial<Record<RTCPeerConnectionState, CallState>> = {
+            new: 'connecting',
+            connecting: 'connecting',
+            connected: 'connected',
+            disconnected: 'reconnecting',
+            failed: 'reconnecting',
+            closed: 'idle',
+        }
+        const next = map[this.pc.connectionState]
+        if (!next) return
+        this.scheduleRecoveryIfNeeded(next)
+        if (this.callbacks?.onConnectionStateChange) {
+            this.callbacks.onConnectionStateChange(next)
+        } else {
+            useCallStore.getState().setCallState(next)
+        }
+    }
+
+    private scheduleRecoveryIfNeeded(state: CallState) {
+        if (state === 'connected') {
+            this.restartAttempts = 0
+            if (this.reconnectTimer) {
+                clearTimeout(this.reconnectTimer)
+                this.reconnectTimer = null
+            }
+            return
+        }
+        if (state !== 'connecting' && state !== 'reconnecting') return
+        if (this.reconnectTimer || this.restartAttempts >= 2) return
+
+        this.reconnectTimer = setTimeout(() => {
+            this.reconnectTimer = null
+            const stalled =
+                this.pc.connectionState === 'connecting' ||
+                this.pc.connectionState === 'disconnected' ||
+                this.pc.connectionState === 'failed' ||
+                this.pc.iceConnectionState === 'checking' ||
+                this.pc.iceConnectionState === 'disconnected' ||
+                this.pc.iceConnectionState === 'failed'
+            if (!stalled) return
+            this.restartAttempts += 1
+            if (this.pc.localDescription) {
+                this.sendSignal({ type: 'sdp', sdp: this.pc.localDescription })
+            }
+            this.pc.restartIce()
+            if (this.pc.signalingState === 'stable') void this.handleNegotiationNeeded()
+        }, 5_000)
     }
 }

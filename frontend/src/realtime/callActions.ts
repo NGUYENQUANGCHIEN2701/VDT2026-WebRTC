@@ -10,12 +10,20 @@ import { useToastStore } from '../store/toastStore'
 // Object KHÔNG-serializable sống ở module scope (không vào Zustand)
 let localStream: MediaStream | null = null
 let peer: PeerManager | null = null
+let peerGeneration = 0
+let creatingPeerCallId: string | null = null
 // SDP/ICE có thể tới TRƯỚC khi peer kịp tạo (createPeer phải await fetchIceConfig).
 // Đệm lại để KHÔNG rớt offer → tránh deadlock perfect-negotiation (kẹt "đang kết nối").
-let pendingSignals: InboundSignal[] = []
-function deliverSignal(sig: InboundSignal) {
-    if (peer) peer.handleSignalingMessage(sig)
-    else pendingSignals.push(sig)
+type BufferedSignal = InboundSignal & { callId: string }
+let pendingSignals: BufferedSignal[] = []
+function deliverSignal(callId: string, sig: InboundSignal) {
+    const currentCallId = useCallStore.getState().callId
+    if (creatingPeerCallId === callId) {
+        pendingSignals.push({ ...sig, callId })
+    } else if (peer && currentCallId === callId) {
+        void peer.handleSignalingMessage(sig)
+    }
+    else pendingSignals.push({ ...sig, callId })
 }
 
 export function getLocalStream() { return localStream }
@@ -60,9 +68,11 @@ function forceRelayEnabled(): boolean {
     return new URLSearchParams(window.location.search).get('relay') === '1'
 }
 
-async function createPeer(remoteUserId: string, callId: string, polite: boolean) {
+async function createPeer(remoteUserId: string, callId: string, polite: boolean, generation: number): Promise<boolean> {
     const { iceServers, iceTransportPolicy } = await fetchIceConfig(forceRelayEnabled())
+    if (generation !== peerGeneration) return false
     peer = new PeerManager(iceServers, polite, (sig) => {
+        if (generation !== peerGeneration) return
         if (sig.type === 'sdp') sendSignal({ type: 'sdp', to: remoteUserId, callId, sdp: sig.sdp })
         else sendSignal({ type: 'ice-candidate', to: remoteUserId, callId, candidate: sig.candidate })
     }, iceTransportPolicy)
@@ -70,9 +80,10 @@ async function createPeer(remoteUserId: string, callId: string, polite: boolean)
     peer.onRemoteStream = () => useCallStore.getState().bumpRemoteStream()
     if (localStream) peer.addLocalStream(localStream)
     // Xả tín hiệu đã đệm trong lúc await fetchIceConfig (vd offer của bên kia tới sớm)
-    const buffered = pendingSignals
-    pendingSignals = []
+    const buffered = pendingSignals.filter((sig) => sig.callId === callId)
+    pendingSignals = pendingSignals.filter((sig) => sig.callId !== callId)
     for (const sig of buffered) await peer.handleSignalingMessage(sig)
+    return true
 }
 
 // ── Vào cuộc 'active' (dùng cho cả lần đầu LẪN resync sau F5) ──
@@ -80,6 +91,9 @@ async function createPeer(remoteUserId: string, callId: string, polite: boolean)
 // context từ message + xin lại camera/mic TRƯỚC khi tạo peer. getMedia idempotent
 // nên lần đầu (đã có media) chỉ là no-op.
 async function enterActiveCall(msg: CallStateChanged, amCaller: boolean, remote: string) {
+    const generation = ++peerGeneration
+    creatingPeerCallId = msg.callId
+    pendingSignals = pendingSignals.filter((sig) => sig.callId === msg.callId)
     const call = useCallStore.getState()
     // RECONNECT (không phải active lần đầu) khi: đang giữ peer cũ (bên sống sót) HOẶC
     // store đã bị reset (bên vừa F5, callId rỗng).
@@ -94,13 +108,18 @@ async function enterActiveCall(msg: CallStateChanged, amCaller: boolean, remote:
 
     saveActiveCall(msg.callId, remote)               // FE-C: nhớ để sống sót F5 kế tiếp
     if (!(await getMedia())) return                  // sau F5 phải xin lại media
+    if (generation !== peerGeneration) return
 
     // Đóng PC CŨ trước khi dựng mới: bên kia đã có PC mới (DTLS mới) → không thể tái dùng
     // PC cũ. Cả 2 dựng lại từ đầu = đúng luồng active lần đầu.
     peer?.close()
     peer = null
-    await createPeer(remote, msg.callId, !amCaller)  // caller=impolite, callee=polite
-    call.setCallState('connecting')
+    try {
+        const created = await createPeer(remote, msg.callId, !amCaller, generation)  // caller=impolite, callee=polite
+        if (created && generation === peerGeneration) call.setCallState('connecting')
+    } finally {
+        if (creatingPeerCallId === msg.callId && generation === peerGeneration) creatingPeerCallId = null
+    }
 }
 
 // ── CALLER bấm Gọi → gửi INTENT; callId do server sinh, về qua 'ringing' ──
@@ -130,6 +149,8 @@ function sendIntent(type: 'call-reject' | 'call-cancel' | 'hang-up') {
 
 // Dọn MEDIA (peer + stream). KHÔNG đụng store — để 'ended'/summary tự lo.
 function teardownMedia() {
+    peerGeneration++
+    creatingPeerCallId = null
     peer?.close()
     peer = null
     localStream?.getTracks().forEach((t) => t.stop())  // tắt đèn camera
@@ -145,10 +166,10 @@ function handleServerSignal(msg: CallServerSignal) {
             handleCallState(msg)
             break
         case 'sdp-received':
-            deliverSignal({ sdp: msg.sdp })
+            deliverSignal(msg.callId, { sdp: msg.sdp })
             break
         case 'ice-candidate-received':
-            deliverSignal({ candidate: msg.candidate })
+            deliverSignal(msg.callId, { candidate: msg.candidate })
             break
         case 'media-state-relay': {
             const call = useCallStore.getState()
@@ -193,6 +214,9 @@ function handleCallState(msg: CallStateChanged) {
             } else if (reason === 'missed' && !amCaller) {
                 // callee bỏ lỡ → toast tạm thời (D-09), không hiện summary
                 useToastStore.getState().show(`Bạn đã nhỡ cuộc gọi từ ${remote}`, 'info')
+                call.reset()
+            } else if (reason === 'rejected' && !amCaller) {
+                // callee từ chối cuộc gọi → về thẳng trang chủ, không hiện summary để tối ưu UX
                 call.reset()
             } else {
                 // completed/rejected/cancelled/dropped + missed phía caller → màn summary 3s
