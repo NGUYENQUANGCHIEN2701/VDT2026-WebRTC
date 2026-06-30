@@ -280,7 +280,27 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. User can switch camera and microphone before and during a call without dropping the connection (replaceTrack)
   4. User can select the audio output device on supported browsers; the control is hidden where setSinkId is unsupported
 
-**Plans**: TBD
+**Plans**: 5 plans in 5 waves
+**Wave 1** *(TDD Wave 0 — RED tests)*
+
+- [ ] 08-01-PLAN.md — RED test scaffold: PeerManager replacement helpers, MeshManager fan-out, RecordingController MIME+cleanup, RecordingSignalingTest backend validation
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 08-02-PLAN.md — Foundation implementation: PeerManager/MeshManager helpers, mediaDevices.ts, callActions screen share + device switching, roomActions group equivalents, store fields, backend RecordingState/RecordingStateRelay + areActiveCallPeers
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 08-03-PLAN.md — Recording engine + UI wiring: RecordingController impl (canvas compositor, audio mixer, MIME fallback), MorePanel, RecordingPreviewModal, CallPage full wiring, GroupCallPage full wiring, ParticipantTile extensions
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 08-04-PLAN.md — Polish + hardening: error handling toasts, state preservation edge cases (cam-off after share, mute after mic switch), unsupported-browser gates, responsive CSS, full test suite pass
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 08-05-PLAN.md — Full verification gate: manual checklist (screen share browser-bar stop, composited recording, device switching, speaker selector), 1-1 smoke test, 08-VALIDATION.md, ROADMAP update
+
 **UI hint**: yes
 
 ### Phase 9: Monitoring, CI/CD & Full Delivery
@@ -311,8 +331,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Call Lifecycle & In-Call Experience | 7/7 | ✅ Complete | 2026-06-28 |
 | 5. Call History & Admin | 4/4 | ✅ Complete | 2026-06-28 |
 | 6. Horizontal Scaling | 4/4 | ✅ Complete | 2026-06-29 |
-| 7. Group Mesh Calls | 4/5 | Executing | - |
-| 8. Screen Share, Recording & Device Control | 0/TBD | Not started | - |
+| 7. Group Mesh Calls | 5/5 | ✅ Complete | 2026-06-30 |
+| 8. Screen Share, Recording & Device Control | 0/5 | Planned | - |
 | 9. Monitoring, CI/CD & Full Delivery | 0/TBD | Not started | - |
 
 ---
@@ -324,4 +344,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *Phase 4 planned: 2026-06-26 — 7 plans in 7 waves*
 *Phase 5 planned: 2026-06-28 — 4 plans in 4 waves*
 *Phase 6 planned: 2026-06-29 — 4 plans in 4 waves*
-*Phase 7 executing: Waves 1-4 complete on 2026-06-30; Wave 5 full verification next*
+*Phase 7 completed: 2026-06-30 — Wave 5 full verification passed; Phase 7 CLOSED*
+*Phase 8 planned: 2026-06-30 — 5 plans in 5 waves*

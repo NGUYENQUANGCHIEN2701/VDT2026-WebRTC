@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 8
 current_phase_name: Screen Share, Recording & Device Control
 status: executing
-stopped_at: Phase 8 UI-SPEC approved
-last_updated: "2026-06-30T13:21:55.932Z"
+stopped_at: Phase 8 Wave 1 ready to execute
+last_updated: "2026-06-30T21:01:00.000Z"
 last_activity: 2026-06-30
-last_activity_desc: Phase 7 Wave 5 full verification complete; Phase 7 CLOSED
+last_activity_desc: Phase 7 CLOSED; Phase 8 planned (5 waves); ready for 08-01 execution
 progress:
   total_phases: 9
-  completed_phases: 1
-  total_plans: 32
-  completed_plans: 6
-  percent: 11
+  completed_phases: 7
+  total_plans: 37
+  completed_plans: 29
+  percent: 78
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-06-11)
 
 ## Current Position
 
-Phase: 8 of 9 (Screen Share, Recording & Device Control) -- PLANNING
-Status: Planning
-Next: Phase 8 planning kickoff
-Last activity: 2026-06-30 -- Phase 7 Wave 5 full verification complete; Phase 7 CLOSED
+Phase: 8 of 9 (Screen Share, Recording & Device Control) -- EXECUTING
+Status: Wave 1 — RED tests
+Next: Execute 08-01-PLAN.md (RED test scaffolding)
+Last activity: 2026-06-30 -- Phase 7 Wave 5 full verification complete; Phase 7 CLOSED; Phase 8 planned
 
 Progress: [#######--] 78% (7/9 phases)
 
@@ -54,13 +54,13 @@ Progress: [#######--] 78% (7/9 phases)
 | 5. Call History & Admin | 4/4 | Complete |
 | 6. Horizontal Scaling | 4/4 | Complete |
 | 7. Group Mesh Calls | 5/5 | Complete |
-| 8. Screen Share, Recording & Device Control | 0/TBD | Not started |
+| 8. Screen Share, Recording & Device Control | 0/5 | Executing |
 | 9. Monitoring, CI/CD & Full Delivery | 0/TBD | Not started |
 
 **Recent Trend:**
 
 - Last completed plan: 07-05 -- Full verification (Phase 7 closed)
-- Next plan: Phase 8 planning kickoff
+- Next plan: 08-01 -- RED tests (Wave 1)
 
 ## Accumulated Context
 
@@ -77,8 +77,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Begin Phase 8 planning: Screen Share, Recording & Device Control.
-- Pre-decision required: recording scope (local-only vs composited) -- resolve during Phase 8 planning.
+- Phase 8 is planned (5 waves, 08-01 to 08-05). Execute 08-01-PLAN.md next.
 
 ### Blockers/Concerns
 
@@ -105,6 +104,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-30T13:21:55.924Z
-Stopped at: Phase 8 UI-SPEC approved
-Resume file: .planning/phases/08-screen-share-recording-device-control/08-UI-SPEC.md
+Last session: 2026-06-30T21:01:00.000Z
+Stopped at: Phase 8 Wave 1 ready to execute
+Resume file: .planning/phases/08-screen-share-recording-device-control/08-01-PLAN.md
