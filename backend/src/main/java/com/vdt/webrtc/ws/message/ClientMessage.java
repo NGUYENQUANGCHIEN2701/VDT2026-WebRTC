@@ -7,19 +7,23 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = Ping.class, name = "ping"),
-        @JsonSubTypes.Type(value = CallOffer.class, name = "call-offer"),
-        @JsonSubTypes.Type(value = CallAccept.class, name = "call-accept"),
-        @JsonSubTypes.Type(value = CallReject.class, name = "call-reject"),
-        @JsonSubTypes.Type(value = CallCancel.class, name = "call-cancel"),
-        @JsonSubTypes.Type(value = HangUp.class, name = "hang-up"),
-        @JsonSubTypes.Type(value = SdpMessage.class, name = "sdp"),
-        @JsonSubTypes.Type(value = IceCandidateMessage.class, name = "ice-candidate"),
-        @JsonSubTypes.Type(value = CallInvite.class, name = "call-invite"),
-        @JsonSubTypes.Type(value = MediaState.class, name = "media-state")
+                @JsonSubTypes.Type(value = Ping.class, name = "ping"),
+                @JsonSubTypes.Type(value = CallOffer.class, name = "call-offer"),
+                @JsonSubTypes.Type(value = CallAccept.class, name = "call-accept"),
+                @JsonSubTypes.Type(value = CallReject.class, name = "call-reject"),
+                @JsonSubTypes.Type(value = CallCancel.class, name = "call-cancel"),
+                @JsonSubTypes.Type(value = HangUp.class, name = "hang-up"),
+                @JsonSubTypes.Type(value = SdpMessage.class, name = "sdp"),
+                @JsonSubTypes.Type(value = IceCandidateMessage.class, name = "ice-candidate"),
+                @JsonSubTypes.Type(value = CallInvite.class, name = "call-invite"),
+                @JsonSubTypes.Type(value = MediaState.class, name = "media-state"),
+                @JsonSubTypes.Type(value = GroupInvite.class, name = "group-invite"),
+                @JsonSubTypes.Type(value = DeclineRoomInvite.class, name = "decline-room-invite"),
+                @JsonSubTypes.Type(value = LeaveRoom.class, name = "leave-room"),
+                @JsonSubTypes.Type(value = JoinRoom.class, name = "join-room")
 })
 public sealed interface ClientMessage
-        permits Ping, CallOffer, CallAccept, CallReject, CallCancel, HangUp, SdpMessage, IceCandidateMessage,
-        CallInvite, MediaState {
+                permits Ping, CallOffer, CallAccept, CallReject, CallCancel, HangUp, SdpMessage, IceCandidateMessage,
+                CallInvite, MediaState, GroupInvite, DeclineRoomInvite, LeaveRoom, JoinRoom {
 
 }
