@@ -5,7 +5,9 @@ type MeshManagerInstance = {
     handleParticipantLeft: (username: string) => void
     applyBitrateForRoomSize: (totalParticipants: number) => Promise<void> | void
     peerCount: () => number
-    getPeer: (username: string) => { close: ReturnType<typeof vi.fn>; setSendersMaxBitrate: ReturnType<typeof vi.fn> } | undefined
+    getPeer: (username: string) => { close: ReturnType<typeof vi.fn>; setSendersMaxBitrate: ReturnType<typeof vi.fn>; replaceVideoTrack: ReturnType<typeof vi.fn>; replaceAudioTrack: ReturnType<typeof vi.fn> } | undefined
+    replaceVideoTrack: (track: MediaStreamTrack) => Promise<void>
+    replaceAudioTrack: (track: MediaStreamTrack) => Promise<void>
 }
 
 type MeshManagerCtor = new (args: {
@@ -19,6 +21,8 @@ const peerManagerMock = vi.hoisted(() => ({
     instances: [] as Array<{
         close: ReturnType<typeof vi.fn>
         setSendersMaxBitrate: ReturnType<typeof vi.fn>
+        replaceVideoTrack: ReturnType<typeof vi.fn>
+        replaceAudioTrack: ReturnType<typeof vi.fn>
     }>,
     constructorSpy: vi.fn(),
 }))
@@ -28,6 +32,8 @@ vi.mock('./PeerManager', () => ({
         const peer = {
             close: vi.fn(),
             setSendersMaxBitrate: vi.fn(async () => { }),
+            replaceVideoTrack: vi.fn(async () => { }),
+            replaceAudioTrack: vi.fn(async () => { }),
         }
         peerManagerMock.constructorSpy({ iceServers, polite, sendSignal })
         peerManagerMock.instances.push(peer)
@@ -108,6 +114,80 @@ describe('MeshManager bitrate caps', () => {
         await mesh.applyBitrateForRoomSize(2)
         for (const peer of peerManagerMock.instances) {
             expect(peer.setSendersMaxBitrate).toHaveBeenLastCalledWith(null)
+        }
+    })
+})
+
+// ── RED: Phase 8 Wave 1 ── track replacement fan-out ───────────────────────
+// MeshManager.replaceVideoTrack / replaceAudioTrack không tồn tại → RED.
+
+describe('track replacement fan-out', () => {
+    it('replaceVideoTrack(track) calls peer.replaceVideoTrack(track) on every peer in the mesh', async () => {
+        const MeshManager = await loadMeshManager()
+        const mesh = createMeshManager(MeshManager)
+        await mesh.joinExistingMembers(['bob', 'carol'])
+
+        const fakeTrack = { kind: 'video' } as unknown as MediaStreamTrack
+        await mesh.replaceVideoTrack(fakeTrack)
+
+        for (const peer of peerManagerMock.instances) {
+            expect(peer.replaceVideoTrack).toHaveBeenCalledWith(fakeTrack)
+        }
+    })
+
+    it('replaceVideoTrack(track) calls setSendersMaxBitrate(activeMaxBitrate) on every peer after replacement', async () => {
+        const MeshManager = await loadMeshManager()
+        const mesh = createMeshManager(MeshManager)
+        // 3 members → caps are active (MESH_MAX_VIDEO_BITRATE)
+        await mesh.joinExistingMembers(['bob', 'carol', 'dave'])
+        // clear invocations so we only see those from replaceVideoTrack
+        for (const peer of peerManagerMock.instances) {
+            peer.setSendersMaxBitrate.mockClear()
+        }
+
+        const fakeTrack = { kind: 'video' } as unknown as MediaStreamTrack
+        await mesh.replaceVideoTrack(fakeTrack)
+
+        for (const peer of peerManagerMock.instances) {
+            expect(peer.setSendersMaxBitrate).toHaveBeenCalledWith(expect.anything())
+        }
+    })
+
+    it('replaceVideoTrack(track) works when the peer map is empty', async () => {
+        const MeshManager = await loadMeshManager()
+        const mesh = createMeshManager(MeshManager)
+        // no peers joined
+
+        const fakeTrack = { kind: 'video' } as unknown as MediaStreamTrack
+        await expect(mesh.replaceVideoTrack(fakeTrack)).resolves.toBeUndefined()
+    })
+
+    it('replaceAudioTrack(track) calls peer.replaceAudioTrack(track) on every peer', async () => {
+        const MeshManager = await loadMeshManager()
+        const mesh = createMeshManager(MeshManager)
+        await mesh.joinExistingMembers(['bob', 'carol'])
+
+        const fakeTrack = { kind: 'audio' } as unknown as MediaStreamTrack
+        await mesh.replaceAudioTrack(fakeTrack)
+
+        for (const peer of peerManagerMock.instances) {
+            expect(peer.replaceAudioTrack).toHaveBeenCalledWith(fakeTrack)
+        }
+    })
+
+    it('replaceAudioTrack(track) does NOT call setSendersMaxBitrate (audio does not change video bitrate caps)', async () => {
+        const MeshManager = await loadMeshManager()
+        const mesh = createMeshManager(MeshManager)
+        await mesh.joinExistingMembers(['bob', 'carol', 'dave'])
+        for (const peer of peerManagerMock.instances) {
+            peer.setSendersMaxBitrate.mockClear()
+        }
+
+        const fakeTrack = { kind: 'audio' } as unknown as MediaStreamTrack
+        await mesh.replaceAudioTrack(fakeTrack)
+
+        for (const peer of peerManagerMock.instances) {
+            expect(peer.setSendersMaxBitrate).not.toHaveBeenCalled()
         }
     })
 })

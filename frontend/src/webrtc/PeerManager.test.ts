@@ -25,6 +25,7 @@ class MockRTCPeerConnection {
         track: { kind: string } | null
         getParameters: ReturnType<typeof vi.fn>
         setParameters: ReturnType<typeof vi.fn>
+        replaceTrack: ReturnType<typeof vi.fn>
     }> = []
 
     setLocalDescription = vi.fn(async () => {
@@ -137,11 +138,13 @@ describe('PeerManager mesh seams', () => {
             track: { kind: 'video' },
             getParameters: vi.fn(() => ({ encodings: [{}] })),
             setParameters: vi.fn(async () => { }),
+            replaceTrack: vi.fn(async () => { }),
         }
         const audioSender = {
             track: { kind: 'audio' },
             getParameters: vi.fn(() => ({ encodings: [{}] })),
             setParameters: vi.fn(async () => { }),
+            replaceTrack: vi.fn(async () => { }),
         }
         pc.senders = [videoSender, audioSender]
 
@@ -159,3 +162,97 @@ describe('PeerManager mesh seams', () => {
         })
     })
 })
+
+// ── RED: Phase 8 Wave 1 ── sender replacement helpers ──────────────────────
+// replaceVideoTrack / replaceAudioTrack belum ada di PeerManager → semua RED.
+
+describe('sender replacement helpers', () => {
+    it('replaceVideoTrack() finds the video sender and calls sender.replaceTrack(newTrack)', async () => {
+        const pm = new PeerManager([], true, vi.fn()) as unknown as {
+            replaceVideoTrack: (track: MediaStreamTrack) => Promise<void>
+        }
+        const pc = MockRTCPeerConnection.instances[0]
+        const fakeVideoTrack = { kind: 'video' } as unknown as MediaStreamTrack
+        const videoSender = {
+            track: { kind: 'video' },
+            getParameters: vi.fn(() => ({ encodings: [{}] })),
+            setParameters: vi.fn(async () => { }),
+            replaceTrack: vi.fn(async () => { }),
+        }
+        const audioSender = {
+            track: { kind: 'audio' },
+            getParameters: vi.fn(() => ({ encodings: [{}] })),
+            setParameters: vi.fn(async () => { }),
+            replaceTrack: vi.fn(async () => { }),
+        }
+        pc.senders = [videoSender, audioSender]
+
+        await pm.replaceVideoTrack(fakeVideoTrack)
+
+        expect(videoSender.replaceTrack).toHaveBeenCalledWith(fakeVideoTrack)
+        expect(audioSender.replaceTrack).not.toHaveBeenCalled()
+    })
+
+    it('replaceVideoTrack() resolves without error when there is no video sender', async () => {
+        const pm = new PeerManager([], true, vi.fn()) as unknown as {
+            replaceVideoTrack: (track: MediaStreamTrack) => Promise<void>
+        }
+        const pc = MockRTCPeerConnection.instances[0]
+        const audioSender = {
+            track: { kind: 'audio' },
+            getParameters: vi.fn(() => ({ encodings: [{}] })),
+            setParameters: vi.fn(async () => { }),
+            replaceTrack: vi.fn(async () => { }),
+        }
+        pc.senders = [audioSender]
+
+        const fakeTrack = { kind: 'video' } as unknown as MediaStreamTrack
+        await expect(pm.replaceVideoTrack(fakeTrack)).resolves.toBeUndefined()
+        expect(audioSender.replaceTrack).not.toHaveBeenCalled()
+    })
+
+    it('replaceAudioTrack() finds the audio sender and calls sender.replaceTrack(newTrack)', async () => {
+        const pm = new PeerManager([], true, vi.fn()) as unknown as {
+            replaceAudioTrack: (track: MediaStreamTrack) => Promise<void>
+        }
+        const pc = MockRTCPeerConnection.instances[0]
+        const fakeAudioTrack = { kind: 'audio' } as unknown as MediaStreamTrack
+        const videoSender = {
+            track: { kind: 'video' },
+            getParameters: vi.fn(() => ({ encodings: [{}] })),
+            setParameters: vi.fn(async () => { }),
+            replaceTrack: vi.fn(async () => { }),
+        }
+        const audioSender = {
+            track: { kind: 'audio' },
+            getParameters: vi.fn(() => ({ encodings: [{}] })),
+            setParameters: vi.fn(async () => { }),
+            replaceTrack: vi.fn(async () => { }),
+        }
+        pc.senders = [videoSender, audioSender]
+
+        await pm.replaceAudioTrack(fakeAudioTrack)
+
+        expect(audioSender.replaceTrack).toHaveBeenCalledWith(fakeAudioTrack)
+        expect(videoSender.replaceTrack).not.toHaveBeenCalled()
+    })
+
+    it('replaceAudioTrack() resolves when there is no audio sender', async () => {
+        const pm = new PeerManager([], true, vi.fn()) as unknown as {
+            replaceAudioTrack: (track: MediaStreamTrack) => Promise<void>
+        }
+        const pc = MockRTCPeerConnection.instances[0]
+        const videoSender = {
+            track: { kind: 'video' },
+            getParameters: vi.fn(() => ({ encodings: [{}] })),
+            setParameters: vi.fn(async () => { }),
+            replaceTrack: vi.fn(async () => { }),
+        }
+        pc.senders = [videoSender]
+
+        const fakeTrack = { kind: 'audio' } as unknown as MediaStreamTrack
+        await expect(pm.replaceAudioTrack(fakeTrack)).resolves.toBeUndefined()
+        expect(videoSender.replaceTrack).not.toHaveBeenCalled()
+    })
+})
+
