@@ -19,11 +19,12 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
                 @JsonSubTypes.Type(value = MediaState.class, name = "media-state"),
                 @JsonSubTypes.Type(value = GroupInvite.class, name = "group-invite"),
                 @JsonSubTypes.Type(value = DeclineRoomInvite.class, name = "decline-room-invite"),
+                @JsonSubTypes.Type(value = CancelGroupInvite.class, name = "cancel-group-invite"),
                 @JsonSubTypes.Type(value = LeaveRoom.class, name = "leave-room"),
                 @JsonSubTypes.Type(value = JoinRoom.class, name = "join-room")
 })
 public sealed interface ClientMessage
                 permits Ping, CallOffer, CallAccept, CallReject, CallCancel, HangUp, SdpMessage, IceCandidateMessage,
-                CallInvite, MediaState, GroupInvite, DeclineRoomInvite, LeaveRoom, JoinRoom {
+                CallInvite, MediaState, GroupInvite, DeclineRoomInvite, CancelGroupInvite, LeaveRoom, JoinRoom {
 
 }

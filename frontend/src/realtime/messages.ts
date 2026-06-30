@@ -26,6 +26,7 @@ export type CallServerSignal =
 
 export type RoomServerSignal =
     | { type: 'room-invite'; roomId: string; from: string; invitees: string[] }
+    | { type: 'room-invite-cancelled'; roomId: string }
     | { type: 'room-joined'; roomId: string; members: string[] }
     | { type: 'participant-joined'; roomId: string; username: string }
     | { type: 'participant-left'; roomId: string; username: string }
@@ -51,6 +52,7 @@ export type ClientMessage =
     | { type: 'ice-candidate'; to: string; callId: string; candidate: RTCIceCandidateInit }
     | { type: 'media-state'; to: string; micMuted: boolean; camOff: boolean }
     | { type: 'group-invite'; to: string[] }
+    | { type: 'cancel-group-invite'; to: string[] }
     | { type: 'join-room'; roomId: string }
     | { type: 'leave-room'; roomId: string }
     | { type: 'decline-room-invite'; roomId: string }

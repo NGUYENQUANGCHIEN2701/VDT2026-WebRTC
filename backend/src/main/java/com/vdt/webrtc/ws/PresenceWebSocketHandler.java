@@ -18,6 +18,7 @@ import com.vdt.webrtc.ws.message.CallAccept;
 import com.vdt.webrtc.ws.message.CallCancel;
 import com.vdt.webrtc.ws.message.CallInvite;
 import com.vdt.webrtc.ws.message.CallReject;
+import com.vdt.webrtc.ws.message.CancelGroupInvite;
 import com.vdt.webrtc.ws.message.ClientMessage;
 import com.vdt.webrtc.ws.message.DeclineRoomInvite;
 import com.vdt.webrtc.ws.message.GroupInvite;
@@ -107,6 +108,8 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
             router.broadcast(new Pong(), List.of(session));
         } else if (clientMessage instanceof GroupInvite invite) {
             roomService.handleGroupInvite(username, invite.to());
+        } else if (clientMessage instanceof CancelGroupInvite cancel) {
+            roomService.handleCancelGroupInvite(username, cancel.to());
         } else if (clientMessage instanceof JoinRoom join) {
             roomService.handleJoin(username, join.roomId());
         } else if (clientMessage instanceof LeaveRoom leave) {

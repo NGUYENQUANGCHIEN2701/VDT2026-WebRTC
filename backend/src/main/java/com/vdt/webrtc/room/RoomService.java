@@ -40,6 +40,24 @@ public class RoomService {
         }
     }
 
+    public void handleCancelGroupInvite(String inviter, List<String> invitees) {
+        String roomId = rooms.roomOf(inviter);
+        if (roomId == null) {
+            return;
+        }
+
+        if (invitees != null) {
+            for (String invitee : invitees) {
+                if (!invitee.equals(inviter)) {
+                    router.sendToUser(invitee, new com.vdt.webrtc.ws.message.RoomInviteCancelled(roomId));
+                }
+            }
+        }
+        
+        rooms.leave(roomId, inviter);
+        // The room should be empty now if no one else joined, which means it gets cleaned up.
+    }
+
     public void handleJoin(String username, String roomId) {
         if (roomId == null || roomId.isBlank()) {
             router.sendToUser(username, new RoomFull("", "Invalid room ID"));
