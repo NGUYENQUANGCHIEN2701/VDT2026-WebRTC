@@ -251,7 +251,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 07-02-PLAN.md — Backend room state + signaling: Redis room membership, Lua atomic 4-user cap, joiner-initiates member list, participant fanout, disconnect/leave cleanup
+- [x] 07-02-PLAN.md — Backend room state + signaling: Redis room membership, Lua atomic 4-user cap, joiner-initiates member list, participant fanout, disconnect/leave cleanup
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -311,7 +311,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Call Lifecycle & In-Call Experience | 7/7 | ✅ Complete | 2026-06-28 |
 | 5. Call History & Admin | 4/4 | ✅ Complete | 2026-06-28 |
 | 6. Horizontal Scaling | 4/4 | ✅ Complete | 2026-06-29 |
-| 7. Group Mesh Calls | 1/5 | Executing | - |
+| 7. Group Mesh Calls | 2/5 | Executing | - |
 | 8. Screen Share, Recording & Device Control | 0/TBD | Not started | - |
 | 9. Monitoring, CI/CD & Full Delivery | 0/TBD | Not started | - |
 
@@ -324,4 +324,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *Phase 4 planned: 2026-06-26 — 7 plans in 7 waves*
 *Phase 5 planned: 2026-06-28 — 4 plans in 4 waves*
 *Phase 6 planned: 2026-06-29 — 4 plans in 4 waves*
-*Phase 7 executing: Wave 1 complete on 2026-06-30; Wave 2 backend implementation next*
+*Phase 7 executing: Waves 1-2 complete on 2026-06-30; Wave 3 frontend mesh core next*
