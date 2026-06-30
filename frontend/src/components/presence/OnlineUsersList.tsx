@@ -41,9 +41,9 @@ export default function OnlineUsersList() {
 
   if (connectionState === "connecting") {
     return (
-      <div className="home-panel">
-        <div className="home-panel-header">
-          <h2 className="home-panel-title">Người trực tuyến</h2>
+      <div className="app-panel">
+        <div className="app-panel-header">
+          <h2>Người trực tuyến</h2>
         </div>
         <div style={{ padding: 24, color: 'var(--text)' }}>Đang kết nối...</div>
       </div>
@@ -53,9 +53,9 @@ export default function OnlineUsersList() {
   const dim = connectionState === "closed"
 
   return (
-    <div className="home-panel" style={{ opacity: dim ? 0.7 : 1 }}>
-      <div className="home-panel-header">
-        <h2 className="home-panel-title">Người trực tuyến ({others.length})</h2>
+    <div className="app-panel" style={{ opacity: dim ? 0.7 : 1 }}>
+      <div className="app-panel-header">
+        <h2>Người trực tuyến ({others.length})</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {groupMode ? (
             <>

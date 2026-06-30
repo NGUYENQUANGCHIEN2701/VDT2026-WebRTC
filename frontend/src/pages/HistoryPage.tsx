@@ -49,11 +49,11 @@ export default function HistoryPage() {
     <AppChrome>
       <section className="app-hero app-hero--compact">
         <div>
-          <span className="app-kicker">Call records</span>
+          <span className="app-kicker" style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>Call records</span>
           <h1>Lịch sử cuộc gọi</h1>
           <p>Theo dõi kết quả, thời lượng và thời điểm kết thúc của các cuộc gọi gần đây.</p>
         </div>
-        <button className="app-button app-button--ghost" onClick={() => refetch()} type="button">
+        <button className="app-button app-button--ghost" style={{ borderRadius: '999px', color: 'var(--accent)', borderColor: 'var(--border)' }} onClick={() => refetch()} type="button">
           <RefreshCcw size={17} />
           Làm mới
         </button>

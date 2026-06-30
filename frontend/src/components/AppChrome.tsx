@@ -12,15 +12,15 @@ export default function AppChrome({ children }: { children: ReactNode }) {
 
   return (
     <main className={`app-shell app-theme--${theme}`}>
-      <header className="app-taskbar">
-        <NavLink className="taskbar-brand" to="/" aria-label="Video Call">
-          <span className="taskbar-logo">
+      <aside className="app-sidebar">
+        <NavLink className="sidebar-brand" to="/" aria-label="Video Call">
+          <span className="sidebar-logo">
             <Video size={21} strokeWidth={2.4} />
           </span>
           <span>Video <strong>Call</strong></span>
         </NavLink>
 
-        <nav className="taskbar-nav" aria-label="Điều hướng chính">
+        <nav className="sidebar-nav" aria-label="Điều hướng chính">
           <NavLink to="/" end>
             <Home size={17} />
             Trang chủ
@@ -37,17 +37,17 @@ export default function AppChrome({ children }: { children: ReactNode }) {
           )}
         </nav>
 
-        <div className="taskbar-actions">
-          <button className="taskbar-icon-button" onClick={toggleTheme} type="button">
+        <div className="sidebar-actions">
+          <button className="sidebar-icon-button" onClick={toggleTheme} type="button">
             {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
             <span>{theme === "dark" ? "Sáng" : "Tối"}</span>
           </button>
-          <button className="taskbar-icon-button" onClick={logout} type="button">
+          <button className="sidebar-icon-button" onClick={logout} type="button">
             <LogOut size={17} />
             <span>Đăng xuất</span>
           </button>
         </div>
-      </header>
+      </aside>
 
       <div className="app-content">
         {children}
