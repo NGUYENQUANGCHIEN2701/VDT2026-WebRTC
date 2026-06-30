@@ -32,6 +32,7 @@ function App() {
   const roomId = useRoomStore((s) => s.roomId)
   const incomingInvite = useRoomStore((s) => s.incomingInvite)
   const outgoingInvitees = useRoomStore((s) => s.outgoingInvitees)
+  const declinedInvitees = useRoomStore((s) => s.declinedInvitees)
   const members = useRoomStore((s) => s.members)
 
   useEffect(() => {
@@ -98,6 +99,7 @@ function App() {
         <OutgoingGroupInviteCard
           invitees={outgoingInvitees}
           joined={Object.keys(members)}
+          declined={declinedInvitees}
           onCancel={cancelGroupInvite}
         />
       )}
