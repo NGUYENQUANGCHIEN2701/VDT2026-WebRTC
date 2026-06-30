@@ -14,12 +14,12 @@ The journey runs identity → connectivity → core call → robustness → data
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation — Auth, Roles & Project Skeleton** - JWT register/login with Admin/User roles, PostgreSQL + Flyway, React shell, Compose + CI skeleton ✅
-- [ ] **Phase 2: Realtime Presence & WebSocket Layer** - Authenticated WebSocket, Redis TTL presence, realtime online-user list, single-session policy
-- [ ] **Phase 3: 1-1 P2P Call Core & NAT Traversal** - Working P2P video call with perfect negotiation, coturn TURN relay, HTTPS/WSS, quality diagnostics
-- [ ] **Phase 4: Call Lifecycle & In-Call Experience** - Server-authoritative state machine: ringing, busy, missed, glare, hangup reasons, reconnection, in-call UX
-- [ ] **Phase 5: Call History & Admin** - Async history via RabbitMQ, user history view, admin user management and live dashboard
-- [ ] **Phase 6: Horizontal Scaling** - 2+ signaling instances behind nginx, Redis pub/sub cross-instance routing, all shared state in Redis
-- [ ] **Phase 7: Group Mesh Calls** - Room-based P2P mesh calls up to 4 people with server-enforced cap and bitrate management
+- [x] **Phase 2: Realtime Presence & WebSocket Layer** - Authenticated WebSocket, Redis TTL presence, realtime online-user list, single-session policy ✅
+- [x] **Phase 3: 1-1 P2P Call Core & NAT Traversal** - Working P2P video call with perfect negotiation, coturn TURN relay, HTTPS/WSS, quality diagnostics ✅
+- [x] **Phase 4: Call Lifecycle & In-Call Experience** - Server-authoritative state machine: ringing, busy, missed, glare, hangup reasons, reconnection, in-call UX ✅
+- [x] **Phase 5: Call History & Admin** - Async history via RabbitMQ, user history view, admin user management and live dashboard ✅
+- [x] **Phase 6: Horizontal Scaling** - 2+ signaling instances behind nginx, Redis pub/sub cross-instance routing, all shared state in Redis ✅
+- [ ] **Phase 7: Group Mesh Calls** - Room-based P2P mesh calls up to 4 people with server-enforced cap and bitrate management *(planned; ready to execute)*
 - [ ] **Phase 8: Screen Share, Recording & Device Control** - Screen sharing, client-side 1-1 recording, camera/mic/speaker selection mid-call
 - [ ] **Phase 9: Monitoring, CI/CD & Full Delivery** - Prometheus + Grafana per-instance metrics, Playwright E2E call test in CI, one-command full-stack startup
 
@@ -243,7 +243,28 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A participant leaving (or dropping) does not break the remaining peers' connections; partial-mesh failures are surfaced in the UI
   4. Per-sender bitrate caps apply when more than 2 participants are in the room (verifiable in the debug panel)
 
-**Plans**: TBD
+**Plans:** 5 plans
+
+**Wave 1** *(TDD Wave 0 — RED tests + compatibility guards)*
+
+- [x] 07-01-PLAN.md — RED test scaffold: RoomStateMachineTest, RoomMeshTest, CrossInstanceRoomTest, MeshManager bitrate tests, and PeerManager additive mesh seam coverage
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 07-02-PLAN.md — Backend room state + signaling: Redis room membership, Lua atomic 4-user cap, joiner-initiates member list, participant fanout, disconnect/leave cleanup
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 07-03-PLAN.md — Frontend mesh core: additive PeerManager seams, MeshManager per-peer ownership, roomStore/realtime room actions, per-pair politeness, dynamic bitrate caps
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 07-04-PLAN.md — Group call UX: GroupCallPage, participant tiles, group invite flow, multi-select presence UI, toasts, debug panel mesh visibility
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 07-05-PLAN.md — Full suite gate + manual group-call checkpoint: 4-user cross-instance mesh, 5th-user rejection, participant leave/drop resilience, bitrate-cap proof, final 1-1 smoke check
+
 **UI hint**: yes
 
 ### Phase 8: Screen Share, Recording & Device Control
@@ -285,12 +306,12 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation — Auth, Roles & Project Skeleton | 4/4 | ✅ Complete | 2026-06-14 |
-| 2. Realtime Presence & WebSocket Layer | 0/3 | Not started | - |
-| 3. 1-1 P2P Call Core & NAT Traversal | 0/5 | Not started | - |
-| 4. Call Lifecycle & In-Call Experience | 0/7 | Not started | - |
-| 5. Call History & Admin | 0/4 | Planned | - |
-| 6. Horizontal Scaling | 0/4 | Planned | - |
-| 7. Group Mesh Calls | 0/TBD | Not started | - |
+| 2. Realtime Presence & WebSocket Layer | 3/3 | ✅ Complete | 2026-06-17 |
+| 3. 1-1 P2P Call Core & NAT Traversal | 5/5 | ✅ Complete | 2026-06-18 |
+| 4. Call Lifecycle & In-Call Experience | 7/7 | ✅ Complete | 2026-06-28 |
+| 5. Call History & Admin | 4/4 | ✅ Complete | 2026-06-28 |
+| 6. Horizontal Scaling | 4/4 | ✅ Complete | 2026-06-29 |
+| 7. Group Mesh Calls | 1/5 | Executing | - |
 | 8. Screen Share, Recording & Device Control | 0/TBD | Not started | - |
 | 9. Monitoring, CI/CD & Full Delivery | 0/TBD | Not started | - |
 
@@ -303,3 +324,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *Phase 4 planned: 2026-06-26 — 7 plans in 7 waves*
 *Phase 5 planned: 2026-06-28 — 4 plans in 4 waves*
 *Phase 6 planned: 2026-06-29 — 4 plans in 4 waves*
+*Phase 7 executing: Wave 1 complete on 2026-06-30; Wave 2 backend implementation next*

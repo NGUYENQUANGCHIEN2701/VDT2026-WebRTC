@@ -1,12 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-// PeerManager.ts CHƯA tồn tại → import fail → test ĐỎ (đúng baseline Wave 0)
 import { PeerManager } from './PeerManager'
 
-/**
- * Mock RTCPeerConnection: browser thật có sẵn, test phải tự dựng (giống MockWebSocket).
- * Lộ ra: event hook (onnegotiationneeded...) + spy (setLocal/Remote/addIceCandidate) +
- * signalingState/remoteDescription settable để dựng tình huống collision & buffering.
- */
+const callStoreMock = vi.hoisted(() => ({
+    setCallState: vi.fn(),
+    bumpRemoteStream: vi.fn(),
+}))
+
 class MockRTCPeerConnection {
     static instances: MockRTCPeerConnection[] = []
 
@@ -15,23 +14,28 @@ class MockRTCPeerConnection {
     localDescription: unknown = null
     iceConnectionState = 'new'
 
-    // event hook — PeerManager gán handler của nó vào đây ở constructor
     onnegotiationneeded: (() => void | Promise<void>) | null = null
     oniceconnectionstatechange: (() => void) | null = null
     onicecandidate: ((e: unknown) => void) | null = null
     ontrack: ((e: unknown) => void) | null = null
 
-    // spy: setLocalDescription() KHÔNG tham số (implicit offer/answer) → tự gán localDescription
+    senders: Array<{
+        track: { kind: string } | null
+        getParameters: ReturnType<typeof vi.fn>
+        setParameters: ReturnType<typeof vi.fn>
+    }> = []
+
     setLocalDescription = vi.fn(async () => {
         this.localDescription = { type: 'offer', sdp: 'local-sdp' }
     })
-    // setRemoteDescription phải GÁN remoteDescription để bước drain buffer chạy đúng
     setRemoteDescription = vi.fn(async (desc: unknown) => {
         this.remoteDescription = desc
     })
     addIceCandidate = vi.fn(async () => { })
     addTrack = vi.fn()
+    getSenders = vi.fn(() => this.senders)
     getStats = vi.fn(async () => new Map())
+    restartIce = vi.fn()
     close = vi.fn()
 
     constructor(_config?: unknown) {
@@ -39,14 +43,15 @@ class MockRTCPeerConnection {
     }
 }
 
-// callStore CHƯA có → mock phòng khi PeerManager gọi vào (vô hại nếu không dùng)
 vi.mock('../store/callStore', () => ({
-    useCallStore: { getState: () => ({ setConnectionState: vi.fn(), setRemoteStream: vi.fn() }) },
+    useCallStore: { getState: () => callStoreMock },
 }))
 
 beforeEach(() => {
     MockRTCPeerConnection.instances = []
-    vi.stubGlobal('RTCPeerConnection', MockRTCPeerConnection) // thay RTCPeerConnection thật
+    callStoreMock.setCallState.mockClear()
+    callStoreMock.bumpRemoteStream.mockClear()
+    vi.stubGlobal('RTCPeerConnection', MockRTCPeerConnection)
 })
 
 afterEach(() => {
@@ -54,47 +59,101 @@ afterEach(() => {
     vi.restoreAllMocks()
 })
 
-describe('PeerManager — perfect negotiation + candidate buffering', () => {
-    // (a) onnegotiationneeded → tạo offer (setLocalDescription) → phát signal qua sendSignal
-    it('onnegotiationneeded tạo offer và phát signal', async () => {
+describe('PeerManager perfect negotiation and candidate buffering', () => {
+    it('creates an offer and emits an outbound signal when negotiation is needed', async () => {
         const sendSignal = vi.fn()
-        new PeerManager([], false, sendSignal) // (iceServers, polite, sendSignal)
+        new PeerManager([], false, sendSignal)
         const pc = MockRTCPeerConnection.instances[0]
 
-        await pc.onnegotiationneeded?.() // giả lập browser bắn sự kiện (vd khi addTrack)
+        await pc.onnegotiationneeded?.()
 
         expect(pc.setLocalDescription).toHaveBeenCalled()
-        expect(sendSignal).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'sdp' }),
-        )
+        expect(sendSignal).toHaveBeenCalledWith(expect.objectContaining({ type: 'sdp' }))
     })
 
-    // (b) ICE candidate tới KHI remoteDescription==null → BUFFER; setRemoteDescription xong → DRAIN
-    it('buffer ICE candidate trước remoteDescription rồi drain sau', async () => {
-        const pm = new PeerManager([], true, vi.fn()) // polite
+    it('buffers ICE candidates before remoteDescription and drains after SDP arrives', async () => {
+        const pm = new PeerManager([], true, vi.fn())
         const pc = MockRTCPeerConnection.instances[0]
 
-        // remoteDescription còn null → candidate phải được giữ lại, CHƯA addIceCandidate
         await pm.handleSignalingMessage({ candidate: { candidate: 'cand-1' } })
         expect(pc.addIceCandidate).not.toHaveBeenCalled()
 
-        // offer tới → setRemoteDescription chạy → drain buffer
         pc.signalingState = 'stable'
         await pm.handleSignalingMessage({ sdp: { type: 'offer', sdp: 'remote-offer' } })
 
         expect(pc.setRemoteDescription).toHaveBeenCalled()
-        expect(pc.addIceCandidate).toHaveBeenCalledTimes(1) // candidate đã buffer được xả ra
+        expect(pc.addIceCandidate).toHaveBeenCalledTimes(1)
     })
 
-    // (c) impolite peer gặp offer xung đột → BỎ QUA (không setRemoteDescription)
-    it('impolite peer bỏ qua offer xung đột (ignoreOffer)', async () => {
-        const pm = new PeerManager([], false, vi.fn()) // impolite (polite=false)
+    it('ignores a colliding offer when this peer is impolite', async () => {
+        const pm = new PeerManager([], false, vi.fn())
         const pc = MockRTCPeerConnection.instances[0]
 
-        // signalingState != 'stable' → ta đang giữ local offer → offer tới = collision
         pc.signalingState = 'have-local-offer'
         await pm.handleSignalingMessage({ sdp: { type: 'offer', sdp: 'colliding-offer' } })
 
-        expect(pc.setRemoteDescription).not.toHaveBeenCalled() // impolite "thắng" → kệ offer kia
+        expect(pc.setRemoteDescription).not.toHaveBeenCalled()
+    })
+})
+
+describe('PeerManager mesh seams', () => {
+    it('uses optional per-peer connection-state callback instead of global 1-1 callStore', () => {
+        const onConnectionStateChange = vi.fn()
+        const MeshReadyPeerManager = PeerManager as unknown as new (
+            iceServers: RTCIceServer[],
+            polite: boolean,
+            sendSignal: (signal: unknown) => void,
+            iceTransportPolicy?: RTCIceTransportPolicy,
+            callbacks?: { onConnectionStateChange?: (state: string) => void },
+        ) => PeerManager
+        new MeshReadyPeerManager([], true, vi.fn(), undefined, { onConnectionStateChange })
+        const pc = MockRTCPeerConnection.instances[0]
+
+        pc.iceConnectionState = 'connected'
+        pc.oniceconnectionstatechange?.()
+
+        expect(onConnectionStateChange).toHaveBeenCalledWith('connected')
+        expect(callStoreMock.setCallState).not.toHaveBeenCalled()
+    })
+
+    it('keeps legacy 1-1 fallback writing to callStore when no mesh callback is provided', () => {
+        new PeerManager([], true, vi.fn())
+        const pc = MockRTCPeerConnection.instances[0]
+
+        pc.iceConnectionState = 'connected'
+        pc.oniceconnectionstatechange?.()
+
+        expect(callStoreMock.setCallState).toHaveBeenCalledWith('connected')
+    })
+
+    it('setSendersMaxBitrate updates only video senders', async () => {
+        const pm = new PeerManager([], true, vi.fn()) as unknown as {
+            setSendersMaxBitrate: (maxBitrate: number | null) => Promise<void>
+        }
+        const pc = MockRTCPeerConnection.instances[0]
+        const videoSender = {
+            track: { kind: 'video' },
+            getParameters: vi.fn(() => ({ encodings: [{}] })),
+            setParameters: vi.fn(async () => { }),
+        }
+        const audioSender = {
+            track: { kind: 'audio' },
+            getParameters: vi.fn(() => ({ encodings: [{}] })),
+            setParameters: vi.fn(async () => { }),
+        }
+        pc.senders = [videoSender, audioSender]
+
+        await pm.setSendersMaxBitrate(400_000)
+
+        expect(videoSender.setParameters).toHaveBeenCalledWith({
+            encodings: [{ maxBitrate: 400_000 }],
+        })
+        expect(audioSender.setParameters).not.toHaveBeenCalled()
+
+        await pm.setSendersMaxBitrate(null)
+
+        expect(videoSender.setParameters).toHaveBeenLastCalledWith({
+            encodings: [{}],
+        })
     })
 })

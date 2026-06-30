@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-06-29T09:10:15.112Z"
-last_activity: 2026-06-29 -- Phase 6 planning complete
+last_updated: "2026-06-30T07:58:00+07:00"
+last_activity: 2026-06-30 -- Phase 7 Wave 1 RED tests complete; Wave 2 backend implementation next
 progress:
   total_phases: 9
-  completed_phases: 0
-  total_plans: 27
-  completed_plans: 1
-  percent: 0
+  completed_phases: 6
+  total_plans: 32
+  completed_plans: 28
+  percent: 67
 ---
 
 # Project State
@@ -19,38 +19,44 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-06-11)
 
-**Core value:** Hai người dùng gọi video 1-1 cho nhau ổn định, realtime, theo đúng mô hình peer-to-peer WebRTC — nếu mọi thứ khác hỏng, cuộc gọi 1-1 vẫn phải hoạt động.
-**Current focus:** Phase 1 complete → starting Phase 2 (Realtime Presence & WebSocket Layer)
+**Core value:** Two users can make a stable realtime 1-1 peer-to-peer WebRTC video call. If everything else breaks, the 1-1 call must still work.
+**Current focus:** Phase 7 Wave 2 -> backend room state and signaling
 
 ## Current Position
 
-Phase: 1 of 9 (Foundation — Auth, Roles & Project Skeleton) — IMPLEMENTATION COMPLETE
-Status: Ready to execute
-Next: Phase 2 — Realtime Presence & WebSocket Layer
-Last activity: 2026-06-29 -- Phase 6 planning complete
+Phase: 7 of 9 (Group Mesh Calls) -- EXECUTING
+Status: Executing
+Next: Phase 7 Wave 2 -- backend room state and signaling (`07-02-PLAN.md`)
+Last activity: 2026-06-30 -- Phase 7 Wave 1 RED tests complete; Wave 2 backend implementation next
 
-Progress: [█░░░░░░░░░] 11% (1/9 phases)
+Progress: [######---] 67% (6/9 phases)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 28
 - Average duration: -
-- Total execution time: 0 hours
+- Total execution time: -
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| - | - | - | - |
+| Phase | Plans | Status |
+|-------|-------|--------|
+| 1. Foundation -- Auth, Roles & Project Skeleton | 4/4 | Complete |
+| 2. Realtime Presence & WebSocket Layer | 3/3 | Complete |
+| 3. 1-1 P2P Call Core & NAT Traversal | 5/5 | Complete |
+| 4. Call Lifecycle & In-Call Experience | 7/7 | Complete |
+| 5. Call History & Admin | 4/4 | Complete |
+| 6. Horizontal Scaling | 4/4 | Complete |
+| 7. Group Mesh Calls | 1/5 | Executing |
+| 8. Screen Share, Recording & Device Control | 0/TBD | Not started |
+| 9. Monitoring, CI/CD & Full Delivery | 0/TBD | Not started |
 
 **Recent Trend:**
 
-- Last 5 plans: -
-- Trend: -
-
-*Updated after each plan completion*
+- Last completed plan: 07-01 -- RED test scaffold
+- Next plan: 07-02 -- Backend room state and signaling
 
 ## Accumulated Context
 
@@ -59,21 +65,22 @@ Progress: [█░░░░░░░░░] 11% (1/9 phases)
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Roadmap]: coturn + HTTPS/WSS merged into Phase 3 (call core) — research mandates "TURN from day one of the call phase"; forced-relay test mode is part of phase success
-- [Roadmap]: `MessageRouter`/`PresenceService` abstractions built in Phase 2 with local implementations; Phase 6 swaps in Redis pub/sub (design-for-scale-day-one seam)
-- [Roadmap]: Server-authoritative call state machine in Redis (Phase 4) precedes history (5), scaling (6), and mesh (7) — all three consume its guarantees
-- [Roadmap]: Pin all dependency versions at Phase 1 setup via STACK.md checklist (live version lookup unavailable during research)
+- [Roadmap]: coturn + HTTPS/WSS merged into Phase 3 (call core); forced-relay test mode is part of phase success.
+- [Roadmap]: `MessageRouter`/`PresenceService` abstractions built in Phase 2; Phase 6 swaps in Redis pub/sub.
+- [Roadmap]: Server-authoritative call state machine in Redis (Phase 4) precedes history (5), scaling (6), and mesh (7).
+- [Roadmap]: Phase 7 uses a separate room path so 1-1 CallService behavior remains intact.
+- [Roadmap]: Phase 7 plans are complete: 5 waves covering RED tests, backend room state/signaling, frontend mesh core, UX, and full verification.
 
 ### Pending Todos
 
-None yet.
+- Execute Phase 7 Wave 2 (`07-02-PLAN.md`).
 
 ### Blockers/Concerns
 
-- Phase 3: coturn-in-Docker is the #1 demo-failure risk — use host networking + `external-ip`, verify flags against coturn README (research confidence MEDIUM); decide TLS approach (mkcert vs tunnel) here too
-- Phase 6: Redis CAS approach (Lua vs WATCH/MULTI) and cross-instance integration test design deserve a validation pass during planning
-- Phase 8: Recording scope decision (local-only vs composited) has real effort implications — decide during phase planning
-- REQUIREMENTS.md originally stated 38 v1 requirements; actual count is 44 (corrected in traceability)
+- Phase 7: Protect existing 1-1 call behavior while adding mesh seams.
+- Phase 7: Verify 4-user cross-instance mesh against the Phase 6 nginx/Redis topology.
+- Phase 7: Enforce the 4-user room cap server-side and prove 5th-user rejection.
+- Phase 8: Recording scope decision (local-only vs composited) has real effort implications; decide during phase planning.
 
 ### Quick Tasks Completed
 
@@ -93,6 +100,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-29T09:10:15.103Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-group-mesh-calls/07-CONTEXT.md
+Last session: 2026-06-30T07:58:00+07:00
+Stopped at: Phase 7 Wave 2 ready to execute
+Resume file: .planning/phases/07-group-mesh-calls/07-02-PLAN.md
