@@ -237,7 +237,7 @@ export class PeerManager {
             return
         }
         if (state !== 'connecting' && state !== 'reconnecting') return
-        if (this.reconnectTimer || this.restartAttempts >= 2) return
+        if (this.reconnectTimer || this.restartAttempts >= 4) return
 
         this.reconnectTimer = setTimeout(() => {
             this.reconnectTimer = null

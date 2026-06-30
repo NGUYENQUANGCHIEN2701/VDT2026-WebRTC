@@ -30,13 +30,15 @@ export function getActiveMesh(): MeshManager | null {
 
 export function startGroupInvite(invitees: string[]): void {
     const selected = invitees.slice(0, 3)
-    if (selected.length === 0) return
+    if (selected.length < 2) return
     useRoomStore.getState().setOutgoingInvitees(selected)
     sendSignal({ type: 'group-invite', to: selected })
 }
 
 export function cancelGroupInvite(): void {
+    const invitees = useRoomStore.getState().outgoingInvitees
     useRoomStore.getState().setOutgoingInvitees([])
+    sendSignal({ type: 'cancel-group-invite', to: invitees })
 }
 
 export function acceptRoomInvite(): void {
@@ -188,7 +190,9 @@ function handleRoomSignal(msg: RoomServerSignal | CallServerSignal): void {
             })
             break
         case 'room-joined':
-            void createMesh(msg.roomId, msg.members, false)
+            createMesh(msg.roomId, msg.members, true).then(() => {
+                sendRoomMediaState()
+            })
             break
         case 'participant-joined': {
             const room = useRoomStore.getState()
@@ -198,6 +202,7 @@ function handleRoomSignal(msg: RoomServerSignal | CallServerSignal): void {
             }
             if (msg.roomId !== room.roomId) return
             room.addMember(msg.username)
+            sendSignal({ type: 'media-state', to: msg.username, micMuted: room.micMuted, camOff: room.camOff })
             const totalParticipants = Object.keys(useRoomStore.getState().members).length
             void mesh?.handleParticipantJoined(msg.username, totalParticipants).then(updateBitrateStore)
             break
@@ -210,10 +215,17 @@ function handleRoomSignal(msg: RoomServerSignal | CallServerSignal): void {
             void mesh?.handleParticipantLeft(msg.username, totalParticipants).then(updateBitrateStore)
             break
         }
+        case 'room-invite-cancelled':
+            if (msg.roomId === useRoomStore.getState().incomingInvite?.roomId) {
+                useRoomStore.getState().setIncomingInvite(null)
+                useToastStore.getState().show('Người tạo nhóm đã hủy cuộc gọi', 'info')
+            }
+            break
         case 'room-invite-declined': {
             const room = useRoomStore.getState()
             if (!room.outgoingInvitees.includes(msg.username)) return
             room.addDeclinedInvitee(msg.username)
+            useToastStore.getState().show(`${msg.username} đã từ chối tham gia`, 'warning')
 
             const updated = useRoomStore.getState()
             const joinedInvitees = Object.keys(updated.members).filter((username) => username !== updated.selfId)
