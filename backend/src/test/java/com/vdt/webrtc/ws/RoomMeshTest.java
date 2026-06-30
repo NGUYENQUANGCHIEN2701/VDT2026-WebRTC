@@ -46,11 +46,13 @@ class RoomMeshTest extends WsTestSupport {
     @Test
     void joinRoom_rejectsFifthParticipantWithRoomFullMessage() throws Exception {
         CollectingHandler hBob = new CollectingHandler();
+        CollectingHandler hCarol = new CollectingHandler();
+        CollectingHandler hDave = new CollectingHandler();
         CollectingHandler hErin = new CollectingHandler();
         WebSocketSession alice = connect(mintToken("alice"), new CollectingHandler());
         WebSocketSession bob = connect(mintToken("bob"), hBob);
-        WebSocketSession carol = connect(mintToken("carol"), new CollectingHandler());
-        WebSocketSession dave = connect(mintToken("dave"), new CollectingHandler());
+        WebSocketSession carol = connect(mintToken("carol"), hCarol);
+        WebSocketSession dave = connect(mintToken("dave"), hDave);
         WebSocketSession erin = connect(mintToken("erin"), hErin);
 
         alice.sendMessage(new TextMessage("{\"type\":\"group-invite\",\"to\":[\"bob\",\"carol\",\"dave\"]}"));
@@ -58,8 +60,11 @@ class RoomMeshTest extends WsTestSupport {
                 "roomId");
 
         bob.sendMessage(new TextMessage("{\"type\":\"join-room\",\"roomId\":\"" + roomId + "\"}"));
+        assertThat(hBob.awaitMatching(frame -> frame.contains("\"type\":\"room-joined\""), 3000)).isNotNull();
         carol.sendMessage(new TextMessage("{\"type\":\"join-room\",\"roomId\":\"" + roomId + "\"}"));
+        assertThat(hCarol.awaitMatching(frame -> frame.contains("\"type\":\"room-joined\""), 3000)).isNotNull();
         dave.sendMessage(new TextMessage("{\"type\":\"join-room\",\"roomId\":\"" + roomId + "\"}"));
+        assertThat(hDave.awaitMatching(frame -> frame.contains("\"type\":\"room-joined\""), 3000)).isNotNull();
         erin.sendMessage(new TextMessage("{\"type\":\"join-room\",\"roomId\":\"" + roomId + "\"}"));
 
         String full = hErin.awaitMatching(frame -> frame.contains("\"type\":\"room-full\""), 3000);
@@ -80,7 +85,9 @@ class RoomMeshTest extends WsTestSupport {
         String roomId = jsonString(hBob.awaitMatching(frame -> frame.contains("\"type\":\"room-invite\""), 3000),
                 "roomId");
         bob.sendMessage(new TextMessage("{\"type\":\"join-room\",\"roomId\":\"" + roomId + "\"}"));
+        assertThat(hBob.awaitMatching(frame -> frame.contains("\"type\":\"room-joined\""), 3000)).isNotNull();
         carol.sendMessage(new TextMessage("{\"type\":\"join-room\",\"roomId\":\"" + roomId + "\"}"));
+        assertThat(hCarol.awaitMatching(frame -> frame.contains("\"type\":\"room-joined\""), 3000)).isNotNull();
 
         bob.sendMessage(new TextMessage("{\"type\":\"leave-room\",\"roomId\":\"" + roomId + "\"}"));
 

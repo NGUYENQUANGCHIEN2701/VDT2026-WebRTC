@@ -13,14 +13,19 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.vdt.webrtc.call.CallService;
 import com.vdt.webrtc.presence.PresenceService;
+import com.vdt.webrtc.room.RoomService;
 import com.vdt.webrtc.ws.message.CallAccept;
 import com.vdt.webrtc.ws.message.CallCancel;
 import com.vdt.webrtc.ws.message.CallInvite;
 import com.vdt.webrtc.ws.message.CallReject;
 import com.vdt.webrtc.ws.message.ClientMessage;
+import com.vdt.webrtc.ws.message.DeclineRoomInvite;
+import com.vdt.webrtc.ws.message.GroupInvite;
 import com.vdt.webrtc.ws.message.HangUp;
 import com.vdt.webrtc.ws.message.IceCandidateMessage;
 import com.vdt.webrtc.ws.message.IceCandidateReceived;
+import com.vdt.webrtc.ws.message.JoinRoom;
+import com.vdt.webrtc.ws.message.LeaveRoom;
 import com.vdt.webrtc.ws.message.MediaState;
 import com.vdt.webrtc.ws.message.MediaStateRelay;
 import com.vdt.webrtc.ws.message.Ping;
@@ -45,9 +50,11 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
     private final StringRedisTemplate redisTemplate;
     private static final long ROUTE_TTL_SECONDS = 60;
     private final String instanceId;
+    private final RoomService roomService;
 
     public PresenceWebSocketHandler(PresenceService presence, MessageRouter router, ObjectMapper mapper,
             CallService callService, SessionRegistry sessionRegistry, StringRedisTemplate redisTemplate,
+            RoomService roomService,
             @Value("${app.instance-id:${HOSTNAME:unknown}}") String instanceId) {
         this.presence = presence;
         this.router = router;
@@ -56,6 +63,7 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         this.sessionRegistry = sessionRegistry;
         this.redisTemplate = redisTemplate;
         this.instanceId = instanceId;
+        this.roomService = roomService;
     }
 
     @Override
@@ -97,6 +105,14 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
             presence.heartbeat(username);
             redisTemplate.expire("route:" + username, Duration.ofSeconds(ROUTE_TTL_SECONDS));
             router.broadcast(new Pong(), List.of(session));
+        } else if (clientMessage instanceof GroupInvite invite) {
+            roomService.handleGroupInvite(username, invite.to());
+        } else if (clientMessage instanceof JoinRoom join) {
+            roomService.handleJoin(username, join.roomId());
+        } else if (clientMessage instanceof LeaveRoom leave) {
+            roomService.handleLeave(username, leave.roomId());
+        } else if (clientMessage instanceof DeclineRoomInvite decline) {
+            roomService.handleLeave(username, decline.roomId());
         } else if (clientMessage instanceof CallInvite invite) {
             callService.handleInvite(username, invite.to());
         } else if (clientMessage instanceof CallAccept accept) {
@@ -128,6 +144,7 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         String username = username(session);
         if (sessionRegistry.deregister(username, session)) {
             callService.handleDisconnect(username); // ← rớt THẬT → đặt grace (không phải đổi tab)
+            roomService.handleDisconnect(username);
             presence.leave(username);
             redisTemplate.delete("route:" + username);
         }

@@ -1,0 +1,96 @@
+package com.vdt.webrtc.room;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
+import com.vdt.webrtc.ws.MessageRouter;
+import com.vdt.webrtc.ws.message.ParticipantJoined;
+import com.vdt.webrtc.ws.message.ParticipantLeft;
+import com.vdt.webrtc.ws.message.RoomFull;
+import com.vdt.webrtc.ws.message.RoomInvite;
+import com.vdt.webrtc.ws.message.RoomJoined;
+
+@Service
+public class RoomService {
+    private final RoomRepository rooms;
+    private final MessageRouter router;
+
+    public RoomService(RoomRepository rooms, MessageRouter router) {
+        this.rooms = rooms;
+        this.router = router;
+    }
+
+    public void handleGroupInvite(String inviter, List<String> invitees) {
+        String roomId = UUID.randomUUID().toString();
+
+        RoomJoinResult result = rooms.join(roomId, inviter);
+        if (result != RoomJoinResult.OK) {
+            router.sendToUser(inviter, new RoomFull(roomId, "Cannot create room"));
+            return;
+        }
+
+        RoomInvite invite = new RoomInvite(roomId, inviter, invitees);
+        for (String invitee : invitees) {
+            if (!invitee.equals(inviter)) {
+                router.sendToUser(invitee, invite);
+            }
+        }
+    }
+
+    public void handleJoin(String username, String roomId) {
+        if (roomId == null || roomId.isBlank()) {
+            router.sendToUser(username, new RoomFull("", "Invalid room ID"));
+            return;
+        }
+        List<String> membersBeforeJoin = rooms.members(roomId);
+
+        RoomJoinResult result = rooms.join(roomId, username);
+
+        if (result == RoomJoinResult.FULL) {
+            router.sendToUser(username, new RoomFull(roomId, "Room is full"));
+            return;
+        }
+
+        if (result == RoomJoinResult.ALREADY_IN_OTHER_ROOM) {
+            router.sendToUser(username, new RoomFull(roomId, "Already in another room"));
+            return;
+        }
+
+        router.sendToUser(username, new RoomJoined(roomId, membersBeforeJoin));
+
+        for (String member : membersBeforeJoin) {
+            if (!member.equals(username)) {
+                router.sendToUser(member, new ParticipantJoined(roomId, username));
+            }
+        }
+    }
+
+    public void handleLeave(String username, String roomId) {
+        if (roomId == null || roomId.isBlank()) {
+            return;
+        }
+        List<String> membersBeforeLeave = rooms.members(roomId);
+
+        boolean left = rooms.leave(roomId, username);
+        if (!left) {
+            return;
+        }
+
+        for (String member : membersBeforeLeave) {
+            if (!member.equals(username)) {
+                router.sendToUser(member, new ParticipantLeft(roomId, username));
+            }
+        }
+    }
+
+    public void handleDisconnect(String username) {
+        String roomId = rooms.roomOf(username);
+        if (roomId == null) {
+            return;
+        }
+
+        handleLeave(username, roomId);
+    }
+}
