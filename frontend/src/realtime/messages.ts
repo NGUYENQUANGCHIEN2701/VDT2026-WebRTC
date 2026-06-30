@@ -24,11 +24,19 @@ export type CallServerSignal =
     | { type: 'ice-candidate-received'; from: string; callId: string; candidate: RTCIceCandidateInit }
     | { type: 'media-state-relay'; from: string; micMuted: boolean; camOff: boolean }
 
+export type RoomServerSignal =
+    | { type: 'room-invite'; roomId: string; from: string; invitees: string[] }
+    | { type: 'room-joined'; roomId: string; members: string[] }
+    | { type: 'participant-joined'; roomId: string; username: string }
+    | { type: 'participant-left'; roomId: string; username: string }
+    | { type: 'room-full'; roomId: string; reason: string }
+
 export type ServerMessage =
     | { type: 'presence'; users: OnlineUser[] }
     | { type: 'session-superseded'; reason: string }
     | { type: 'pong' }
     | CallServerSignal
+    | RoomServerSignal
 
 // ── client → server (INTENT — tên trần) ──
 export type ClientMessage =
@@ -41,3 +49,7 @@ export type ClientMessage =
     | { type: 'sdp'; to: string; callId: string; sdp: RTCSessionDescription | null }
     | { type: 'ice-candidate'; to: string; callId: string; candidate: RTCIceCandidateInit }
     | { type: 'media-state'; to: string; micMuted: boolean; camOff: boolean }
+    | { type: 'group-invite'; to: string[] }
+    | { type: 'join-room'; roomId: string }
+    | { type: 'leave-room'; roomId: string }
+    | { type: 'decline-room-invite'; roomId: string }

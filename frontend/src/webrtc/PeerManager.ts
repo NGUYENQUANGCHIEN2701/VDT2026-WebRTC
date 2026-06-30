@@ -13,10 +13,15 @@ export interface InboundSignal {
     candidate?: RTCIceCandidateInit
 }
 
+type PeerCallbacks = {
+    onConnectionStateChange?: (state: CallState) => void
+}
+
 export class PeerManager {
     private pc: RTCPeerConnection
     private readonly polite: boolean
     private readonly sendSignal: (s: OutboundSignal) => void
+    private readonly callbacks?: PeerCallbacks
 
     // Cờ perfect negotiation (giải thích bên dưới)
     private makingOffer = false
@@ -35,9 +40,11 @@ export class PeerManager {
         polite: boolean,
         sendSignal: (s: OutboundSignal) => void,
         iceTransportPolicy?: RTCIceTransportPolicy, // 'relay' → ép đi qua TURN (forced-relay)
+        callbacks?: PeerCallbacks,
     ) {
         this.polite = polite
         this.sendSignal = sendSignal
+        this.callbacks = callbacks
         this.pc = new RTCPeerConnection({ iceServers, iceTransportPolicy })
         this.setupHandlers()
     }
@@ -107,6 +114,24 @@ export class PeerManager {
         return this.pc.getStats()
     }
 
+    async setSendersMaxBitrate(maxBitrate: number | null): Promise<void> {
+        const updates = this.pc.getSenders()
+            .filter((sender) => sender.track?.kind === 'video')
+            .map((sender) => {
+                const params = sender.getParameters()
+                if (!params.encodings || params.encodings.length === 0) {
+                    params.encodings = [{}]
+                }
+                if (maxBitrate == null) {
+                    delete params.encodings[0].maxBitrate
+                } else {
+                    params.encodings[0].maxBitrate = maxBitrate
+                }
+                return sender.setParameters(params).catch(() => { })
+            })
+        await Promise.all(updates)
+    }
+
     private setupHandlers() {
         // Khi cần đàm phán (vd vừa addTrack) → tạo offer rồi gửi
         this.pc.onnegotiationneeded = () => this.handleNegotiationNeeded()
@@ -154,6 +179,11 @@ export class PeerManager {
             closed: 'idle',
         }
         const next = map[this.pc.iceConnectionState]
-        if (next) useCallStore.getState().setCallState(next)
+        if (!next) return
+        if (this.callbacks?.onConnectionStateChange) {
+            this.callbacks.onConnectionStateChange(next)
+        } else {
+            useCallStore.getState().setCallState(next)
+        }
     }
 }

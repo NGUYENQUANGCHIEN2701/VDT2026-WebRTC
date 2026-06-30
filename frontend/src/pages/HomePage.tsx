@@ -1,4 +1,3 @@
-import { Hand } from "lucide-react"
 import AppChrome from "../components/AppChrome"
 import OnlineUsersList from "../components/presence/OnlineUsersList"
 import SessionKickNotice from "../components/presence/SessionKickNotice"

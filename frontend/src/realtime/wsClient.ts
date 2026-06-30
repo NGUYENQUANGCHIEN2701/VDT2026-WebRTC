@@ -1,7 +1,7 @@
 // frontend/src/realtime/wsClient.ts
 import { useAuthStore } from '../store/authStore'
 import { usePresenceStore } from '../store/presenceStore'
-import type { CallServerSignal, ClientMessage, ServerMessage } from './messages'
+import type { CallServerSignal, ClientMessage, RoomServerSignal, ServerMessage } from './messages'
 
 const HEARTBEAT_MS = 25_000
 const INITIAL_BACKOFF_MS = 1_000
@@ -11,15 +11,18 @@ let socket: WebSocket | null = null
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 let backoff = INITIAL_BACKOFF_MS
-let kicked = false // bị đá (đăng nhập nơi khác) → cấm reconnect
-
+let kicked = false
 
 let callSignalHandler: ((msg: CallServerSignal) => void) | null = null
 export function setCallSignalHandler(h: (msg: CallServerSignal) => void): void {
     callSignalHandler = h
 }
 
-// Gửi tín hiệu cuộc gọi qua WS (chỉ khi link mở) — PeerManager.sendSignal sẽ trỏ vào đây
+let roomSignalHandler: ((msg: RoomServerSignal | CallServerSignal) => void) | null = null
+export function setRoomSignalHandler(h: (msg: RoomServerSignal | CallServerSignal) => void): void {
+    roomSignalHandler = h
+}
+
 export function sendSignal(msg: ClientMessage): void {
     if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(msg))
@@ -34,12 +37,11 @@ export function connectWs(): void {
     usePresenceStore.getState().setKicked(false)
     usePresenceStore.getState().setConnState?.('connecting')
 
-    // VITE_WS_URL đã gồm /ws → chỉ gắn token
     const url = `${import.meta.env.VITE_WS_URL}?token=${encodeURIComponent(token)}`
     socket = new WebSocket(url)
 
     socket.onopen = () => {
-        backoff = INITIAL_BACKOFF_MS // nối lại thành công → reset backoff
+        backoff = INITIAL_BACKOFF_MS
         usePresenceStore.getState().setConnState?.('open')
         startHeartbeat()
     }
@@ -58,8 +60,20 @@ export function connectWs(): void {
                 break
             case 'pong':
                 break
+            case 'room-invite':
+            case 'room-joined':
+            case 'participant-joined':
+            case 'participant-left':
+            case 'room-full':
+                roomSignalHandler?.(msg)
+                break
+            case 'sdp-received':
+            case 'ice-candidate-received':
+                callSignalHandler?.(msg)
+                roomSignalHandler?.(msg)
+                break
             default:
-                callSignalHandler?.(msg)   // mọi *-received → callActions
+                callSignalHandler?.(msg)
                 break
         }
     }
@@ -67,7 +81,7 @@ export function connectWs(): void {
     socket.onclose = () => {
         stopHeartbeat()
         usePresenceStore.getState().setConnState?.('closed')
-        if (kicked) return // bị đá thì thôi
+        if (kicked) return
         scheduleReconnect()
     }
 }
@@ -79,7 +93,7 @@ export function disconnectWs(): void {
         reconnectTimer = null
     }
     if (socket) {
-        socket.onclose = null // gỡ handler → close chủ động KHÔNG kích hoạt reconnect
+        socket.onclose = null
         socket.close()
         socket = null
     }
@@ -88,10 +102,9 @@ export function disconnectWs(): void {
 }
 
 function scheduleReconnect(): void {
-    // jitter chống "reconnect storm" khi server restart làm cả ngàn client nhảy vào cùng lúc
     const delay = Math.min(backoff, MAX_BACKOFF_MS) + Math.random() * 1_000
     reconnectTimer = setTimeout(() => {
-        backoff = Math.min(backoff * 2, MAX_BACKOFF_MS) // gấp đôi, chặn trần 30s
+        backoff = Math.min(backoff * 2, MAX_BACKOFF_MS)
         connectWs()
     }, delay)
 }
