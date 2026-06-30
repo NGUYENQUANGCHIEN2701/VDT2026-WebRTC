@@ -10,6 +10,7 @@ import com.vdt.webrtc.ws.message.ParticipantJoined;
 import com.vdt.webrtc.ws.message.ParticipantLeft;
 import com.vdt.webrtc.ws.message.RoomFull;
 import com.vdt.webrtc.ws.message.RoomInvite;
+import com.vdt.webrtc.ws.message.RoomInviteDeclined;
 import com.vdt.webrtc.ws.message.RoomJoined;
 
 @Service
@@ -81,6 +82,19 @@ public class RoomService {
         for (String member : membersBeforeLeave) {
             if (!member.equals(username)) {
                 router.sendToUser(member, new ParticipantLeft(roomId, username));
+            }
+        }
+    }
+
+    public void handleDecline(String username, String roomId) {
+        if (roomId == null || roomId.isBlank()) {
+            return;
+        }
+
+        List<String> currentMembers = rooms.members(roomId);
+        for (String member : currentMembers) {
+            if (!member.equals(username)) {
+                router.sendToUser(member, new RoomInviteDeclined(roomId, username));
             }
         }
     }

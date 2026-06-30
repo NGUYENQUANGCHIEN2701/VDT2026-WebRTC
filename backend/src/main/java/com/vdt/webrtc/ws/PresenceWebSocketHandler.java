@@ -112,7 +112,7 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
         } else if (clientMessage instanceof LeaveRoom leave) {
             roomService.handleLeave(username, leave.roomId());
         } else if (clientMessage instanceof DeclineRoomInvite decline) {
-            roomService.handleLeave(username, decline.roomId());
+            roomService.handleDecline(username, decline.roomId());
         } else if (clientMessage instanceof CallInvite invite) {
             callService.handleInvite(username, invite.to());
         } else if (clientMessage instanceof CallAccept accept) {

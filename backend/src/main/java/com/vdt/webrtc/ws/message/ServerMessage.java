@@ -20,12 +20,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = RoomFull.class, name = "room-full"),
         @JsonSubTypes.Type(value = ParticipantJoined.class, name = "participant-joined"),
         @JsonSubTypes.Type(value = ParticipantLeft.class, name = "participant-left"),
+        @JsonSubTypes.Type(value = RoomInviteDeclined.class, name = "room-invite-declined"),
         @JsonSubTypes.Type(value = RoomInvite.class, name = "room-invite"),
         @JsonSubTypes.Type(value = RoomJoined.class, name = "room-joined")
 })
 public sealed interface ServerMessage permits PresenceSnapshot, SessionSuperseded, Pong, CallOfferReceived,
         CallAcceptReceived, CallRejectReceived, CallCancelReceived, HangUpReceived, SdpReceived,
         IceCandidateReceived, CallStateChanged, MediaStateRelay, RoomFull, ParticipantJoined, ParticipantLeft,
-        RoomInvite, RoomJoined {
+        RoomInviteDeclined, RoomInvite, RoomJoined {
 
 }

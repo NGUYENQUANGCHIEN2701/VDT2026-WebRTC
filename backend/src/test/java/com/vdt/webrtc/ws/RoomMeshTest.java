@@ -44,6 +44,25 @@ class RoomMeshTest extends WsTestSupport {
     }
 
     @Test
+    void declineRoomInvite_notifiesExistingRoomMembers() throws Exception {
+        CollectingHandler hAlice = new CollectingHandler();
+        CollectingHandler hBob = new CollectingHandler();
+        WebSocketSession alice = connect(mintToken("alice"), hAlice);
+        WebSocketSession bob = connect(mintToken("bob"), hBob);
+
+        alice.sendMessage(new TextMessage("{\"type\":\"group-invite\",\"to\":[\"bob\"]}"));
+        String roomId = jsonString(hBob.awaitMatching(frame -> frame.contains("\"type\":\"room-invite\""), 3000),
+                "roomId");
+
+        bob.sendMessage(new TextMessage("{\"type\":\"decline-room-invite\",\"roomId\":\"" + roomId + "\"}"));
+
+        String declined = hAlice.awaitMatching(frame -> frame.contains("\"type\":\"room-invite-declined\"")
+                && frame.contains("\"username\":\"bob\""), 3000);
+        assertThat(declined).as("inviter should see invitees reject the room invitation").isNotNull();
+        assertThat(declined).contains("\"roomId\":\"" + roomId + "\"");
+    }
+
+    @Test
     void joinRoom_rejectsFifthParticipantWithRoomFullMessage() throws Exception {
         CollectingHandler hBob = new CollectingHandler();
         CollectingHandler hCarol = new CollectingHandler();
