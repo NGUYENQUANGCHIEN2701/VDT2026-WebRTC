@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { useNavigate } from "react-router-dom"
-import { CamToggleButton, LeaveRoomButton, MuteButton } from "../components/call/CallButtons"
-import DebugPanel, { DebugToggle, type PeerDebugStats } from "../components/call/DebugPanel"
+import { Video, LayoutGrid, MoreVertical, Settings, ShieldCheck, Signal } from "lucide-react"
+import { LabeledMuteButton, LabeledCamButton, LabeledShareButton, LabeledParticipantsButton, LabeledHangUpButton } from "../components/call/CallButtons"
+import DebugPanel, { type PeerDebugStats } from "../components/call/DebugPanel"
 import ParticipantTile from "../components/call/ParticipantTile"
 import { getActiveMesh, getRoomLocalStream, getRoomRemoteStream, leaveRoom, toggleRoomCam, toggleRoomMic } from "../realtime/roomActions"
 import { useRoomStore } from "../store/roomStore"
@@ -100,20 +101,36 @@ export default function GroupCallPage() {
 
   return (
     <main className="call-page">
-      <header className="call-hud call-hud--top">
-        <span
-          aria-label={`${roster.length} người trong phòng`}
-          style={{ padding: '2px 8px', borderRadius: 4, color: 'var(--text)', background: 'var(--code-bg)', fontSize: 14, fontWeight: 700 }}
-        >
-          {roster.length} người
-        </span>
-        <span className="call-duration" aria-label="Thời lượng cuộc gọi">
+      {/* Top Left HUD: Call Info */}
+      <div className="call-1v1-top-left">
+        <div className="call-1v1-logo-box">
+          <Video size={20} fill="white" />
+        </div>
+        <div className="call-1v1-info">
+          <h2>Video Call</h2>
+          <p>Cuộc họp nhóm • {roster.length} người</p>
+        </div>
+      </div>
+
+      {/* Top Center HUD: Status and Timer */}
+      <div className="call-1v1-top-center">
+        <Signal size={16} color="#22c55e" />
+        <span aria-label="Thời lượng cuộc gọi">
           {now && formatDuration(connectedAt)}
         </span>
-        <DebugToggle open={debugOpen} onClick={() => setDebugOpen((v) => !v)} />
-      </header>
+        <ShieldCheck size={18} color="#22c55e" />
+        <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.2)' }} />
+        <Settings size={18} color="#94a3b8" style={{ cursor: 'pointer' }} onClick={() => setDebugOpen(!debugOpen)} />
+      </div>
 
-      <section style={{ position: 'absolute', inset: '72px 0 88px', display: 'grid', gap: 8, padding: 8, ...gridStyle(roster.length), transition: 'grid-template-columns 0.2s ease' }}>
+      {/* Top Right HUD: Grid and More */}
+      <div className="call-1v1-top-right" style={{ gap: 12 }}>
+        <LayoutGrid size={18} style={{ cursor: 'pointer' }} />
+        <MoreVertical size={18} style={{ cursor: 'pointer' }} />
+      </div>
+
+      {/* Video Grid */}
+      <section style={{ position: 'absolute', inset: '80px 24px 140px', display: 'grid', gap: 16, padding: 0, ...gridStyle(roster.length), transition: 'grid-template-columns 0.2s ease' }}>
         {tiles}
       </section>
 
@@ -123,13 +140,20 @@ export default function GroupCallPage() {
         </div>
       )}
 
-      <footer className="call-hud call-controls">
-        <MuteButton muted={micMuted} onClick={toggleRoomMic} />
-        <CamToggleButton off={camOff} onClick={toggleRoomCam} />
-        <LeaveRoomButton onClick={leaveRoom} />
+      {/* Bottom Center HUD: Main Controls */}
+      <footer className="call-1v1-bottom-bar">
+        <LabeledMuteButton muted={micMuted} onClick={toggleRoomMic} />
+        <LabeledCamButton off={camOff} onClick={toggleRoomCam} />
+        <LabeledShareButton onClick={() => {}} />
+        <LabeledParticipantsButton onClick={() => {}} />
+        <LabeledHangUpButton onClick={leaveRoom} />
       </footer>
 
-      {debugOpen && <DebugPanel peers={peerDebug} />}
+      {debugOpen && (
+        <div style={{ position: 'absolute', top: 76, left: '50%', transform: 'translateX(-50%)', zIndex: 20 }}>
+          <DebugPanel peers={peerDebug} />
+        </div>
+      )}
     </main>
   )
 }

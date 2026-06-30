@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { MoreVertical } from 'lucide-react'
 import type { PeerConnectionState } from '../../store/roomStore'
 
 interface Props {
@@ -18,6 +19,12 @@ function overlayText(state: PeerConnectionState) {
   return null
 }
 
+function getAvatarColor(username: string) {
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#f43f5e']
+  const index = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  return colors[index % colors.length]
+}
+
 export default function ParticipantTile({
   username,
   stream,
@@ -28,15 +35,17 @@ export default function ParticipantTile({
   connectionState,
 }: Props) {
   const ref = useRef<HTMLVideoElement>(null)
-  const label = isSelf ? `${username} (bạn)` : username
+  const label = isSelf ? `${username} (Bạn)` : username
   const text = overlayText(connectionState)
+  const avatarColor = getAvatarColor(username)
+  const initial = username.charAt(0).toUpperCase()
 
   useEffect(() => {
     if (ref.current) ref.current.srcObject = stream
-  }, [stream, streamVersion])
+  }, [stream, streamVersion, camOff])
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 8, background: camOff ? '#1f2937' : '#020617', minHeight: 0 }}>
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 16, background: camOff ? '#1f2937' : '#020617', minHeight: 0, width: '100%', height: '100%' }}>
       {!camOff && (
         <video
           ref={ref}
@@ -53,21 +62,33 @@ export default function ParticipantTile({
             width: 96, height: 96, borderRadius: '50%', display: 'grid', placeItems: 'center',
             background: 'var(--code-bg)', color: '#fff', fontSize: 40, fontWeight: 700,
           }}>
-            {username.charAt(0).toUpperCase()}
+            {initial}
           </div>
         </div>
       )}
       {micMuted && (
-        <span aria-label={`${username} đã tắt mic`} style={{ position: 'absolute', top: 8, left: 8, fontSize: 14 }}>
+        <span aria-label={`${username} đã tắt mic`} style={{ position: 'absolute', top: 12, left: 12, fontSize: 16 }}>
           🔇
         </span>
       )}
-      <span style={{
-        position: 'absolute', left: 8, bottom: 8, padding: '2px 6px', borderRadius: 4,
-        color: '#fff', background: 'rgba(0,0,0,0.55)', fontSize: 14, fontWeight: 600,
+      
+      <div className="participant-label-pill">
+        <div className="participant-label-avatar" style={{ background: avatarColor }}>
+          {initial}
+          <div className="participant-status-dot" />
+        </div>
+        <span>{label}</span>
+      </div>
+
+      <div style={{
+        position: 'absolute', top: 12, right: 12, width: 32, height: 32,
+        borderRadius: 10, background: 'rgba(0, 0, 0, 0.45)', backdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+        cursor: 'pointer'
       }}>
-        {label}
-      </span>
+        <MoreVertical size={18} />
+      </div>
+
       {text && connectionState !== 'connected' && connectionState !== 'idle' && (
         <div role="status" aria-live="polite" style={{
           position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',

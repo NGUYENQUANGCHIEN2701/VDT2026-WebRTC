@@ -1,19 +1,35 @@
-import { Mic, MicOff, Phone, PhoneOff, Video, VideoOff, X } from "lucide-react"
+import { Mic, MicOff, Phone, PhoneOff, Video, VideoOff, X, MonitorUp, Users, MoreHorizontal } from "lucide-react"
 
 type BtnProps = { onClick: () => void; disabled?: boolean }
 
 export function MuteButton({ muted, onClick }: { muted: boolean; onClick: () => void }) {
   return (
-    <button className={`call-round-button ${muted ? "call-round-button--muted" : ""}`} onClick={onClick} aria-label={muted ? "Bật mic" : "Tắt mic"} type="button">
-      {muted ? <MicOff size={22} /> : <Mic size={22} />}
+    <button className={`call-round-btn-new ${muted ? "muted" : ""}`} onClick={onClick} aria-label={muted ? "Bật mic" : "Tắt mic"} type="button">
+      {muted ? <MicOff size={24} /> : <Mic size={24} />}
     </button>
   )
 }
 
 export function CamToggleButton({ off, onClick }: { off: boolean; onClick: () => void }) {
   return (
-    <button className={`call-round-button ${off ? "call-round-button--muted" : ""}`} onClick={onClick} aria-label={off ? "Bật camera" : "Tắt camera"} type="button">
-      {off ? <VideoOff size={22} /> : <Video size={22} />}
+    <button className={`call-round-btn-new ${off ? "muted" : ""}`} onClick={onClick} aria-label={off ? "Bật camera" : "Tắt camera"} type="button">
+      {off ? <VideoOff size={24} /> : <Video size={24} />}
+    </button>
+  )
+}
+
+export function ShareScreenButton({ onClick }: BtnProps) {
+  return (
+    <button className="call-round-btn-new" onClick={onClick} aria-label="Chia sẻ màn hình" type="button">
+      <MonitorUp size={24} />
+    </button>
+  )
+}
+
+export function ParticipantsButton({ onClick }: BtnProps) {
+  return (
+    <button className="call-round-btn-new" onClick={onClick} aria-label="Người tham gia" type="button">
+      <Users size={24} />
     </button>
   )
 }
@@ -46,16 +62,84 @@ export function CancelButton({ onClick, disabled }: BtnProps) {
 
 export function HangUpButton({ onClick }: BtnProps) {
   return (
-    <button className="call-round-button call-round-button--danger" onClick={onClick} aria-label="Kết thúc cuộc gọi" type="button">
-      <PhoneOff size={23} />
+    <button className="call-round-btn-new danger" onClick={onClick} aria-label="Kết thúc cuộc gọi" type="button">
+      <PhoneOff size={24} />
     </button>
   )
 }
 
 export function LeaveRoomButton({ onClick }: BtnProps) {
   return (
-    <button className="call-round-button call-round-button--danger" onClick={onClick} aria-label="Rời phòng" type="button">
-      <X size={23} />
+    <button className="call-round-btn-new danger" onClick={onClick} aria-label="Rời phòng" type="button">
+      <PhoneOff size={24} />
+    </button>
+  )
+}
+
+/* --- Labeled Buttons for 1v1 Call --- */
+
+export function LabeledMuteButton({ muted, onClick }: { muted: boolean; onClick: () => void }) {
+  return (
+    <button className={`call-labeled-btn ${muted ? "muted" : ""}`} onClick={onClick} type="button">
+      <div className="call-labeled-btn-icon">
+        {muted ? <MicOff size={22} /> : <Mic size={22} />}
+      </div>
+      <span className="call-labeled-btn-text">Mic</span>
+    </button>
+  )
+}
+
+export function LabeledCamButton({ off, onClick }: { off: boolean; onClick: () => void }) {
+  return (
+    <button className={`call-labeled-btn ${off ? "muted" : ""}`} onClick={onClick} type="button">
+      <div className="call-labeled-btn-icon">
+        {off ? <VideoOff size={22} /> : <Video size={22} />}
+      </div>
+      <span className="call-labeled-btn-text">Camera</span>
+    </button>
+  )
+}
+
+export function LabeledShareButton({ onClick }: BtnProps) {
+  return (
+    <button className="call-labeled-btn" onClick={onClick} type="button">
+      <div className="call-labeled-btn-icon">
+        <MonitorUp size={22} />
+      </div>
+      <span className="call-labeled-btn-text">Chia sẻ</span>
+    </button>
+  )
+}
+
+export function LabeledMoreButton({ onClick }: BtnProps) {
+  return (
+    <button className="call-labeled-btn" onClick={onClick} type="button">
+      <div className="call-labeled-btn-icon">
+        <MoreHorizontal size={22} />
+      </div>
+      <span className="call-labeled-btn-text">Thêm</span>
+    </button>
+  )
+}
+
+export function LabeledParticipantsButton({ onClick }: BtnProps) {
+  return (
+    <button className="call-labeled-btn" onClick={onClick} type="button">
+      <div className="call-labeled-btn-icon">
+        <Users size={22} />
+      </div>
+      <span className="call-labeled-btn-text">Người tham gia</span>
+    </button>
+  )
+}
+
+export function LabeledHangUpButton({ onClick }: BtnProps) {
+  return (
+    <button className="call-labeled-btn danger" onClick={onClick} type="button">
+      <div className="call-labeled-btn-icon">
+        <PhoneOff size={22} />
+      </div>
+      <span className="call-labeled-btn-text">Kết thúc</span>
     </button>
   )
 }
