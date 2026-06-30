@@ -3,7 +3,7 @@ export default function RemoteCamOffOverlay({ username }: { username: string }) 
     return (
         <div style={{
             position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
-            justifyContent: 'center', background: '#1f2937'
+            justifyContent: 'center', background: '#1f2937', zIndex: 10
         }}>
             <div style={{
                 width: 96, height: 96, borderRadius: '50%', background: 'var(--code-bg)',

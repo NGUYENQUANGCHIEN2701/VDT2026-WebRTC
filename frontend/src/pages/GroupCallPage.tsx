@@ -85,7 +85,14 @@ export default function GroupCallPage() {
     const isSelf = member.username === selfId
     const isThirdInThree = roster.length === 3 && index === 2
     return (
-      <div key={member.username} style={isThirdInThree ? { gridColumn: '1 / -1', justifySelf: 'center', width: '50%', minWidth: 0 } : { minWidth: 0 }}>
+      <div 
+        key={member.username} 
+        style={{ 
+          ...(isThirdInThree ? { gridColumn: '1 / -1', justifySelf: 'center', width: '50%' } : {}),
+          minWidth: 0, 
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)' 
+        }}
+      >
         <ParticipantTile
           username={member.username}
           isSelf={isSelf}

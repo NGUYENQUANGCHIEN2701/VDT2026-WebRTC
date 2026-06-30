@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Video, ShieldCheck, MoreVertical, Maximize } from "lucide-react"
 import { useCallStore } from "../store/callStore"
+import { useAuthStore } from "../store/authStore"
 import { getActivePeer, getLocalStream, getRemoteStream, hangUp } from "../realtime/callActions"
 import { LabeledMuteButton, LabeledCamButton, LabeledShareButton, LabeledMoreButton, LabeledHangUpButton } from "../components/call/CallButtons"
 import AudioOnlyBadge from "../components/call/AudioOnlyBadge"
@@ -26,10 +27,28 @@ export default function CallPage() {
   const remoteStreamVersion = useCallStore((s) => s.remoteStreamVersion)
   const duration = useCallDuration()
 
-  // ── GIỮ NGUYÊN logic gốc: gán srcObject cho cả remote và self ──
+  // ── Gán srcObject và ép trình duyệt tải lại track (khắc phục lỗi đen màn hình "khi được khi không") ──
   useEffect(() => {
-    if (remoteRef.current) remoteRef.current.srcObject = getRemoteStream()
-    if (selfRef.current) selfRef.current.srcObject = getLocalStream()
+    const remoteStream = getRemoteStream()
+    if (remoteRef.current) {
+      if (remoteRef.current.srcObject !== remoteStream) {
+        remoteRef.current.srcObject = remoteStream
+      } else if (remoteStream) {
+        // Ép trình duyệt nhận lại track (ví dụ track video đến sau track audio)
+        remoteRef.current.srcObject = null
+        remoteRef.current.srcObject = remoteStream
+      }
+    }
+
+    const localStream = getLocalStream()
+    if (selfRef.current) {
+      if (selfRef.current.srcObject !== localStream) {
+        selfRef.current.srcObject = localStream
+      } else if (localStream) {
+        selfRef.current.srcObject = null
+        selfRef.current.srcObject = localStream
+      }
+    }
   }, [callState, remoteStreamVersion])
 
   useEffect(() => {
@@ -103,8 +122,18 @@ export default function CallPage() {
           playsInline
           aria-label="Camera của bạn"
           className="self-video"
-          style={{ transform: 'scaleX(-1)' }}
+          style={{ transform: 'scaleX(-1)', visibility: camOff ? 'hidden' : 'visible' }}
         />
+        {camOff && (
+          <div className="self-video" style={{ display: 'grid', placeItems: 'center', background: '#1f2937' }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%', background: 'var(--code-bg)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#fff', fontWeight: 700
+            }}>
+              {useAuthStore.getState().user?.username?.charAt(0)?.toUpperCase() || 'B'}
+            </div>
+          </div>
+        )}
         <div className="self-video-label">Bạn</div>
       </section>
 

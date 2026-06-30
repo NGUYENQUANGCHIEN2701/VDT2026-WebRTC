@@ -80,7 +80,7 @@ export function LeaveRoomButton({ onClick }: BtnProps) {
 
 export function LabeledMuteButton({ muted, onClick }: { muted: boolean; onClick: () => void }) {
   return (
-    <button className={`call-labeled-btn ${muted ? "muted" : ""}`} onClick={onClick} type="button">
+    <button className={`call-labeled-btn ${muted ? "muted" : ""}`} onClick={onClick} type="button" title={muted ? "Bật mic" : "Tắt mic"}>
       <div className="call-labeled-btn-icon">
         {muted ? <MicOff size={22} /> : <Mic size={22} />}
       </div>
@@ -91,7 +91,7 @@ export function LabeledMuteButton({ muted, onClick }: { muted: boolean; onClick:
 
 export function LabeledCamButton({ off, onClick }: { off: boolean; onClick: () => void }) {
   return (
-    <button className={`call-labeled-btn ${off ? "muted" : ""}`} onClick={onClick} type="button">
+    <button className={`call-labeled-btn ${off ? "muted" : ""}`} onClick={onClick} type="button" title={off ? "Bật camera" : "Tắt camera"}>
       <div className="call-labeled-btn-icon">
         {off ? <VideoOff size={22} /> : <Video size={22} />}
       </div>
@@ -102,7 +102,7 @@ export function LabeledCamButton({ off, onClick }: { off: boolean; onClick: () =
 
 export function LabeledShareButton({ onClick }: BtnProps) {
   return (
-    <button className="call-labeled-btn" onClick={onClick} type="button">
+    <button className="call-labeled-btn" onClick={onClick} type="button" title="Chia sẻ màn hình">
       <div className="call-labeled-btn-icon">
         <MonitorUp size={22} />
       </div>
@@ -113,7 +113,7 @@ export function LabeledShareButton({ onClick }: BtnProps) {
 
 export function LabeledMoreButton({ onClick }: BtnProps) {
   return (
-    <button className="call-labeled-btn" onClick={onClick} type="button">
+    <button className="call-labeled-btn" onClick={onClick} type="button" title="Thêm tùy chọn">
       <div className="call-labeled-btn-icon">
         <MoreHorizontal size={22} />
       </div>
@@ -124,7 +124,7 @@ export function LabeledMoreButton({ onClick }: BtnProps) {
 
 export function LabeledParticipantsButton({ onClick }: BtnProps) {
   return (
-    <button className="call-labeled-btn" onClick={onClick} type="button">
+    <button className="call-labeled-btn" onClick={onClick} type="button" title="Danh sách người tham gia">
       <div className="call-labeled-btn-icon">
         <Users size={22} />
       </div>
@@ -135,7 +135,7 @@ export function LabeledParticipantsButton({ onClick }: BtnProps) {
 
 export function LabeledHangUpButton({ onClick }: BtnProps) {
   return (
-    <button className="call-labeled-btn danger" onClick={onClick} type="button">
+    <button className="call-labeled-btn danger" onClick={onClick} type="button" title="Kết thúc cuộc gọi / Rời phòng">
       <div className="call-labeled-btn-icon">
         <PhoneOff size={22} />
       </div>

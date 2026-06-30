@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { MoreVertical } from 'lucide-react'
+import { MoreVertical, MicOff } from 'lucide-react'
 import type { PeerConnectionState } from '../../store/roomStore'
 
 interface Props {
@@ -67,9 +67,15 @@ export default function ParticipantTile({
         </div>
       )}
       {micMuted && (
-        <span aria-label={`${username} đã tắt mic`} style={{ position: 'absolute', top: 12, left: 12, fontSize: 16 }}>
-          🔇
-        </span>
+        <div aria-label={`${username} đã tắt mic`} style={{ 
+          position: 'absolute', top: 12, left: 12, 
+          background: '#ef4444', color: 'white',
+          padding: 6, borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)'
+        }}>
+          <MicOff size={16} />
+        </div>
       )}
       
       <div className="participant-label-pill">

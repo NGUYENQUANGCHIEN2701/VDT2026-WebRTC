@@ -69,6 +69,7 @@ export function connectWs(): void {
             case 'room-full':
                 roomSignalHandler?.(msg)
                 break
+            case 'media-state-relay':
             case 'sdp-received':
             case 'ice-candidate-received':
                 callSignalHandler?.(msg)
