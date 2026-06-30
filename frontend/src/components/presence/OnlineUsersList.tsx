@@ -19,7 +19,8 @@ export default function OnlineUsersList() {
   const [selected, setSelected] = useState<string[]>([])
 
   const others = onlineUsers.filter((u) => u.username !== me)
-  const canStartGroup = !callActive && !roomBusy && others.some((u) => u.status === "ONLINE")
+  const onlineCount = others.filter((u) => u.status === "ONLINE").length
+  const canStartGroup = !callActive && !roomBusy && onlineCount >= 2
 
   const toggleSelected = (username: string) => {
     setSelected((current) => {
@@ -88,7 +89,7 @@ export default function OnlineUsersList() {
         <>
           <MultiSelectUserList users={others} selected={selected} onToggle={toggleSelected} />
           <div style={{ padding: 16, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
-            <button className="app-button" type="button" disabled={selected.length === 0} onClick={confirmGroupInvite}>
+            <button className="app-button" type="button" disabled={selected.length < 2} onClick={confirmGroupInvite}>
               Mời {selected.length} người
             </button>
           </div>
