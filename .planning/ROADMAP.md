@@ -259,7 +259,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 07-04-PLAN.md — Group call UX: GroupCallPage, participant tiles, group invite flow, multi-select presence UI, toasts, debug panel mesh visibility
+- [x] 07-04-PLAN.md — Group call UX: GroupCallPage, participant tiles, group invite flow, multi-select presence UI, toasts, debug panel mesh visibility
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -311,7 +311,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Call Lifecycle & In-Call Experience | 7/7 | ✅ Complete | 2026-06-28 |
 | 5. Call History & Admin | 4/4 | ✅ Complete | 2026-06-28 |
 | 6. Horizontal Scaling | 4/4 | ✅ Complete | 2026-06-29 |
-| 7. Group Mesh Calls | 3/5 | Executing | - |
+| 7. Group Mesh Calls | 4/5 | Executing | - |
 | 8. Screen Share, Recording & Device Control | 0/TBD | Not started | - |
 | 9. Monitoring, CI/CD & Full Delivery | 0/TBD | Not started | - |
 
@@ -324,4 +324,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 *Phase 4 planned: 2026-06-26 — 7 plans in 7 waves*
 *Phase 5 planned: 2026-06-28 — 4 plans in 4 waves*
 *Phase 6 planned: 2026-06-29 — 4 plans in 4 waves*
-*Phase 7 executing: Waves 1-3 complete on 2026-06-30; Wave 4 group-call UX next*
+*Phase 7 executing: Waves 1-4 complete on 2026-06-30; Wave 5 full verification next*

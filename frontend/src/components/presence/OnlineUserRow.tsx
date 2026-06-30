@@ -20,7 +20,15 @@ const STATUS_CLASS: Record<PresenceStatus, string> = {
   IN_CALL: "busy",
 }
 
-export default function OnlineUserRow({ user }: { user: OnlineUser }) {
+interface Props {
+  user: OnlineUser
+  groupMode?: boolean
+  selected?: boolean
+  selectionDisabled?: boolean
+  onSelect?: () => void
+}
+
+export default function OnlineUserRow({ user, groupMode = false, selected = false, selectionDisabled = false, onSelect }: Props) {
   const me = useAuthStore((s) => s.user?.username)
   const callActive = useCallStore((s) => s.callState) !== "idle"
   const canCall = user.status === "ONLINE" && user.username !== me
@@ -30,8 +38,20 @@ export default function OnlineUserRow({ user }: { user: OnlineUser }) {
   const statusClass = STATUS_CLASS[user.status]
 
   return (
-    <li className="home-user-row">
+    <li className="home-user-row" style={{ opacity: selectionDisabled && !selected ? 0.5 : 1 }}>
       <div className="home-user-info">
+        {groupMode && (
+          <label style={{ minWidth: 44, minHeight: 44, display: 'grid', placeItems: 'center', cursor: selectionDisabled ? 'not-allowed' : 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={selected}
+              disabled={selectionDisabled}
+              onChange={onSelect}
+              aria-label={`Chọn ${user.username}`}
+              style={{ width: 20, height: 20, accentColor: 'var(--accent)' }}
+            />
+          </label>
+        )}
         <div className="home-user-avatar-wrapper">
           <div className="home-user-avatar" style={{ background: avatarColor }}>
             {initial}
@@ -45,12 +65,12 @@ export default function OnlineUserRow({ user }: { user: OnlineUser }) {
           </span>
         </div>
       </div>
-      
-      {canCall && (
-        <button 
-          className="home-call-btn" 
-          onClick={() => startCall(user.username)} 
-          disabled={callActive} 
+
+      {canCall && !groupMode && (
+        <button
+          className="home-call-btn"
+          onClick={() => startCall(user.username)}
+          disabled={callActive}
           type="button"
         >
           <Phone size={18} />

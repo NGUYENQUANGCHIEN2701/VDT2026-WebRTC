@@ -51,3 +51,11 @@ export function HangUpButton({ onClick }: BtnProps) {
     </button>
   )
 }
+
+export function LeaveRoomButton({ onClick }: BtnProps) {
+  return (
+    <button className="call-round-button call-round-button--danger" onClick={onClick} aria-label="Rời phòng" type="button">
+      <X size={23} />
+    </button>
+  )
+}

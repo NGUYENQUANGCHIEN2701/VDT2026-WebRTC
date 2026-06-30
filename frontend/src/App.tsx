@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -11,10 +11,15 @@ import HomePage from './pages/HomePage'
 import { connectWs } from './realtime/wsClient'
 import './realtime/roomActions'
 import CallPage from './pages/CallPage'
+import GroupCallPage from './pages/GroupCallPage'
 import CallLayer from './components/call/CallLayer'
+import GroupInviteModal from './components/call/GroupInviteModal'
+import OutgoingGroupInviteCard from './components/call/OutgoingGroupInviteCard'
 import Toaster from './components/Toaster'
 import Ringtone from './components/call/Ringtone'
 import HistoryPage from './pages/HistoryPage'
+import { acceptRoomInvite, cancelGroupInvite, declineRoomInvite } from './realtime/roomActions'
+import { useRoomStore } from './store/roomStore'
 
 function App() {
   const setAuth = useAuthStore((state) => state.setAuth)
@@ -22,6 +27,21 @@ function App() {
   const didRestore = useRef(false)
   const token = useAuthStore((state) => state.token)
   const didConnect = useRef(false)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const roomId = useRoomStore((s) => s.roomId)
+  const incomingInvite = useRoomStore((s) => s.incomingInvite)
+  const outgoingInvitees = useRoomStore((s) => s.outgoingInvitees)
+  const members = useRoomStore((s) => s.members)
+
+  useEffect(() => {
+    if (roomId && location.pathname !== '/group-call') {
+      navigate('/group-call')
+    } else if (!roomId && location.pathname === '/group-call') {
+      navigate('/')
+    }
+  }, [roomId, location.pathname, navigate])
+
   useEffect(() => {
     // StrictMode chạy effect 2 lần trong dev → chặn mở 2 WebSocket (2 session tự đá nhau)
     if (!token) {
@@ -66,6 +86,21 @@ function App() {
   return (
     <>
       <CallLayer />
+      {incomingInvite && (
+        <GroupInviteModal
+          initiatorUsername={incomingInvite.from}
+          memberCount={incomingInvite.invitees.length + 1}
+          onAccept={acceptRoomInvite}
+          onReject={declineRoomInvite}
+        />
+      )}
+      {outgoingInvitees.length > 0 && !roomId && (
+        <OutgoingGroupInviteCard
+          invitees={outgoingInvitees}
+          joined={Object.keys(members)}
+          onCancel={cancelGroupInvite}
+        />
+      )}
       <Toaster />
       <Ringtone />
       <Routes>
@@ -79,6 +114,9 @@ function App() {
         } />
         <Route path="/call" element={
           <ProtectedRoute><CallPage /></ProtectedRoute>
+        } />
+        <Route path="/group-call" element={
+          <ProtectedRoute><GroupCallPage /></ProtectedRoute>
         } />
         <Route path="/history" element={
           <ProtectedRoute><HistoryPage /></ProtectedRoute>

@@ -31,6 +31,10 @@ export function startGroupInvite(invitees: string[]): void {
     sendSignal({ type: 'group-invite', to: selected })
 }
 
+export function cancelGroupInvite(): void {
+    useRoomStore.getState().setOutgoingInvitees([])
+}
+
 export function acceptRoomInvite(): void {
     const invite = useRoomStore.getState().incomingInvite
     if (invite) sendSignal({ type: 'join-room', roomId: invite.roomId })
@@ -49,6 +53,31 @@ export function leaveRoom(): void {
     teardownRoom()
 }
 
+export function toggleRoomMic(): void {
+    const track = localStream?.getAudioTracks()[0]
+    if (!track) return
+    track.enabled = !track.enabled
+    const micMuted = !track.enabled
+    useRoomStore.getState().setMicMuted(micMuted)
+    sendRoomMediaState()
+}
+
+export function toggleRoomCam(): void {
+    const track = localStream?.getVideoTracks()[0]
+    if (!track) return
+    track.enabled = !track.enabled
+    const camOff = !track.enabled
+    useRoomStore.getState().setCamOff(camOff)
+    sendRoomMediaState()
+}
+
+function sendRoomMediaState(): void {
+    const { members, selfId, micMuted, camOff } = useRoomStore.getState()
+    for (const username of Object.keys(members)) {
+        if (username !== selfId) sendSignal({ type: 'media-state', to: username, micMuted, camOff })
+    }
+}
+
 async function ensureLocalMedia(): Promise<boolean> {
     if (localStream) return true
     try {
@@ -56,7 +85,7 @@ async function ensureLocalMedia(): Promise<boolean> {
         return true
     } catch (e) {
         const type = e instanceof MediaAcquisitionError ? e.type : 'unknown'
-        useToastStore.getState().show(`Khong mo duoc camera/mic (${type})`, 'warning')
+        useToastStore.getState().show(`Không mở được camera/mic (${type})`, 'warning')
         return false
     }
 }
@@ -86,6 +115,7 @@ async function createMesh(roomId: string, members: string[]): Promise<void> {
     })
 
     useRoomStore.getState().initRoom(roomId, selfId, members)
+    useRoomStore.getState().setOutgoingInvitees([])
     await mesh.joinExistingMembers(members)
     useRoomStore.getState().setActiveMaxBitrate(mesh.getActiveMaxBitrate())
 
@@ -129,6 +159,10 @@ function handleRoomSignal(msg: RoomServerSignal | CallServerSignal): void {
             break
         case 'participant-joined': {
             const room = useRoomStore.getState()
+            if (!room.roomId && room.outgoingInvitees.length > 0) {
+                void createMesh(msg.roomId, [msg.username])
+                break
+            }
             if (msg.roomId !== room.roomId) return
             room.addMember(msg.username)
             const totalParticipants = Object.keys(useRoomStore.getState().members).length
@@ -147,7 +181,11 @@ function handleRoomSignal(msg: RoomServerSignal | CallServerSignal): void {
             if (msg.roomId === useRoomStore.getState().incomingInvite?.roomId) {
                 useRoomStore.getState().setIncomingInvite(null)
             }
-            useToastStore.getState().show('Phong da du 4 nguoi', 'info')
+            useToastStore.getState().show('Phòng đã đầy (tối đa 4 người)', 'info')
+            useRoomStore.getState().setOutgoingInvitees([])
+            break
+        case 'media-state-relay':
+            useRoomStore.getState().setPeerMediaState(msg.from, { micMuted: msg.micMuted, camOff: msg.camOff })
             break
         case 'sdp-received':
             deliverRoomSignal(msg.callId, msg.from, { sdp: msg.sdp })

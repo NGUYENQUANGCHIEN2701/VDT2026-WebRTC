@@ -10,9 +10,10 @@ export default function Toaster() {
         }}>
             {toasts.map((t) => (
                 <div key={t.id} onClick={() => dismiss(t.id)} style={{
-                    padding: '12px 24px', borderRadius: 8, cursor: 'pointer', color: '#fff', fontSize: 14,
-                    background: t.variant === 'warning' ? '#d97706' : '#1f2937',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    padding: '12px 16px', borderRadius: 8, cursor: 'pointer',
+                    color: t.variant === 'warning' ? '#fff' : 'var(--text-h)', fontSize: 14,
+                    background: t.variant === 'warning' ? '#d97706' : 'var(--code-bg)',
+                    boxShadow: 'var(--shadow)', maxWidth: 320,
                 }}>
                     {t.message}
                 </div>

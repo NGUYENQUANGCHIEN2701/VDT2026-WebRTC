@@ -32,6 +32,7 @@ interface RoomStoreState {
     addMember: (username: string) => void
     removeMember: (username: string) => void
     setPeerConnectionState: (username: string, connectionState: PeerConnectionState) => void
+    setPeerMediaState: (username: string, media: { micMuted?: boolean; camOff?: boolean }) => void
     bumpStreamVersion: (username: string) => void
     setActiveMaxBitrate: (maxBitrate: number | null) => void
     setMicMuted: (micMuted: boolean) => void
@@ -79,6 +80,20 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
             return {
                 members: { ...s.members, [username]: { ...current, connectionState } },
                 connectedAt: connectionState === 'connected' && s.connectedAt == null ? Date.now() : s.connectedAt,
+            }
+        }),
+    setPeerMediaState: (username, media) =>
+        set((s) => {
+            const current = s.members[username] ?? member(username)
+            return {
+                members: {
+                    ...s.members,
+                    [username]: {
+                        ...current,
+                        micMuted: media.micMuted ?? current.micMuted,
+                        camOff: media.camOff ?? current.camOff,
+                    },
+                },
             }
         }),
     bumpStreamVersion: (username) =>
