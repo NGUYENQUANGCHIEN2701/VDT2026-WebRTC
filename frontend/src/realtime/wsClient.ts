@@ -37,7 +37,9 @@ export function connectWs(): void {
     usePresenceStore.getState().setKicked(false)
     usePresenceStore.getState().setConnState?.('connecting')
 
-    const url = `${import.meta.env.VITE_WS_URL}?token=${encodeURIComponent(token)}`
+    const wsBase = import.meta.env.VITE_WS_URL ||
+        `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+    const url = `${wsBase}?token=${encodeURIComponent(token)}`
     socket = new WebSocket(url)
 
     socket.onopen = () => {
