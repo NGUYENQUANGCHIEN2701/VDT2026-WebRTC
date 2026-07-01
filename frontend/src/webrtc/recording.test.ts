@@ -69,6 +69,8 @@ function fakeStream(kinds: Array<'audio' | 'video'> = []): MediaStream {
 }
 
 // ── Import the module under test (will fail RED) ────────────────────────────
+type Rect = { x: number, y: number, width: number, height: number }
+
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 type RecordingModule = {
     RecordingController: new () => {
@@ -77,6 +79,8 @@ type RecordingModule = {
         isRecording: boolean
     }
     selectMimeType(): string
+    computeGridLayout(count: number, width: number, height: number): Rect[]
+    computePresentationLayout(remoteCount: number, width: number, height: number): { main: Rect, speaker: Rect, thumbnails: Rect[] }
 }
 
 let mod: RecordingModule
@@ -203,5 +207,85 @@ describe('RecordingController — cleanup on stop', () => {
         // Allow any microtask flushes
         await Promise.resolve()
         expect(MockAudioContext.instances[0].close).toHaveBeenCalled()
+    })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════
+// computeGridLayout — pure layout math mirroring gridStyle() in GroupCallPage.tsx
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('computeGridLayout', () => {
+    const WIDTH = 1280
+    const HEIGHT = 720
+
+    it('count=1: single rect filling the full canvas', () => {
+        const rects = mod.computeGridLayout(1, WIDTH, HEIGHT)
+        expect(rects).toHaveLength(1)
+        expect(rects[0]).toEqual({ x: 0, y: 0, width: WIDTH, height: HEIGHT })
+    })
+
+    it('count=2: two equal side-by-side halves, full height', () => {
+        const rects = mod.computeGridLayout(2, WIDTH, HEIGHT)
+        expect(rects).toHaveLength(2)
+        expect(rects[0]).toEqual({ x: 0, y: 0, width: WIDTH / 2, height: HEIGHT })
+        expect(rects[1]).toEqual({ x: WIDTH / 2, y: 0, width: WIDTH / 2, height: HEIGHT })
+    })
+
+    it('count=3: rect[2] is centered, half-width, positioned below the first row', () => {
+        const rects = mod.computeGridLayout(3, WIDTH, HEIGHT)
+        expect(rects).toHaveLength(3)
+        // First row: two normal half-width/half-height cells
+        expect(rects[0]).toEqual({ x: 0, y: 0, width: WIDTH / 2, height: HEIGHT / 2 })
+        expect(rects[1]).toEqual({ x: WIDTH / 2, y: 0, width: WIDTH / 2, height: HEIGHT / 2 })
+        // Third tile: centered, half canvas width, in the second row
+        const third = rects[2]
+        expect(third.y).toBe(HEIGHT / 2)
+        expect(third.width).toBe(WIDTH / 2)
+        expect(third.height).toBe(HEIGHT / 2)
+        expect(third.x).toBe((WIDTH - third.width) / 2)
+    })
+
+    it('count=4: standard 2x2 equal grid', () => {
+        const rects = mod.computeGridLayout(4, WIDTH, HEIGHT)
+        expect(rects).toHaveLength(4)
+        expect(rects[0]).toEqual({ x: 0, y: 0, width: WIDTH / 2, height: HEIGHT / 2 })
+        expect(rects[1]).toEqual({ x: WIDTH / 2, y: 0, width: WIDTH / 2, height: HEIGHT / 2 })
+        expect(rects[2]).toEqual({ x: 0, y: HEIGHT / 2, width: WIDTH / 2, height: HEIGHT / 2 })
+        expect(rects[3]).toEqual({ x: WIDTH / 2, y: HEIGHT / 2, width: WIDTH / 2, height: HEIGHT / 2 })
+    })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════
+// computePresentationLayout — mirrors GroupCallStyles.css presentation-* proportions
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('computePresentationLayout', () => {
+    const WIDTH = 1280
+    const HEIGHT = 720
+
+    it('remoteCount=0: main/speaker rects computed, empty thumbnails array (no divide-by-zero)', () => {
+        const layout = mod.computePresentationLayout(0, WIDTH, HEIGHT)
+        expect(layout.thumbnails).toHaveLength(0)
+        expect(layout.main.width).toBeGreaterThan(0)
+        expect(layout.speaker.width).toBeGreaterThan(0)
+    })
+
+    it('remoteCount=1: main rect ~65% width, sidebar rect fills remaining width', () => {
+        const layout = mod.computePresentationLayout(1, WIDTH, HEIGHT)
+        const ratio = layout.main.width / WIDTH
+        expect(ratio).toBeGreaterThan(0.6)
+        expect(ratio).toBeLessThan(0.7)
+        expect(layout.speaker.x).toBeGreaterThanOrEqual(layout.main.x + layout.main.width)
+        expect(layout.thumbnails).toHaveLength(1)
+    })
+
+    it('remoteCount=3: thumbnails array length matches remoteCount, each equal width summing to sidebar width', () => {
+        const layout = mod.computePresentationLayout(3, WIDTH, HEIGHT)
+        expect(layout.thumbnails).toHaveLength(3)
+        const widths = layout.thumbnails.map((t) => t.width)
+        widths.forEach((w) => expect(w).toBeCloseTo(widths[0]))
+        const sidebarWidth = layout.speaker.width
+        const totalThumbWidth = widths.reduce((sum, w) => sum + w, 0)
+        expect(totalThumbWidth).toBeCloseTo(sidebarWidth, 0)
     })
 })
