@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-06-11)
 Phase: 09 (monitoring-ci-cd-full-delivery) — EXECUTING
 Status: Executing Phase 09
 Next: Plan Phase 9 waves (docker compose full stack, Prometheus/Grafana, GitHub Actions CI, Playwright E2E)
-Last activity: 2026-07-01 — Completed quick task 260702-3sd: Fix presence status not updating in realtime after a call ends
+Last activity: 2026-07-01 — Completed quick task 260702-677: 1-1 call presentation-mode layout sync for screen sharing
 
 Progress: [#########] 97% (37/37 plans through Phase 8; Phase 9 TBD)
 
@@ -104,6 +104,7 @@ Recent decisions affecting current work:
 | 260701-tkz | Fix group-call recording to mirror the on-screen layout instead of a fixed square grid | 2026-07-01 | 64912e8 | [260701-tkz-fix-group-call-recording-to-mirror-the-o](./quick/260701-tkz-fix-group-call-recording-to-mirror-the-o/) |
 | 260701-u3j | Sync screen-share focus across all group-call participants (server-authoritative single-sharer lock + recording alignment) | 2026-07-01 | 1a33cbc | [260701-u3j-sync-screen-share-focus-across-all-group](./quick/260701-u3j-sync-screen-share-focus-across-all-group/) |
 | 260702-3sd | Fix presence status not updating in realtime after a call ends (transition_call.lua/CallService missing presence-events publish) | 2026-07-01 | 2f4b33e | [260702-3sd-fix-presence-status-not-updating-in-real](./quick/260702-3sd-fix-presence-status-not-updating-in-real/) |
+| 260702-677 | 1-1 call presentation-mode layout sync (remoteIsScreenSharing in callStore, symmetric sharer/viewer layout, recording sharer wiring) | 2026-07-01 | fee9e66 | [260702-677-add-presentation-mode-layout-sync-for-1-](./quick/260702-677-add-presentation-mode-layout-sync-for-1-/) |
 
 ## Deferred Items
 
