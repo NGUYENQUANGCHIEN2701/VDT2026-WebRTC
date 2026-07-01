@@ -1458,6 +1458,55 @@ code {
   opacity: 0.6;
 }
 
+/* ── Presentation mode 1-1 (screen share) — mượn ngôn ngữ thị giác .presentation-main của group call ── */
+/* Remote đang share: video remote chiếm stage, contain để KHÔNG crop nội dung màn hình */
+.call-video--presenting {
+  position: absolute;
+  top: 80px;
+  left: 24px;
+  width: calc(100% - 48px);
+  height: calc(100% - 220px);
+  object-fit: contain;
+  background: #000;
+  border: 2px solid #3b82f6;
+  border-radius: 16px;
+  box-sizing: border-box;
+}
+
+/* Mình đang share: remote thu thành tile PiP góc dưới-phải (thông số theo .self-video) */
+.call-video--pip {
+  position: absolute;
+  right: 20px;
+  bottom: 104px;
+  z-index: 15;
+  width: min(240px, 28vw);
+  height: auto;
+  aspect-ratio: 16 / 10;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+/* Mình đang share: self video chiếm stage (dưới PiP của remote — z-index thấp hơn 15) */
+.self-video--presenting {
+  top: 80px;
+  left: 24px;
+  right: auto;
+  bottom: auto;
+  width: calc(100% - 48px);
+  height: calc(100% - 220px);
+  aspect-ratio: auto;
+  z-index: 5;
+  object-fit: contain;
+  background: #000;
+  border: 2px solid #3b82f6;
+  border-radius: 16px;
+  box-sizing: border-box;
+  box-shadow: none;
+}
+
 .call-top-bar {
   position: absolute;
   top: 0;

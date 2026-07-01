@@ -55,11 +55,16 @@ export default function CallPage() {
   const localStreamVersion = useCallStore((s) => s.localStreamVersion)
   const selectedSpeakerDeviceId = useCallStore((s) => s.selectedSpeakerDeviceId)
   const isScreenSharing = useCallStore((s) => s.isScreenSharing)
+  const remoteIsScreenSharing = useCallStore((s) => s.remoteIsScreenSharing)
   const isRecording = useCallStore((s) => s.isRecording)
   const recordingStartedAt = useCallStore((s) => s.recordingStartedAt)
   const remoteRecording = useCallStore((s) => s.remoteRecording)
   const hasRecordingPreview = useCallStore((s) => s.hasRecordingPreview)
   const duration = useCallDuration()
+
+  // Ai đang chia sẻ màn hình? Local thắng nếu cả 2 cùng share (1-1 không có single-sharer lock phía server)
+  const activeSharer: 'local' | 'remote' | null =
+    isScreenSharing ? 'local' : remoteIsScreenSharing ? 'remote' : null
 
   // ── Gán srcObject và ép trình duyệt tải lại track (khắc phục lỗi đen màn hình "khi được khi không") ──
   useEffect(() => {
@@ -88,6 +93,7 @@ export default function CallPage() {
   useEffect(() => {
     const localStream = getLocalStream()
     if (selfRef.current) selfRef.current.srcObject = localStream
+    if (localStream) recordingControllerRef.current?.refreshLocalStream(localStream)
   }, [localStreamVersion])
 
   useEffect(() => {
@@ -142,10 +148,19 @@ export default function CallPage() {
       useToastStore.getState().show('Recording is not ready yet.', 'warning')
       return
     }
+    // remoteLabel dùng cho CẢ prop remoteLabel LẪN getActiveSharer — selectSharerVideo match remote theo label,
+    // hai chuỗi lệch nhau là compositor vẽ placeholder thay vì video
+    const remoteLabel = remoteUserId ?? "Remote"
     const controller = new RecordingController({
       callId: call.callId,
       localLabel: "You",
-      remoteLabel: remoteUserId ?? "Remote",
+      remoteLabel,
+      getActiveSharer: () => {
+        const s = useCallStore.getState()
+        if (s.isScreenSharing) return 'local'
+        if (s.remoteIsScreenSharing) return remoteLabel
+        return null
+      },
       // Task 3: wire onerror — store sets error field, shown in UI with auto-dismiss
       onError: (msg) => {
         useCallStore.getState().setIsRecording(false)
@@ -206,10 +221,10 @@ export default function CallPage() {
       </div>
 
       <div className="call-hud-stack">
-        {isScreenSharing && (
+        {(isScreenSharing || remoteIsScreenSharing) && (
           <div className="hud-pill hud-pill--share">
             <MonitorUp size={16} />
-            Sharing screen
+            {isScreenSharing ? 'Sharing screen' : `${remoteUserId} is sharing`}
           </div>
         )}
         {isRecording && (
@@ -252,10 +267,16 @@ export default function CallPage() {
           autoPlay
           playsInline
           aria-label={`Camera của ${remoteUserId ?? ""}`}
-          className={callState === "reconnecting" ? "call-video call-video--dimmed" : "call-video"}
+          className={[
+            "call-video",
+            callState === "reconnecting" ? "call-video--dimmed" : "",
+            activeSharer === "remote" ? "call-video--presenting" : "",
+            activeSharer === "local" ? "call-video--pip" : "",
+          ].filter(Boolean).join(" ")}
         />
-        {remoteCamOff && remoteUserId && <RemoteCamOffOverlay username={remoteUserId} />}
-        {remoteMicMuted && <RemoteMuteIndicator />}
+        {/* Overlay kích thước stage: ẩn khi remote bị thu thành PiP (mình đang share) kẻo che màn hình mình */}
+        {activeSharer !== "local" && remoteCamOff && remoteUserId && <RemoteCamOffOverlay username={remoteUserId} />}
+        {activeSharer !== "local" && remoteMicMuted && <RemoteMuteIndicator />}
         {mediaMode === "audio-only" && <AudioOnlyBadge />}
         {callState === "reconnecting" && (
           <div className="call-reconnect" role="status" aria-live="polite">
@@ -270,8 +291,9 @@ export default function CallPage() {
           muted
           playsInline
           aria-label="Camera của bạn"
-          className="self-video"
-          style={{ transform: 'scaleX(-1)', visibility: camOff ? 'hidden' : 'visible' }}
+          className={activeSharer === "local" ? "self-video self-video--presenting" : "self-video"}
+          // Đang share màn hình thì KHÔNG mirror — scaleX(-1) sẽ lật ngược chữ trên màn hình chia sẻ
+          style={{ transform: isScreenSharing ? 'none' : 'scaleX(-1)', visibility: camOff ? 'hidden' : 'visible' }}
         />
         {camOff && (
           <div className="self-video" style={{ display: 'grid', placeItems: 'center', background: '#1f2937' }}>
@@ -283,7 +305,8 @@ export default function CallPage() {
             </div>
           </div>
         )}
-        <div className="self-video-label">Bạn</div>
+        {/* Nhãn "Bạn" nằm ở góc PiP — khi mình share, góc đó là video của REMOTE nên ẩn nhãn đi */}
+        {activeSharer !== "local" && <div className="self-video-label">Bạn</div>}
       </section>
 
       {/* Bottom Center HUD: Main Controls */}
