@@ -16,7 +16,7 @@
   font-weight: 700;
   color: var(--text-h);
   margin: 0 0 8px 0;
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .admin-header p {
@@ -112,7 +112,7 @@
   font-size: 24px;
   font-weight: 700;
   color: var(--text-h);
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: 'Inter', sans-serif;
   line-height: 1;
 }
 

@@ -1,8 +1,7 @@
-import { Phone } from "lucide-react"
+import { MoreVertical, Phone } from "lucide-react"
 import { startCall } from "../../realtime/callActions"
-import type { OnlineUser, PresenceStatus } from "../../realtime/messages"
-import { useAuthStore } from "../../store/authStore"
 import { useCallStore } from "../../store/callStore"
+import type { OnlineUser, PresenceStatus } from "../../realtime/messages"
 
 function getAvatarColor(username: string) {
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#f43f5e']
@@ -13,45 +12,45 @@ function getAvatarColor(username: string) {
 const STATUS_TEXT: Record<PresenceStatus, string> = {
   ONLINE: "Trực tuyến",
   IN_CALL: "Đang bận",
+  OFFLINE: "Ngoại tuyến",
 }
 
 const STATUS_CLASS: Record<PresenceStatus, string> = {
   ONLINE: "online",
   IN_CALL: "busy",
+  OFFLINE: "offline",
 }
 
 interface Props {
   user: OnlineUser
-  groupMode?: boolean
-  selected?: boolean
-  selectionDisabled?: boolean
-  onSelect?: () => void
+  searchQuery?: string
 }
 
-export default function OnlineUserRow({ user, groupMode = false, selected = false, selectionDisabled = false, onSelect }: Props) {
-  const me = useAuthStore((s) => s.user?.username)
-  const callActive = useCallStore((s) => s.callState) !== "idle"
-  const canCall = user.status === "ONLINE" && user.username !== me
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>
+  const index = text.toLowerCase().indexOf(query.toLowerCase())
+  if (index === -1) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, index)}
+      <mark style={{ background: 'rgba(59,130,246,0.25)', color: 'inherit', borderRadius: 3, padding: '0 1px' }}>
+        {text.slice(index, index + query.length)}
+      </mark>
+      {text.slice(index + query.length)}
+    </>
+  )
+}
 
+export default function OnlineUserRow({ user, searchQuery = "" }: Props) {
+  const callActive = useCallStore((s) => s.callState) !== "idle"
   const initial = user.username.charAt(0).toUpperCase()
   const avatarColor = getAvatarColor(user.username)
   const statusClass = STATUS_CLASS[user.status]
+  const canCall = user.status === 'ONLINE' && !callActive
 
   return (
-    <li className="home-user-row" style={{ opacity: selectionDisabled && !selected ? 0.5 : 1 }}>
+    <li className="home-user-row">
       <div className="home-user-info">
-        {groupMode && (
-          <label style={{ minWidth: 44, minHeight: 44, display: 'grid', placeItems: 'center', cursor: selectionDisabled ? 'not-allowed' : 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={selected}
-              disabled={selectionDisabled}
-              onChange={onSelect}
-              aria-label={`Chọn ${user.username}`}
-              style={{ width: 20, height: 20, accentColor: 'var(--accent)' }}
-            />
-          </label>
-        )}
         <div className="home-user-avatar-wrapper">
           <div className="home-user-avatar" style={{ background: avatarColor }}>
             {initial}
@@ -59,24 +58,31 @@ export default function OnlineUserRow({ user, groupMode = false, selected = fals
           <span className={`home-user-status-dot ${statusClass}`} />
         </div>
         <div className="home-user-details">
-          <span className="home-user-name">{user.username}</span>
+          <span className="home-user-name">
+            <HighlightedText text={user.username} query={searchQuery} />
+          </span>
           <span className={`home-user-status-text ${statusClass}`}>
             {STATUS_TEXT[user.status]}
           </span>
         </div>
       </div>
 
-      {canCall && !groupMode && (
-        <button
-          className="home-call-btn"
-          onClick={() => startCall(user.username)}
-          disabled={callActive}
-          type="button"
-        >
-          <Phone size={18} />
-          Gọi
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {user.status !== 'OFFLINE' && (
+          <button
+            className="home-call-btn"
+            onClick={() => { if (canCall) startCall(user.username) }}
+            type="button"
+            disabled={!canCall}
+          >
+            <Phone size={16} />
+            Gọi
+          </button>
+        )}
+        <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', padding: 4 }}>
+          <MoreVertical size={20} />
         </button>
-      )}
+      </div>
     </li>
   )
 }
