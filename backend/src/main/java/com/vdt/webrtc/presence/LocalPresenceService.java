@@ -27,6 +27,12 @@ public class LocalPresenceService implements PresenceService {
     }
 
     @Override
+    public void publishChanged() {
+        // no-op: LocalPresenceService không có pub/sub broadcast (single-instance),
+        // giống hệt join()/leave() ở trên cũng không broadcast.
+    }
+
+    @Override
     public List<OnlineUser> snapshot() {
         return lastSeen.keySet().stream()
                 .map(userId -> new OnlineUser(userId, PresenceStatus.ONLINE))
