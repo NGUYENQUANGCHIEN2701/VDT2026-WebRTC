@@ -142,6 +142,7 @@ export default function GroupCallPage() {
     const controller = new RecordingController({
       callId: room.roomId,
       localLabel: "You",
+      isScreenSharing: () => useRoomStore.getState().isScreenSharing,
       onError: (msg) => {
         useRoomStore.getState().setIsRecording(false)
         useRoomStore.getState().setRecordingStartedAt(null)
