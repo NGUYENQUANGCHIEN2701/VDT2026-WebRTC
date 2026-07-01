@@ -44,6 +44,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       TURN_SECRET: ${TURN_SECRET}
       TURN_SERVER: ${TURN_SERVER}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
       INSTANCE_ID: backend-1
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
@@ -71,6 +72,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       TURN_SECRET: ${TURN_SECRET}
       TURN_SERVER: ${TURN_SERVER}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
       INSTANCE_ID: backend-2
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
@@ -93,7 +95,7 @@ services:
       # Host 8080 -> nginx 80 (same external port as the old single backend).
       - "8080:80"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/"]
       interval: 10s
       timeout: 5s
       retries: 10
