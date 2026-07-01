@@ -392,12 +392,10 @@ function handleServerSignal(msg: CallServerSignal) {
             const call = useCallStore.getState()
             call.setRemoteMicMuted(msg.micMuted)
             call.setRemoteCamOff(msg.camOff)
+            // isScreenSharing của peer drive presentation layout 1-1 trên CallPage (activeSharer === 'remote')
+            call.setRemoteIsScreenSharing(msg.isScreenSharing)
             break
         }
-        // Note: 1-1 calls do not use msg.isScreenSharing — CallService/PresenceWebSocketHandler
-        // passes it through unchanged (no room-based single-sharer lock applies to 1-1 calls),
-        // and the 1-1 UI's own presentation layout already derives sharer state locally from
-        // useCallStore's isScreenSharing (a single-peer call has no "who is sharing" ambiguity).
         case 'recording-state-relay': {
             const call = useCallStore.getState()
             if (call.callId === msg.callId) call.setRemoteRecording(msg.recording)

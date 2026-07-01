@@ -30,8 +30,10 @@ interface CallStoreState {
     setCamOff: (b: boolean) => void
     remoteMicMuted: boolean
     remoteCamOff: boolean
+    remoteIsScreenSharing: boolean   // peer đang share màn hình (từ media-state-relay) → drive presentation layout 1-1
     setRemoteMicMuted: (b: boolean) => void
     setRemoteCamOff: (b: boolean) => void
+    setRemoteIsScreenSharing: (b: boolean) => void
     remoteStreamVersion: number   // bump mỗi khi remote track tới → CallPage gắn lại srcObject
     bumpRemoteStream: () => void
     isScreenSharing: boolean
@@ -80,8 +82,10 @@ export const useCallStore = create<CallStoreState>((set) => ({
 
     remoteMicMuted: false,
     remoteCamOff: false,
+    remoteIsScreenSharing: false,
     setRemoteMicMuted: (remoteMicMuted) => set({ remoteMicMuted }),
     setRemoteCamOff: (remoteCamOff) => set({ remoteCamOff }),
+    setRemoteIsScreenSharing: (remoteIsScreenSharing) => set({ remoteIsScreenSharing }),
     remoteStreamVersion: 0,
     bumpRemoteStream: () => set((s) => ({ remoteStreamVersion: s.remoteStreamVersion + 1 })),
     isScreenSharing: false,
@@ -123,5 +127,5 @@ export const useCallStore = create<CallStoreState>((set) => ({
             durationMs: s.connectedAt != null ? Date.now() - s.connectedAt : 0,
         })),
 
-    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null, endReason: null, connectedAt: null, durationMs: null, micMuted: false, camOff: false, remoteMicMuted: false, remoteCamOff: false, remoteStreamVersion: 0, isScreenSharing: false, localStreamVersion: 0, selectedCameraDeviceId: null, selectedMicrophoneDeviceId: null, selectedSpeakerDeviceId: null, isRecording: false, recordingStartedAt: null, remoteRecording: false, recordingError: null, hasRecordingPreview: false }),
+    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null, endReason: null, connectedAt: null, durationMs: null, micMuted: false, camOff: false, remoteMicMuted: false, remoteCamOff: false, remoteIsScreenSharing: false, remoteStreamVersion: 0, isScreenSharing: false, localStreamVersion: 0, selectedCameraDeviceId: null, selectedMicrophoneDeviceId: null, selectedSpeakerDeviceId: null, isRecording: false, recordingStartedAt: null, remoteRecording: false, recordingError: null, hasRecordingPreview: false }),
 }))
