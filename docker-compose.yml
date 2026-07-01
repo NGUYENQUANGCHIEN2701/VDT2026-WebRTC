@@ -138,6 +138,38 @@ services:
       timeout: 5s
       retries: 10
 
+  # Scrapes backend-1/backend-2 directly (D-05) — never through nginx.
+  prometheus:
+    image: prom/prometheus:v3.13.0
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Provisioned as code: datasource + dashboard-provider + dashboard JSON, no manual UI clicks.
+  grafana:
+    image: grafana/grafana:13.0.3
+    depends_on:
+      prometheus:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   pgdata:
 
