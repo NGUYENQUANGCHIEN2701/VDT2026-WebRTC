@@ -316,11 +316,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. GitHub Actions CI builds, runs backend + frontend tests, and packages Docker images on every push
   4. A Playwright E2E test places a real call between two browser contexts (fake media devices) and passes in CI
 
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 **Wave 1** *(parallel — no file overlap)*
 
-- [ ] 09-01-PLAN.md — Backend metrics instrumentation: Micrometer Counter/Gauge wiring (vdt_calls_ended_total, vdt_calls_active, vdt_ws_sessions_active), instance/call_type/end_reason tags, replaces AtomicLong CallMetrics
+- [x] 09-01-PLAN.md — Backend metrics instrumentation: Micrometer Counter/Gauge wiring (vdt_calls_ended_total, vdt_calls_active, vdt_ws_sessions_active), instance/call_type/end_reason tags, replaces AtomicLong CallMetrics
 - [ ] 09-02-PLAN.md — Full-stack compose + observability infra: frontend Dockerfile folded into nginx (D-02), Prometheus + Grafana services with provisioning-as-code, VDT WebRTC Overview dashboard
 - [ ] 09-03-PLAN.md — GitHub Actions CI: backend (mvn verify), frontend (lint+vitest+build), docker-build (no push) as 3 parallel jobs on push/PR to main
 
@@ -349,7 +349,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Horizontal Scaling | 4/4 | ✅ Complete | 2026-06-29 |
 | 7. Group Mesh Calls | 5/5 | ✅ Complete | 2026-06-30 |
 | 8. Screen Share, Recording & Device Control | 5/5 | ✅ Complete | 2026-07-01 |
-| 9. Monitoring, CI/CD & Full Delivery | 0/TBD | Not started | - |
+| 9. Monitoring, CI/CD & Full Delivery | 1/5 | In Progress|  |
 
 ---
 *Roadmap created: 2026-06-11*

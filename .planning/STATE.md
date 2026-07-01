@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 9
-current_phase_name: Monitoring, CI/CD & Full Delivery
-status: planning
-stopped_at: Phase 9 context gathered
-last_updated: "2026-07-01T13:15:49.527Z"
+current_phase: 09
+current_phase_name: monitoring-ci-cd-full-delivery
+status: executing
+stopped_at: Completed 09-01-PLAN.md (Prometheus call metrics)
+last_updated: "2026-07-01T14:40:43.133Z"
 last_activity: 2026-07-01
-last_activity_desc: 08-05 full verification PASS; Phase 8 CLOSED
+last_activity_desc: Phase 09 execution started
 progress:
   total_phases: 9
   completed_phases: 2
-  total_plans: 37
-  completed_plans: 11
+  total_plans: 42
+  completed_plans: 12
   percent: 22
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-11)
 
 **Core value:** Two users can make a stable realtime 1-1 peer-to-peer WebRTC video call. If everything else breaks, the 1-1 call must still work.
-**Current focus:** Phase 9 planning -- Monitoring, CI/CD & Full Delivery
+**Current focus:** Phase 09 — monitoring-ci-cd-full-delivery
 
 ## Current Position
 
-Phase: 9 of 9 (Monitoring, CI/CD & Full Delivery) -- PLANNING
-Status: Phase 8 CLOSED -- Phase 9 not yet planned
+Phase: 09 (monitoring-ci-cd-full-delivery) — EXECUTING
+Status: Executing Phase 09
 Next: Plan Phase 9 waves (docker compose full stack, Prometheus/Grafana, GitHub Actions CI, Playwright E2E)
-Last activity: 2026-07-01 -- 08-05 full verification PASS; Phase 8 CLOSED
+Last activity: 2026-07-01 — Phase 09 execution started
 
 Progress: [#########] 97% (37/37 plans through Phase 8; Phase 9 TBD)
 
@@ -62,6 +62,8 @@ Progress: [#########] 97% (37/37 plans through Phase 8; Phase 9 TBD)
 - Last completed plan: 08-05 -- Full verification (Wave 5)
 - Next plan: Phase 9 Wave 1 (to be planned)
 
+| Phase 09 P01 | 26min | 3 tasks | 9 files |
+
 ## Accumulated Context
 
 ### Decisions
@@ -75,6 +77,10 @@ Recent decisions affecting current work:
 - [Roadmap]: Phase 7 uses a separate room path so 1-1 CallService behavior remains intact.
 - [Roadmap]: Phase 7 plans are complete: 5 waves covering RED tests, backend room state/signaling, frontend mesh core, UX, and full verification.
 - [Roadmap]: Phase 8 plans are complete: 5 waves covering RED tests, foundation, recording engine, polish, and full verification.
+- [Phase ?]: Boot 4 moved MeterRegistryCustomizer to org.springframework.boot.micrometer.metrics.autoconfigure (not the Boot 3 actuate.autoconfigure.metrics path)
+- [Phase 09]: RoomService increments group-call metric once in handleLeave, not twice (handleDisconnect delegates to handleLeave) to avoid double-counting
+- [Phase 09]: Dashboard todayStarted/Completed/Missed now derived live from MeterRegistry sums instead of removed AtomicLong counters — semantics shift from since-midnight to since-instance-start
+- [Phase 09]: /actuator/prometheus added to SecurityConfig permitAll (Prometheus cannot present a JWT; internal-network-only per threat model T-09-01/T-09-02)
 
 ### Pending Todos
 
@@ -85,6 +91,7 @@ Recent decisions affecting current work:
 - Phase 9: Playwright E2E with fake media in CI requires careful Docker networking setup.
 - Phase 9: coturn relay range must be mappable in Docker Compose (limit relay port range).
 - Phase 9: Grafana provisioning as code (datasource + dashboards) needs validation.
+- CrossInstanceRoomTest (Phase 7) flakes intermittently in full-suite runs — pre-existing timing-sensitive dual-WS-port race, not caused by 09-01; passes reliably in isolation
 
 ### Quick Tasks Completed
 
@@ -93,6 +100,7 @@ Recent decisions affecting current work:
 | 260613-khs | Backend config (pom deps, application.yaml + docker profile, Flyway V1/V2) | 2026-06-13 | c7796ea | [260613-khs-backend-config](./quick/260613-khs-backend-config/) |
 | 260613-kxw | Externalize DB/JWT credentials via env vars (.env.example, root .gitignore) | 2026-06-13 | 9678bda | [260613-kxw-env-config-credentials](./quick/260613-kxw-env-config-credentials/) |
 | 260613-laz | Docker Compose (postgres + backend) + backend Dockerfile | 2026-06-13 | dd77b42 | [260613-laz-docker-compose-backend](./quick/260613-laz-docker-compose-backend/) |
+| 260701-tkz | Fix group-call recording to mirror the on-screen layout instead of a fixed square grid | 2026-07-01 | 64912e8 | [260701-tkz-fix-group-call-recording-to-mirror-the-o](./quick/260701-tkz-fix-group-call-recording-to-mirror-the-o/) |
 
 ## Deferred Items
 
@@ -104,6 +112,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-01T13:15:49.520Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-monitoring-ci-cd-full-delivery/09-CONTEXT.md
+Last session: 2026-07-01T14:40:34.472Z
+Stopped at: Completed 09-01-PLAN.md (Prometheus call metrics)
+Resume file: None

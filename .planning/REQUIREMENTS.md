@@ -73,7 +73,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **INFR-01**: Calls work across real NATs via coturn (STUN+TURN) with ephemeral HMAC credentials; forced-relay test mode proves TURN works
 - [ ] **INFR-02**: Entire system starts with one `docker compose up` (backend x2, frontend, nginx, PostgreSQL, Redis, RabbitMQ, coturn, Prometheus, Grafana) with healthchecks
 - [ ] **INFR-03**: App is served over HTTPS/WSS for cross-device demos (getUserMedia secure-context requirement)
-- [ ] **INFR-04**: Prometheus + Grafana dashboards show per-instance metrics (WS sessions, active calls, call success rate)
+- [x] **INFR-04**: Prometheus + Grafana dashboards show per-instance metrics (WS sessions, active calls, call success rate)
 - [ ] **INFR-05**: GitHub Actions CI builds, tests (backend + frontend), and packages Docker images
 - [ ] **INFR-06**: E2E test places a real call between two browser contexts (Playwright, fake media devices) in CI
 - [ ] **INFR-07**: Database schema is delivered as versioned SQL migrations (Flyway) with setup documentation
@@ -150,12 +150,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFR-01 | Phase 3 | Pending |
 | INFR-02 | Phase 9 | Pending |
 | INFR-03 | Phase 3 | Pending |
-| INFR-04 | Phase 9 | Pending |
+| INFR-04 | Phase 9 | Complete |
 | INFR-05 | Phase 9 | Pending |
 | INFR-06 | Phase 9 | Pending |
 | INFR-07 | Phase 1 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 44 total *(corrected from 38 — recount during roadmap creation)*
 - Mapped to phases: 44
 - Unmapped: 0 ✓
