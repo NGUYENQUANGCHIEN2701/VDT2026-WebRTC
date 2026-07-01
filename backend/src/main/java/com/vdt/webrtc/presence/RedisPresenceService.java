@@ -26,7 +26,7 @@ public class RedisPresenceService implements PresenceService {
     public void join(String userId) {
         redisTemplate.opsForValue().set("presence:" + userId, "online", Duration.ofSeconds(PRESENCE_TTL_SECONDS));
         redisTemplate.opsForSet().add("online-users", userId);
-        redisTemplate.convertAndSend("presence-events", "changed");
+        publishChangedEvent();
     }
 
     @Override
@@ -40,6 +40,15 @@ public class RedisPresenceService implements PresenceService {
     public void leave(String userId) {
         redisTemplate.delete("presence:" + userId);
         redisTemplate.opsForSet().remove("online-users", userId);
+        publishChangedEvent();
+    }
+
+    @Override
+    public void publishChanged() {
+        publishChangedEvent();
+    }
+
+    private void publishChangedEvent() {
         redisTemplate.convertAndSend("presence-events", "changed");
     }
 

@@ -7,6 +7,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.vdt.webrtc.history.CallHistoryPublisher;
 import com.vdt.webrtc.metrics.CallMetrics;
+import com.vdt.webrtc.presence.PresenceService;
 import com.vdt.webrtc.ws.MessageRouter;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,13 +35,15 @@ class CallServicePublishTest {
     CallHistoryPublisher publisher;
     @Mock
     CallMetrics metrics;
+    @Mock
+    PresenceService presence;
 
     CallService callService;
 
     @BeforeEach
     void setUp() {
         // 2 tham số cuối là ring/grace seconds — giá trị bất kỳ cho test
-        callService = new CallService(stateMachine, timers, repo, router, publisher, metrics, 30, 15);
+        callService = new CallService(stateMachine, timers, repo, router, publisher, metrics, presence, 30, 15);
     }
 
     // D-05: cuộc gọi tới người đang bận → KHÔNG bao giờ ghi lịch sử
@@ -50,5 +55,44 @@ class CallServicePublishTest {
         callService.handleInvite("alice", "bob");
 
         verify(publisher, never()).publish(any());
+    }
+
+    // hangup thành công → observer phải hội tụ presence (T-quick260702)
+    @Test
+    void endedTransition_publishesPresenceChange_forHangUp() {
+        CallSnapshot call = new CallSnapshot("call-1", "active", null, "alice", "bob", null);
+        when(repo.find("call-1")).thenReturn(Optional.of(call));
+        when(stateMachine.transition("call-1", "active", "ended", "completed", "alice", "bob"))
+                .thenReturn(true);
+
+        callService.handleHangUp("alice", "call-1");
+
+        verify(presence).publishChanged();
+    }
+
+    // CAS thua (race) → KHÔNG được publish nhầm presence
+    @Test
+    void failedTransition_doesNotPublishPresenceChange() {
+        CallSnapshot call = new CallSnapshot("call-1", "active", null, "alice", "bob", null);
+        when(repo.find("call-1")).thenReturn(Optional.of(call));
+        when(stateMachine.transition("call-1", "active", "ended", "completed", "alice", "bob"))
+                .thenReturn(false);
+
+        callService.handleHangUp("alice", "call-1");
+
+        verify(presence, never()).publishChanged();
+    }
+
+    // reject khi đang ringing → cũng phải publish presence change
+    @Test
+    void missedTimeout_publishesPresenceChange() {
+        CallSnapshot call = new CallSnapshot("call-1", "ringing", null, "alice", "bob", null);
+        when(repo.find("call-1")).thenReturn(Optional.of(call));
+        when(stateMachine.transition("call-1", "ringing", "ended", "rejected", "alice", "bob"))
+                .thenReturn(true);
+
+        callService.handleReject("bob", "call-1");
+
+        verify(presence).publishChanged();
     }
 }

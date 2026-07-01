@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com.vdt.webrtc.history.CallHistoryEvent;
 import com.vdt.webrtc.history.CallHistoryPublisher;
 import com.vdt.webrtc.metrics.CallMetrics;
+import com.vdt.webrtc.presence.PresenceService;
 import com.vdt.webrtc.ws.MessageRouter;
 import com.vdt.webrtc.ws.message.CallStateChanged;
 
@@ -23,11 +24,13 @@ public class CallService {
     private final Duration gracePeriod;
     private final CallHistoryPublisher callHistoryPublisher;
     private final CallMetrics metrics;
+    private final PresenceService presence;
 
     public CallService(CallStateMachine stateMachine, CallTimerService timers,
             CallStateRepository repo, MessageRouter router,
             CallHistoryPublisher callHistoryPublisher,
             CallMetrics metrics,
+            PresenceService presence,
             @Value("${call.ring-timeout-seconds}") long ringSeconds,
             @Value("${call.grace-period-seconds}") long graceSeconds) {
         this.stateMachine = stateMachine;
@@ -38,6 +41,7 @@ public class CallService {
         this.gracePeriod = Duration.ofSeconds(graceSeconds);
         this.callHistoryPublisher = callHistoryPublisher;
         this.metrics = metrics;
+        this.presence = presence;
     }
 
     // bắn event cho cả caller và callee.
@@ -78,6 +82,7 @@ public class CallService {
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "missed", call.startedAt(), Instant.now()));
                 metrics.incrementEnded("1-1", "missed");
+                presence.publishChanged();
             }
         });
     }
@@ -108,6 +113,7 @@ public class CallService {
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "rejected", call.startedAt(), Instant.now()));
                 metrics.incrementEnded("1-1", "rejected");
+                presence.publishChanged();
             }
         });
     }
@@ -124,6 +130,7 @@ public class CallService {
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "cancelled", call.startedAt(), Instant.now()));
                 metrics.incrementEnded("1-1", "cancelled");
+                presence.publishChanged();
             }
         });
     }
@@ -141,6 +148,7 @@ public class CallService {
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "completed", call.startedAt(), Instant.now()));
                 metrics.incrementEnded("1-1", "completed");
+                presence.publishChanged();
             }
         });
     }
@@ -169,6 +177,7 @@ public class CallService {
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "dropped", call.startedAt(), Instant.now()));
                 metrics.incrementEnded("1-1", "dropped");
+                presence.publishChanged();
             }
         });
     }
