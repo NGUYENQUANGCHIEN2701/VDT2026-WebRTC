@@ -1,4 +1,4 @@
-import { Search, Users, X } from "lucide-react"
+import { Search, UserPlus, X, Info } from "lucide-react"
 import { useRef, useState } from "react"
 import { startGroupInvite } from "../../realtime/roomActions"
 import type { OnlineUser } from "../../realtime/messages"
@@ -24,17 +24,19 @@ export default function GroupCallModal({ users, onClose }: Props) {
     ? users.filter(u => u.username.toLowerCase().includes(normalized))
     : users
 
+  const onlineUsers = filtered.filter(u => u.status !== 'OFFLINE')
+  const offlineUsers = filtered.filter(u => u.status === 'OFFLINE')
+
   const toggle = (username: string) => {
     setSelected(prev => {
       if (prev.includes(username)) return prev.filter(u => u !== username)
-      // limit to 5
-      if (prev.length >= 5) return prev
+      if (prev.length >= 3) return prev // limit to 3
       return [...prev, username]
     })
   }
 
   const handleCall = () => {
-    if (selected.length < 1) return
+    if (selected.length < 2) return
     startGroupInvite(selected)
     onClose()
   }
@@ -58,151 +60,261 @@ export default function GroupCallModal({ users, onClose }: Props) {
       }}>
         <div style={{
           pointerEvents: 'all',
-          background: '#fff',
-          borderRadius: 20,
+          background: 'var(--surface-solid)',
+          borderRadius: 16,
           width: '100%',
-          maxWidth: 520,
-          maxHeight: '80vh',
+          maxWidth: 540,
+          maxHeight: '85vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+          boxShadow: 'var(--shadow)',
           overflow: 'hidden',
+          fontFamily: 'var(--sans)',
         }}>
           {/* Header */}
-          <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid #f1f5f9' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ background: '#16a34a', width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                  <Users size={22} />
+          <div style={{ padding: '24px 24px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ background: 'var(--success)', width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                  <UserPlus size={24} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#0f172a' }}>Gọi nhóm</h2>
-                  <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>Chọn tối đa 5 người tham gia</p>
+                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-h)' }}>Gọi nhóm</h2>
+                  <p style={{ margin: '4px 0 0 0', fontSize: 14, color: 'var(--text)' }}>Chọn từ 2–3 người để tạo cuộc gọi nhóm (tối đa 4 người)</p>
                 </div>
               </div>
-              <button onClick={onClose} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4, borderRadius: 8 }}>
-                <X size={22} />
+              <button onClick={onClose} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 4, borderRadius: 8, opacity: 0.7 }} onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}>
+                <X size={24} />
               </button>
             </div>
 
             {/* Search */}
-            <div className="home-search-wrapper" style={{ maxWidth: '100%' }}>
-              <Search size={15} className="home-search-icon" />
+            <div style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: 16
+            }}>
+              <Search size={18} style={{ position: 'absolute', left: 16, color: 'var(--text)', opacity: 0.6 }} />
               <input
                 ref={searchRef}
                 type="text"
-                className="home-search-input"
-                placeholder="Tìm người dùng..."
+                placeholder="Tìm theo tên người dùng..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 autoComplete="off"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px 12px 44px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  fontSize: 15,
+                  outline: 'none',
+                  color: 'var(--text-h)',
+                  background: 'transparent',
+                  transition: 'border-color 0.2s',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
               />
               {searchQuery && (
-                <button className="home-search-clear" onClick={() => setSearchQuery("")} type="button">
-                  <X size={14} />
+                <button 
+                  onClick={() => setSearchQuery("")} 
+                  type="button"
+                  style={{
+                    position: 'absolute', right: 16,
+                    background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)',
+                    padding: 4, opacity: 0.7
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
+                >
+                  <X size={16} />
                 </button>
               )}
             </div>
+
+            {/* Info Alert */}
+            <div style={{
+              background: 'var(--accent-bg)',
+              border: '1px solid var(--accent-border)',
+              borderRadius: 8,
+              padding: '12px 16px',
+              display: 'flex',
+              gap: 12,
+              alignItems: 'flex-start'
+            }}>
+              <div style={{
+                background: 'var(--accent)',
+                color: '#fff',
+                width: 24, height: 24,
+                borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                marginTop: 2
+              }}>
+                <Info size={16} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--text-h)', fontSize: 14, marginBottom: 2 }}>
+                  Cuộc gọi nhóm cho phép tối đa 4 người
+                </div>
+                <div style={{ color: 'var(--text)', fontSize: 13 }}>
+                  Bạn + 2–3 người khác
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Selected tags */}
-          {selected.length > 0 && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '12px 24px 0' }}>
-              {selected.map(u => (
-                <span key={u} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: '#eff6ff', color: '#1d4ed8', borderRadius: 999,
-                  padding: '4px 10px', fontSize: 13, fontWeight: 500,
-                }}>
-                  {u}
-                  <button onClick={() => toggle(u)} type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#1d4ed8', display: 'flex' }}>
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
           {/* User list */}
-          <ul style={{ flex: 1, overflowY: 'auto', margin: 0, padding: '8px 0', listStyle: 'none' }}>
-            {filtered.length === 0 ? (
-              <li style={{ padding: '32px 24px', textAlign: 'center', color: '#94a3b8' }}>
-                Không tìm thấy người dùng
-              </li>
-            ) : filtered.map(u => {
-              const isSelected = selected.includes(u.username)
-              const avatarColor = getAvatarColor(u.username)
-              const isOffline = u.status === 'OFFLINE'
-              const statusColor = u.status === 'ONLINE' ? '#16a34a' : u.status === 'IN_CALL' ? '#d97706' : '#94a3b8'
-              const statusLabel = u.status === 'ONLINE' ? 'Trực tuyến' : u.status === 'IN_CALL' ? 'Đang bận' : 'Ngoại tuyến'
-              const dotClass = u.status === 'ONLINE' ? 'online' : u.status === 'IN_CALL' ? 'busy' : 'offline'
-              return (
-                <li key={u.username}>
-                  <label
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '12px 24px',
-                      cursor: isOffline ? 'default' : 'pointer',
-                      opacity: isOffline ? 0.45 : 1,
-                      background: isSelected ? '#eff6ff' : 'transparent',
-                      transition: 'background 0.12s',
-                      userSelect: 'none',
-                    }}
-                    onMouseEnter={e => { if (!isOffline && !isSelected) (e.currentTarget as HTMLElement).style.background = '#f8fafc' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isSelected ? '#eff6ff' : 'transparent' }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => !isOffline && toggle(u.username)}
-                      disabled={isOffline}
-                      style={{
-                        width: 18, height: 18, flexShrink: 0,
-                        accentColor: 'var(--accent)',
-                        cursor: isOffline ? 'not-allowed' : 'pointer',
-                      }}
-                    />
-                    <div className="home-user-avatar-wrapper" style={{ position: 'relative', flexShrink: 0 }}>
-                      <div className="home-user-avatar" style={{ background: avatarColor, width: 40, height: 40, fontSize: 16 }}>
-                        {u.username.charAt(0).toUpperCase()}
-                      </div>
-                      <span className={`home-user-status-dot ${dotClass}`} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: '#0f172a' }}>{u.username}</div>
-                      <div style={{ fontSize: 12, color: statusColor }}>{statusLabel}</div>
-                    </div>
-                  </label>
-                </li>
-              )
-            })}
-          </ul>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px', margin: 0 }}>
+            {onlineUsers.length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', opacity: 0.8, marginBottom: 12, letterSpacing: 0.5 }}>TRỰC TUYẾN</div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {onlineUsers.map((u, index) => {
+                    const isSelected = selected.includes(u.username)
+                    const avatarColor = getAvatarColor(u.username)
+                    const isBusy = u.status === 'IN_CALL'
+                    return (
+                      <label
+                        key={u.username}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 16,
+                          padding: '12px 0',
+                          borderBottom: index < onlineUsers.length - 1 || offlineUsers.length > 0 ? '1px solid var(--border)' : 'none',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                        }}
+                      >
+                        <div style={{
+                          width: 20, height: 20,
+                          borderRadius: 4,
+                          border: isSelected ? 'none' : '1px solid var(--border)',
+                          background: isSelected ? 'var(--accent)' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all 0.1s'
+                        }}>
+                          {isSelected && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggle(u.username)}
+                          style={{ display: 'none' }}
+                        />
+                        <div className="home-user-avatar-wrapper" style={{ position: 'relative', flexShrink: 0 }}>
+                          <div className="home-user-avatar" style={{ background: avatarColor, width: 40, height: 40, fontSize: 16, borderRadius: '50%', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
+                            {u.username.charAt(0).toUpperCase()}
+                          </div>
+                          <span className={`home-user-status-dot ${isBusy ? 'busy' : 'online'}`} style={{ border: '2px solid var(--surface-solid)' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-h)' }}>{u.username}</div>
+                          <div style={{ fontSize: 13, color: isBusy ? 'var(--warning)' : 'var(--success)' }}>{isBusy ? 'Đang bận' : 'Trực tuyến'}</div>
+                        </div>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
+            {offlineUsers.length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', opacity: 0.8, marginBottom: 12, letterSpacing: 0.5 }}>NGOẠI TUYẾN</div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {offlineUsers.map((u, index) => {
+                    const avatarColor = getAvatarColor(u.username)
+                    return (
+                      <div
+                        key={u.username}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 16,
+                          padding: '12px 0',
+                          borderBottom: index < offlineUsers.length - 1 ? '1px solid var(--border)' : 'none',
+                          opacity: 0.5,
+                          userSelect: 'none',
+                        }}
+                      >
+                        <div style={{
+                          width: 20, height: 20,
+                          borderRadius: 4,
+                          border: '1px solid var(--border)',
+                          background: 'var(--surface-soft)',
+                        }} />
+                        <div className="home-user-avatar-wrapper" style={{ position: 'relative', flexShrink: 0 }}>
+                          <div className="home-user-avatar" style={{ background: avatarColor, width: 40, height: 40, fontSize: 16, borderRadius: '50%', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
+                            {u.username.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="home-user-status-dot offline" style={{ border: '2px solid var(--surface-solid)', background: 'var(--text)' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-h)' }}>{u.username}</div>
+                          <div style={{ fontSize: 13, color: 'var(--text)' }}>Ngoại tuyến</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+            
+            {filtered.length === 0 && (
+              <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text)', opacity: 0.8 }}>
+                Không tìm thấy người dùng
+              </div>
+            )}
+          </div>
 
           {/* Footer */}
-          <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, color: '#64748b' }}>
-              Đã chọn <strong>{selected.length}</strong> / 5 người
-            </span>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={onClose} type="button" style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 500, color: '#475569' }}>
+          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-solid)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: 14, color: 'var(--text)' }}>
+                Đã chọn <strong style={{ color: 'var(--text-h)' }}>{selected.length}</strong> / 3 người
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--text)', opacity: 0.8 }}>
+                Cần chọn từ 2 đến 3 người
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                onClick={onClose} 
+                type="button" 
+                style={{ 
+                  padding: '10px 20px', 
+                  borderRadius: 8, 
+                  border: '1px solid var(--border)', 
+                  background: 'var(--surface-solid)', 
+                  cursor: 'pointer', 
+                  fontSize: 14, 
+                  fontWeight: 600, 
+                  color: 'var(--text-h)',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-soft)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--surface-solid)'}
+              >
                 Hủy
               </button>
               <button
                 onClick={handleCall}
                 type="button"
-                disabled={selected.length < 1}
+                disabled={selected.length < 2}
                 style={{
-                  padding: '10px 24px', borderRadius: 8, border: 'none',
-                  background: selected.length >= 1 ? '#16a34a' : '#e2e8f0',
-                  color: selected.length >= 1 ? '#fff' : '#94a3b8',
-                  cursor: selected.length >= 1 ? 'pointer' : 'not-allowed',
+                  padding: '10px 20px', borderRadius: 8, border: 'none',
+                  background: selected.length >= 2 ? 'var(--accent)' : 'var(--border)',
+                  color: selected.length >= 2 ? '#fff' : 'var(--text)',
+                  cursor: selected.length >= 2 ? 'pointer' : 'not-allowed',
                   fontSize: 14, fontWeight: 600,
                   display: 'flex', alignItems: 'center', gap: 8,
                   transition: 'background 0.2s',
+                  opacity: selected.length >= 2 ? 1 : 0.6
                 }}
+                onMouseEnter={e => { if (selected.length >= 2) e.currentTarget.style.background = 'var(--accent-strong)' }}
+                onMouseLeave={e => { if (selected.length >= 2) e.currentTarget.style.background = 'var(--accent)' }}
               >
-                <Users size={16} />
+                <UserPlus size={18} />
                 Bắt đầu gọi nhóm
               </button>
             </div>
