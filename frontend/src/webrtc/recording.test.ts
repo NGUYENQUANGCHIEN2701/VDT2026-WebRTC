@@ -279,13 +279,15 @@ describe('computePresentationLayout', () => {
         expect(layout.thumbnails).toHaveLength(1)
     })
 
-    it('remoteCount=3: thumbnails array length matches remoteCount, each equal width summing to sidebar width', () => {
+    it('remoteCount=3: thumbnails array length matches remoteCount, each equal width summing to sidebar width (minus inter-thumbnail gaps)', () => {
         const layout = mod.computePresentationLayout(3, WIDTH, HEIGHT)
         expect(layout.thumbnails).toHaveLength(3)
         const widths = layout.thumbnails.map((t) => t.width)
         widths.forEach((w) => expect(w).toBeCloseTo(widths[0]))
         const sidebarWidth = layout.speaker.width
-        const totalThumbWidth = widths.reduce((sum, w) => sum + w, 0)
+        const THUMB_GAP = 12
+        const totalGap = THUMB_GAP * (widths.length - 1)
+        const totalThumbWidth = widths.reduce((sum, w) => sum + w, 0) + totalGap
         expect(totalThumbWidth).toBeCloseTo(sidebarWidth, 0)
     })
 })
