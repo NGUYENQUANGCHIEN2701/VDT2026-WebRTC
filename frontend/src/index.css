@@ -2372,6 +2372,30 @@ code {
   font: 800 13px/1.2 var(--sans);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Task 4 (Wave 4): HUD pill container — top-center of call stage
+   ───────────────────────────────────────────────────────────────────────────── */
+.hud-pill-container {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Task 4: ParticipantTile — screen-share badge must be absolutely positioned
+   so it never causes layout reflow or changes tile dimensions.
+   ───────────────────────────────────────────────────────────────────────────── */
+.participant-tile {
+  position: relative;
+}
+
 .screen-share-badge {
   position: absolute;
   top: 12px;
@@ -2387,19 +2411,54 @@ code {
   background: rgba(37, 99, 235, 0.88);
   box-shadow: 0 8px 22px rgba(37, 99, 235, 0.24);
   font: 800 12px/1 var(--sans);
+  /* Task 4: no pointer events so badge never blocks click-through on video */
+  pointer-events: none;
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Responsive overrides — @media (max-width: 760px)
+   ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 760px) {
   .call-hud-stack {
     top: 92px;
     width: calc(100vw - 32px);
   }
 
+  /* Task 4: HUD pill container on narrow viewports */
+  .hud-pill-container {
+    top: 8px;
+    width: calc(100% - 32px);
+  }
+
+  .hud-pill {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  /* Task 4: More panel → mobile bottom sheet */
   .more-panel {
-    right: 16px;
+    position: fixed;
     left: 16px;
-    bottom: 118px;
+    right: 16px;
+    bottom: 16px;
     width: auto;
+    max-height: 72dvh;
+    border-radius: 16px 16px 16px 16px;
+  }
+
+  /* Task 4: Recording preview modal → mobile bottom sheet */
+  .recording-preview-modal {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    max-height: 85dvh;
+  }
+
+  .recording-preview-video {
+    max-height: 40dvh;
   }
 
   .more-panel-recording-row,
@@ -2409,3 +2468,4 @@ code {
     flex-direction: column;
   }
 }
+

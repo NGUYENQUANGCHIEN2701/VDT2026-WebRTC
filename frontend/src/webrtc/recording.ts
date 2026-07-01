@@ -2,6 +2,8 @@ type RecordingControllerOptions = {
     callId?: string
     localLabel?: string
     remoteLabel?: string
+    /** Task 3 (Wave 4): callback invoked if MediaRecorder fires an onerror event */
+    onError?: (msg: string) => void
 }
 
 type RecordingResult = {
@@ -58,6 +60,7 @@ export class RecordingController {
     private metadata: { callId: string }
     private localLabel: string
     private remoteLabel: string
+    private onError: ((msg: string) => void) | undefined
     private canvas: HTMLCanvasElement | null = null
     private canvasStream: MediaStream | null = null
     private localVideo: HTMLVideoElement | null = null
@@ -74,6 +77,7 @@ export class RecordingController {
         this.metadata = { callId: options.callId ?? '' }
         this.localLabel = options.localLabel ?? 'You'
         this.remoteLabel = options.remoteLabel ?? 'Remote'
+        this.onError = options.onError
     }
 
     get isRecording(): boolean {
@@ -110,6 +114,17 @@ export class RecordingController {
             this.closeAudioContext()
             this.stopCanvasTracks()
         }
+        // Task 3 (Wave 4): handle runtime MediaRecorder errors
+        this.recorder.onerror = () => {
+            this._isRecording = false
+            if (this.frameId != null) {
+                cancelAnimationFrame(this.frameId)
+                this.frameId = null
+            }
+            this.closeAudioContext()
+            this.stopCanvasTracks()
+            this.onError?.('Recording stopped due to an error.')
+        }
 
         this._isRecording = true
         this.draw()
@@ -140,6 +155,10 @@ export class RecordingController {
         }
 
         const mimeType = recorder?.mimeType || selectMimeType() || 'video/webm'
+        // Task 3 (Wave 4): if no chunks were captured, return null instead of an empty blob URL
+        if (this.chunks.length === 0 || this.chunks.reduce((sum, b) => sum + b.size, 0) === 0) {
+            return null
+        }
         const blob = new Blob(this.chunks, { type: mimeType })
         this.objectUrl = typeof URL !== 'undefined' && URL.createObjectURL
             ? URL.createObjectURL(blob)

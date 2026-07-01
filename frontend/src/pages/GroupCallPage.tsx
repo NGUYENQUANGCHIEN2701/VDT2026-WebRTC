@@ -13,6 +13,7 @@ import {
   stopRoomScreenShare,
   toggleRoomCam,
   toggleRoomMic,
+  canRoomScreenShare,
 } from "../realtime/roomActions"
 import { useRoomStore } from "../store/roomStore"
 import { startStatsPolling, type StatsSample } from "../webrtc/stats"
@@ -187,7 +188,13 @@ export default function GroupCallPage() {
       <footer className="call-1v1-bottom-bar">
         <LabeledMuteButton muted={micMuted} onClick={toggleRoomMic} />
         <LabeledCamButton off={camOff} onClick={toggleRoomCam} />
-        <LabeledShareButton onClick={toggleShare} active={isScreenSharing} loading={shareLoading} />
+        <LabeledShareButton
+          onClick={toggleShare}
+          active={isScreenSharing}
+          loading={shareLoading}
+          disabled={!canRoomScreenShare()}
+          title={!canRoomScreenShare() ? 'Screen sharing is unavailable in this browser.' : undefined}
+        />
         <LabeledMoreButton onClick={() => setMorePanelOpen((open) => !open)} active={morePanelOpen} />
         <LabeledHangUpButton onClick={leaveRoom} />
       </footer>

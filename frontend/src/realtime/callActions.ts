@@ -20,6 +20,8 @@ let peer: PeerManager | null = null
 let peerGeneration = 0
 let creatingPeerCallId: string | null = null
 let cameraTrackBeforeShare: MediaStreamTrack | null = null
+// Task 2 (Wave 4): store the camOff value BEFORE screen share overrides it
+let camOffBeforeShare: boolean | null = null
 let isRestoringCamera = false
 // SDP/ICE có thể tới TRƯỚC khi peer kịp tạo (createPeer phải await fetchIceConfig).
 // Đệm lại để KHÔNG rớt offer → tránh deadlock perfect-negotiation (kẹt "đang kết nối").
@@ -51,16 +53,20 @@ function sendCurrentMediaState() {
     if (remoteUserId) sendSignal({ type: 'media-state', to: remoteUserId, micMuted, camOff })
 }
 
+// Task 1 (Wave 4): show UI-SPEC-approved strings only, never raw browser errors
 function reportMediaControlError(message: string): void {
-    useCallStore.getState().setRecordingError(message)
     useToastStore.getState().show(message, 'warning')
 }
 
+// Task 1 (Wave 4): unsupported-browser guard for getDisplayMedia
+export const canScreenShare = (): boolean =>
+    typeof navigator !== 'undefined' &&
+    'mediaDevices' in navigator &&
+    'getDisplayMedia' in (navigator.mediaDevices as unknown as Record<string, unknown>)
+
 export async function startScreenShare(): Promise<void> {
-    const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
-    const screenTrack = displayStream.getVideoTracks()[0]
-    if (!screenTrack) {
-        reportMediaControlError('Khong co screen track de chia se')
+    if (!canScreenShare()) {
+        reportMediaControlError('Screen sharing is unavailable in this browser.')
         return
     }
 
@@ -68,12 +74,42 @@ export async function startScreenShare(): Promise<void> {
     const stream = localStream
     const cameraTrack = stream ? getCurrentTrack(stream, 'video') : null
     if (!activePeer || !stream || !cameraTrack) {
-        stopTrack(screenTrack)
-        reportMediaControlError('Chua co video call de chia se man hinh')
+        reportMediaControlError('Screen sharing is unavailable — call not connected.')
+        return
+    }
+
+    // Task 1: typed error handling for getDisplayMedia
+    let displayStream: MediaStream
+    try {
+        displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+    } catch (err) {
+        if (err instanceof Error) {
+            if (err.name === 'NotAllowedError') {
+                reportMediaControlError(
+                    'Screen sharing was not allowed. Try Share screen again and choose a window or screen.'
+                )
+            } else if (err.name === 'NotReadableError' || err.name === 'AbortError') {
+                reportMediaControlError(
+                    'Could not start screen sharing. Try another window or screen.'
+                )
+            } else {
+                reportMediaControlError('Screen sharing failed.')
+            }
+        } else {
+            reportMediaControlError('Screen sharing failed.')
+        }
+        return
+    }
+
+    const screenTrack = displayStream.getVideoTracks()[0]
+    if (!screenTrack) {
+        reportMediaControlError('Screen sharing failed.')
         return
     }
 
     try {
+        // Task 2: store cam-off state BEFORE overriding it
+        camOffBeforeShare = useCallStore.getState().camOff
         cameraTrackBeforeShare = cameraTrack
         screenTrack.enabled = true
         await activePeer.replaceVideoTrack(screenTrack)
@@ -82,12 +118,14 @@ export async function startScreenShare(): Promise<void> {
 
         const call = useCallStore.getState()
         call.setIsScreenSharing(true)
+        // Screen share explicitly turns video on even if camera was off (D-09 decision)
         call.setCamOff(false)
         call.bumpLocalStream()
         sendCurrentMediaState()
     } catch (err) {
         stopTrack(screenTrack)
-        reportMediaControlError(`Khong the chia se man hinh: ${err instanceof Error ? err.message : 'unknown'}`)
+        camOffBeforeShare = null
+        reportMediaControlError('Screen sharing failed.')
     }
 }
 
@@ -101,21 +139,30 @@ export async function stopScreenShare(): Promise<void> {
     isRestoringCamera = true
     try {
         const call = useCallStore.getState()
+        // Task 2: restore the ORIGINAL camOff value from before screen share started
+        const restoredCamOff = camOffBeforeShare ?? call.camOff
+
         const reusableCamera =
             cameraTrackBeforeShare && cameraTrackBeforeShare.readyState !== 'ended'
                 ? cameraTrackBeforeShare
                 : null
         const cameraTrack = reusableCamera ?? await acquireVideoTrack(call.selectedCameraDeviceId ?? undefined)
-        cameraTrack.enabled = !call.camOff
+        // Restore track enabled state to match pre-share camOff
+        cameraTrack.enabled = !restoredCamOff
 
         await activePeer.replaceVideoTrack(cameraTrack)
         replaceTrackInStream(stream, screenTrack, cameraTrack)
         stopTrack(screenTrack)
         cameraTrackBeforeShare = null
+        // Task 2: restore camOff in store to pre-share value
+        call.setCamOff(restoredCamOff)
+        camOffBeforeShare = null
         call.setIsScreenSharing(false)
         call.bumpLocalStream()
+        // Task 2: relay restored media state to remote party
+        sendCurrentMediaState()
     } catch (err) {
-        reportMediaControlError(`Khong the khoi phuc camera: ${err instanceof Error ? err.message : 'unknown'}`)
+        reportMediaControlError('Could not restore camera after screen share stopped.')
     } finally {
         isRestoringCamera = false
     }
@@ -123,6 +170,7 @@ export async function stopScreenShare(): Promise<void> {
 
 export async function switchCamera(deviceId: string): Promise<void> {
     const call = useCallStore.getState()
+    // Task 2: while screen sharing, only update selected device — will apply on stopScreenShare
     if (call.isScreenSharing) {
         call.setSelectedCameraDeviceId(deviceId)
         return
@@ -143,8 +191,21 @@ export async function switchCamera(deviceId: string): Promise<void> {
         call.setSelectedCameraDeviceId(deviceId)
         call.bumpLocalStream()
     } catch (err) {
+        // Task 1: do NOT replace track on error — previous track stays active
         stopTrack(newTrack)
-        reportMediaControlError(`Khong the doi camera: ${err instanceof Error ? err.message : 'unknown'}`)
+        if (err instanceof Error) {
+            if (err.name === 'OverconstrainedError') {
+                reportMediaControlError('Selected device is unavailable. Your current device is still active.')
+            } else if (err.name === 'NotReadableError') {
+                reportMediaControlError('That device is busy. Your current device is still active.')
+            } else if (err.name === 'NotAllowedError') {
+                reportMediaControlError('Permission denied for the selected device.')
+            } else {
+                reportMediaControlError('Could not switch camera. Your current device is still active.')
+            }
+        } else {
+            reportMediaControlError('Could not switch camera. Your current device is still active.')
+        }
     }
 }
 
@@ -158,14 +219,28 @@ export async function switchMicrophone(deviceId: string): Promise<void> {
     try {
         const call = useCallStore.getState()
         newTrack = await acquireAudioTrack(deviceId)
+        // Task 2: preserve mute state — do NOT call setMicMuted, store value unchanged
         newTrack.enabled = !call.micMuted
         await activePeer.replaceAudioTrack(newTrack)
         replaceTrackInStream(stream, oldTrack, newTrack)
         stopTrack(oldTrack)
         call.setSelectedMicrophoneDeviceId(deviceId)
     } catch (err) {
+        // Task 1: do NOT replace track on error — previous track stays active
         stopTrack(newTrack)
-        reportMediaControlError(`Khong the doi microphone: ${err instanceof Error ? err.message : 'unknown'}`)
+        if (err instanceof Error) {
+            if (err.name === 'OverconstrainedError') {
+                reportMediaControlError('Selected device is unavailable. Your current device is still active.')
+            } else if (err.name === 'NotReadableError') {
+                reportMediaControlError('That device is busy. Your current device is still active.')
+            } else if (err.name === 'NotAllowedError') {
+                reportMediaControlError('Permission denied for the selected device.')
+            } else {
+                reportMediaControlError('Could not switch microphone. Your current device is still active.')
+            }
+        } else {
+            reportMediaControlError('Could not switch microphone. Your current device is still active.')
+        }
     }
 }
 
@@ -295,6 +370,7 @@ function teardownMedia() {
     localStream?.getTracks().forEach((t) => t.stop())  // tắt đèn camera
     localStream = null
     cameraTrackBeforeShare = null
+    camOffBeforeShare = null
     isRestoringCamera = false
     pendingSignals = []   // bỏ tín hiệu đệm còn sót của cuộc vừa kết thúc
     clearSavedCall()   // FE-C: cuộc đã kết thúc → quên đi, F5 không khôi phục nữa

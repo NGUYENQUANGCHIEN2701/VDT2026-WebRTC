@@ -4,6 +4,7 @@ type BtnProps = { onClick: () => void; disabled?: boolean }
 type LabeledToolButtonProps = BtnProps & {
   active?: boolean
   loading?: boolean
+  title?: string
 }
 
 export function MuteButton({ muted, onClick }: { muted: boolean; onClick: () => void }) {
@@ -102,13 +103,13 @@ export function LabeledCamButton({ off, onClick }: { off: boolean; onClick: () =
   )
 }
 
-export function LabeledShareButton({ onClick, active = false, loading = false, disabled = false }: LabeledToolButtonProps) {
+export function LabeledShareButton({ onClick, active = false, loading = false, disabled = false, title }: LabeledToolButtonProps) {
   return (
     <button
       className={`call-labeled-btn ${active ? "active" : ""}`}
       onClick={onClick}
       type="button"
-      title="Chia sẻ màn hình"
+      title={title ?? "Chia sẻ màn hình"}
       disabled={disabled || loading}
       aria-pressed={active}
       aria-busy={loading || undefined}

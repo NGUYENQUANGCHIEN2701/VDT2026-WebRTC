@@ -23,6 +23,8 @@ let pendingInitialMembers = new Set<string>()
 let initialMembersCanInitiateOffer = false
 let meshSetup: Promise<void> | null = null
 let roomCameraTrackBeforeShare: MediaStreamTrack | null = null
+// Task 2 (Wave 4): store camOff before screen share overrides it
+let roomCamOffBeforeShare: boolean | null = null
 let isRestoringRoomCamera = false
 
 export function getRoomLocalStream(): MediaStream | null {
@@ -37,15 +39,20 @@ export function getActiveMesh(): MeshManager | null {
     return mesh
 }
 
+// Task 1 (Wave 4): show UI-SPEC-approved strings, never raw browser errors
 function reportRoomMediaControlError(message: string): void {
     useToastStore.getState().show(message, 'warning')
 }
 
+// Task 1 (Wave 4): unsupported-browser guard for getDisplayMedia
+export const canRoomScreenShare = (): boolean =>
+    typeof navigator !== 'undefined' &&
+    'mediaDevices' in navigator &&
+    'getDisplayMedia' in (navigator.mediaDevices as unknown as Record<string, unknown>)
+
 export async function startRoomScreenShare(): Promise<void> {
-    const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
-    const screenTrack = displayStream.getVideoTracks()[0]
-    if (!screenTrack) {
-        reportRoomMediaControlError('Khong co screen track de chia se')
+    if (!canRoomScreenShare()) {
+        reportRoomMediaControlError('Screen sharing is unavailable in this browser.')
         return
     }
 
@@ -53,12 +60,42 @@ export async function startRoomScreenShare(): Promise<void> {
     const stream = localStream
     const cameraTrack = stream ? getCurrentTrack(stream, 'video') : null
     if (!activeMesh || !stream || !cameraTrack) {
-        stopTrack(screenTrack)
-        reportRoomMediaControlError('Chua co group call de chia se man hinh')
+        reportRoomMediaControlError('Screen sharing is unavailable — call not connected.')
+        return
+    }
+
+    // Task 1: typed error handling for getDisplayMedia
+    let displayStream: MediaStream
+    try {
+        displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+    } catch (err) {
+        if (err instanceof Error) {
+            if (err.name === 'NotAllowedError') {
+                reportRoomMediaControlError(
+                    'Screen sharing was not allowed. Try Share screen again and choose a window or screen.'
+                )
+            } else if (err.name === 'NotReadableError' || err.name === 'AbortError') {
+                reportRoomMediaControlError(
+                    'Could not start screen sharing. Try another window or screen.'
+                )
+            } else {
+                reportRoomMediaControlError('Screen sharing failed.')
+            }
+        } else {
+            reportRoomMediaControlError('Screen sharing failed.')
+        }
+        return
+    }
+
+    const screenTrack = displayStream.getVideoTracks()[0]
+    if (!screenTrack) {
+        reportRoomMediaControlError('Screen sharing failed.')
         return
     }
 
     try {
+        // Task 2: store camOff BEFORE overriding it
+        roomCamOffBeforeShare = useRoomStore.getState().camOff
         roomCameraTrackBeforeShare = cameraTrack
         screenTrack.enabled = true
         await activeMesh.replaceVideoTrack(screenTrack)
@@ -67,12 +104,14 @@ export async function startRoomScreenShare(): Promise<void> {
 
         const room = useRoomStore.getState()
         room.setIsScreenSharing(true)
+        // Screen share explicitly turns video on even if camera was off (D-09)
         room.setCamOff(false)
         room.bumpLocalStream()
         sendRoomMediaState()
     } catch (err) {
         stopTrack(screenTrack)
-        reportRoomMediaControlError(`Khong the chia se man hinh: ${err instanceof Error ? err.message : 'unknown'}`)
+        roomCamOffBeforeShare = null
+        reportRoomMediaControlError('Screen sharing failed.')
     }
 }
 
@@ -86,21 +125,30 @@ export async function stopRoomScreenShare(): Promise<void> {
     isRestoringRoomCamera = true
     try {
         const room = useRoomStore.getState()
+        // Task 2: restore the ORIGINAL camOff value from before screen share started
+        const restoredCamOff = roomCamOffBeforeShare ?? room.camOff
+
         const reusableCamera =
             roomCameraTrackBeforeShare && roomCameraTrackBeforeShare.readyState !== 'ended'
                 ? roomCameraTrackBeforeShare
                 : null
         const cameraTrack = reusableCamera ?? await acquireVideoTrack(room.selectedCameraDeviceId ?? undefined)
-        cameraTrack.enabled = !room.camOff
+        // Restore track enabled state to match pre-share camOff
+        cameraTrack.enabled = !restoredCamOff
 
         await activeMesh.replaceVideoTrack(cameraTrack)
         replaceTrackInStream(stream, screenTrack, cameraTrack)
         stopTrack(screenTrack)
         roomCameraTrackBeforeShare = null
+        // Task 2: restore camOff in store to pre-share value
+        room.setCamOff(restoredCamOff)
+        roomCamOffBeforeShare = null
         room.setIsScreenSharing(false)
         room.bumpLocalStream()
+        // Task 2: relay restored media state to all remote participants
+        sendRoomMediaState()
     } catch (err) {
-        reportRoomMediaControlError(`Khong the khoi phuc camera: ${err instanceof Error ? err.message : 'unknown'}`)
+        reportRoomMediaControlError('Could not restore camera after screen share stopped.')
     } finally {
         isRestoringRoomCamera = false
     }
@@ -108,6 +156,7 @@ export async function stopRoomScreenShare(): Promise<void> {
 
 export async function switchRoomCamera(deviceId: string): Promise<void> {
     const room = useRoomStore.getState()
+    // Task 2: while screen sharing, only update selected device — will apply on stopRoomScreenShare
     if (room.isScreenSharing) {
         room.setSelectedCameraDeviceId(deviceId)
         return
@@ -128,8 +177,21 @@ export async function switchRoomCamera(deviceId: string): Promise<void> {
         room.setSelectedCameraDeviceId(deviceId)
         room.bumpLocalStream()
     } catch (err) {
+        // Task 1: do NOT replace track on error — previous track stays active
         stopTrack(newTrack)
-        reportRoomMediaControlError(`Khong the doi camera: ${err instanceof Error ? err.message : 'unknown'}`)
+        if (err instanceof Error) {
+            if (err.name === 'OverconstrainedError') {
+                reportRoomMediaControlError('Selected device is unavailable. Your current device is still active.')
+            } else if (err.name === 'NotReadableError') {
+                reportRoomMediaControlError('That device is busy. Your current device is still active.')
+            } else if (err.name === 'NotAllowedError') {
+                reportRoomMediaControlError('Permission denied for the selected device.')
+            } else {
+                reportRoomMediaControlError('Could not switch camera. Your current device is still active.')
+            }
+        } else {
+            reportRoomMediaControlError('Could not switch camera. Your current device is still active.')
+        }
     }
 }
 
@@ -143,14 +205,28 @@ export async function switchRoomMicrophone(deviceId: string): Promise<void> {
     try {
         const room = useRoomStore.getState()
         newTrack = await acquireAudioTrack(deviceId)
+        // Task 2: preserve mute state — do NOT call setMicMuted, store value unchanged
         newTrack.enabled = !room.micMuted
         await activeMesh.replaceAudioTrack(newTrack)
         replaceTrackInStream(stream, oldTrack, newTrack)
         stopTrack(oldTrack)
         room.setSelectedMicrophoneDeviceId(deviceId)
     } catch (err) {
+        // Task 1: do NOT replace track on error — previous track stays active
         stopTrack(newTrack)
-        reportRoomMediaControlError(`Khong the doi microphone: ${err instanceof Error ? err.message : 'unknown'}`)
+        if (err instanceof Error) {
+            if (err.name === 'OverconstrainedError') {
+                reportRoomMediaControlError('Selected device is unavailable. Your current device is still active.')
+            } else if (err.name === 'NotReadableError') {
+                reportRoomMediaControlError('That device is busy. Your current device is still active.')
+            } else if (err.name === 'NotAllowedError') {
+                reportRoomMediaControlError('Permission denied for the selected device.')
+            } else {
+                reportRoomMediaControlError('Could not switch microphone. Your current device is still active.')
+            }
+        } else {
+            reportRoomMediaControlError('Could not switch microphone. Your current device is still active.')
+        }
     }
 }
 
@@ -303,6 +379,7 @@ function teardownRoom(): void {
     localStream?.getTracks().forEach((track) => track.stop())
     localStream = null
     roomCameraTrackBeforeShare = null
+    roomCamOffBeforeShare = null
     isRestoringRoomCamera = false
     pendingSignals = []
     useRoomStore.getState().reset()

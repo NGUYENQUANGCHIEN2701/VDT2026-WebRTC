@@ -10,6 +10,7 @@ import {
   sendRecordingState,
   startScreenShare,
   stopScreenShare,
+  canScreenShare,
 } from "../realtime/callActions"
 import { LabeledMuteButton, LabeledCamButton, LabeledShareButton, LabeledMoreButton, LabeledHangUpButton } from "../components/call/CallButtons"
 import AudioOnlyBadge from "../components/call/AudioOnlyBadge"
@@ -22,6 +23,7 @@ import { useCallDuration } from "../hooks/useCallDuration"
 import { RecordingController } from "../webrtc/recording"
 import MorePanel from "../components/call/MorePanel"
 import RecordingPreviewModal from "../components/call/RecordingPreviewModal"
+import { useToastStore } from "../store/toastStore"
 
 function formatElapsed(startedAt: number | null): string {
   if (!startedAt) return "00:00"
@@ -137,13 +139,19 @@ export default function CallPage() {
     const remoteStream = getRemoteStream()
     const call = useCallStore.getState()
     if (!localStream || !remoteStream || !call.callId || typeof MediaRecorder === "undefined") {
-      call.setRecordingError("Recording is not ready yet.")
+      useToastStore.getState().show('Recording is not ready yet.', 'warning')
       return
     }
     const controller = new RecordingController({
       callId: call.callId,
       localLabel: "You",
       remoteLabel: remoteUserId ?? "Remote",
+      // Task 3: wire onerror — store sets error field, shown in UI with auto-dismiss
+      onError: (msg) => {
+        useCallStore.getState().setIsRecording(false)
+        useCallStore.getState().setRecordingStartedAt(null)
+        useCallStore.getState().setRecordingError(msg)
+      },
     })
     recordingControllerRef.current = controller
     controller.start(localStream, remoteStream)
@@ -163,6 +171,9 @@ export default function CallPage() {
       if (recordingPreview?.url) URL.revokeObjectURL(recordingPreview.url)
       setRecordingPreview({ url: result.previewUrl, mimeType: result.mimeType, durationMs: result.durationMs })
       call.setHasRecordingPreview(true)
+    } else {
+      // Task 3: empty chunks — no modal, toast only
+      useToastStore.getState().show('No recording data was captured.', 'warning')
     }
   }
 
@@ -279,7 +290,13 @@ export default function CallPage() {
       <footer className="call-1v1-bottom-bar">
         <LabeledMuteButton muted={micMuted} onClick={toggleMic} />
         <LabeledCamButton off={camOff} onClick={toggleCam} />
-        <LabeledShareButton onClick={toggleShare} active={isScreenSharing} loading={shareLoading} />
+        <LabeledShareButton
+          onClick={toggleShare}
+          active={isScreenSharing}
+          loading={shareLoading}
+          disabled={!canScreenShare()}
+          title={!canScreenShare() ? 'Screen sharing is unavailable in this browser.' : undefined}
+        />
         <LabeledMoreButton onClick={() => setMorePanelOpen((open) => !open)} active={morePanelOpen} />
         <LabeledHangUpButton onClick={endCall} />
       </footer>
@@ -290,7 +307,8 @@ export default function CallPage() {
         mode="1-1"
         onStartRecording={startRecording}
         onStopRecording={() => { void stopRecording() }}
-        recordingDisabled={!getRemoteStream()}
+        recordingDisabled={false}
+        remoteStreamReady={remoteStreamVersion > 0}
       />
 
       <RecordingPreviewModal

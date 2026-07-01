@@ -13,6 +13,8 @@ interface MorePanelProps {
   onStartRecording?: () => void
   onStopRecording?: () => void
   recordingDisabled?: boolean
+  /** Task 3 (Wave 4): pass from CallPage so the panel can gate Start recording */
+  remoteStreamReady?: boolean
 }
 
 function formatElapsed(startedAt: number | null): string {
@@ -34,16 +36,24 @@ export default function MorePanel({
   onStartRecording,
   onStopRecording,
   recordingDisabled = false,
+  remoteStreamReady = false,
 }: MorePanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
   const [now, setNow] = useState(Date.now())
+  // Task 3: per-selector switching spinners to give feedback without dropping call
+  const [switchingCamera, setSwitchingCamera] = useState(false)
+  const [switchingMicrophone, setSwitchingMicrophone] = useState(false)
 
   const call = useCallStore()
   const room = useRoomStore()
   const state = mode === "1-1" ? call : room
-  const mediaRecorderUnsupported = typeof MediaRecorder === "undefined"
-  const canSetSinkId = typeof HTMLMediaElement !== "undefined" && "setSinkId" in HTMLMediaElement.prototype
+
+  // Task 3: unsupported-browser guards
+  const recorderSupported = typeof MediaRecorder !== "undefined"
+  // Task 1: speaker entirely hidden (not disabled) when setSinkId unsupported (D-10)
+  const supportsSinkId =
+    typeof HTMLMediaElement !== "undefined" && "setSinkId" in HTMLMediaElement.prototype
 
   const cameras = useMemo(() => devices.filter((device) => device.kind === "videoinput"), [devices])
   const microphones = useMemo(() => devices.filter((device) => device.kind === "audioinput"), [devices])
@@ -95,15 +105,40 @@ export default function MorePanel({
   const selectedCamera = state.selectedCameraDeviceId ?? ""
   const selectedMicrophone = state.selectedMicrophoneDeviceId ?? ""
   const selectedSpeaker = state.selectedSpeakerDeviceId ?? ""
-  const startDisabled = recordingDisabled || mediaRecorderUnsupported
 
-  const onCameraChange = (deviceId: string) => {
-    if (mode === "1-1") void switchCamera(deviceId)
-    else void switchRoomCamera(deviceId)
+  // Task 3: Start recording disabled when:
+  //   a) MediaRecorder unsupported in this browser
+  //   b) remote stream not yet ready (call not media-connected)
+  //   c) caller explicitly sets recordingDisabled
+  const startDisabled = recordingDisabled || !recorderSupported || !remoteStreamReady
+
+  // Task 3: helper text follows UI-SPEC priority order
+  let recordingHelperText: string | null = null
+  if (!recorderSupported) {
+    recordingHelperText = "Recording is not supported in this browser. The call can continue."
+  } else if (!remoteStreamReady) {
+    recordingHelperText = "Recording starts after the call media is connected."
+  } else if (recordingDisabled) {
+    recordingHelperText = "Recording is unavailable."
   }
-  const onMicrophoneChange = (deviceId: string) => {
-    if (mode === "1-1") void switchMicrophone(deviceId)
-    else void switchRoomMicrophone(deviceId)
+
+  const onCameraChange = async (deviceId: string) => {
+    setSwitchingCamera(true)
+    try {
+      if (mode === "1-1") await switchCamera(deviceId)
+      else await switchRoomCamera(deviceId)
+    } finally {
+      setSwitchingCamera(false)
+    }
+  }
+  const onMicrophoneChange = async (deviceId: string) => {
+    setSwitchingMicrophone(true)
+    try {
+      if (mode === "1-1") await switchMicrophone(deviceId)
+      else await switchRoomMicrophone(deviceId)
+    } finally {
+      setSwitchingMicrophone(false)
+    }
   }
   const onSpeakerChange = (deviceId: string) => {
     if (mode === "1-1") call.setSelectedSpeakerDeviceId(deviceId || null)
@@ -125,7 +160,14 @@ export default function MorePanel({
 
       <section className="more-panel-section">
         <h3><Video size={16} /> Camera</h3>
-        <select className="more-panel-select" value={selectedCamera} onChange={(event) => onCameraChange(event.target.value)}>
+        {/* Task 3: disable selector while switching to prevent double-switch */}
+        <select
+          className="more-panel-select"
+          value={selectedCamera}
+          disabled={switchingCamera}
+          onChange={(event) => { void onCameraChange(event.target.value) }}
+          aria-busy={switchingCamera}
+        >
           <option value="">Default camera</option>
           {cameras.map((device, index) => (
             <option key={device.deviceId || index} value={device.deviceId}>
@@ -134,11 +176,19 @@ export default function MorePanel({
           ))}
         </select>
         {state.isScreenSharing && <p className="more-panel-note">Applies after sharing stops.</p>}
+        {switchingCamera && <p className="more-panel-note">Switching camera…</p>}
       </section>
 
       <section className="more-panel-section">
         <h3><Mic size={16} /> Microphone</h3>
-        <select className="more-panel-select" value={selectedMicrophone} onChange={(event) => onMicrophoneChange(event.target.value)}>
+        {/* Task 3: disable selector while switching */}
+        <select
+          className="more-panel-select"
+          value={selectedMicrophone}
+          disabled={switchingMicrophone}
+          onChange={(event) => { void onMicrophoneChange(event.target.value) }}
+          aria-busy={switchingMicrophone}
+        >
           <option value="">Default microphone</option>
           {microphones.map((device, index) => (
             <option key={device.deviceId || index} value={device.deviceId}>
@@ -147,9 +197,11 @@ export default function MorePanel({
           ))}
         </select>
         {state.micMuted && <p className="more-panel-note">Microphone will stay muted.</p>}
+        {switchingMicrophone && <p className="more-panel-note">Switching microphone…</p>}
       </section>
 
-      {canSetSinkId && (
+      {/* Task 3: speaker entirely hidden (not disabled) when setSinkId unsupported — D-10 */}
+      {supportsSinkId && (
         <section className="more-panel-section">
           <h3><MonitorSpeaker size={16} /> Speaker</h3>
           <select className="more-panel-select" value={selectedSpeaker} onChange={(event) => onSpeakerChange(event.target.value)}>
@@ -175,14 +227,19 @@ export default function MorePanel({
             </div>
           ) : (
             <>
-              <button className="app-button" type="button" onClick={onStartRecording} disabled={startDisabled}>
+              <button
+                className="app-button"
+                type="button"
+                onClick={onStartRecording}
+                disabled={startDisabled}
+                aria-disabled={startDisabled}
+              >
                 <Download size={16} />
                 Start recording
               </button>
-              {startDisabled && (
-                <p className="more-panel-note">
-                  Recording is available after the remote stream starts and your browser supports MediaRecorder.
-                </p>
+              {/* Task 3: helper text per UI-SPEC */}
+              {recordingHelperText && (
+                <p className="more-panel-note">{recordingHelperText}</p>
               )}
             </>
           )}
