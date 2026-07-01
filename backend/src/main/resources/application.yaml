@@ -42,7 +42,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus
 
 jwt:
   secret: ${JWT_SECRET:dev-only-secret-not-for-prod-change-me-min-32-chars-12345}
