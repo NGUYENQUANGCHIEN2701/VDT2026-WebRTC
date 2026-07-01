@@ -1,5 +1,7 @@
 package com.vdt.webrtc.user;
 
+import java.util.List;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,8 +21,11 @@ public class UserController {
     @GetMapping("/me")
     public UserProfile getCurrentUser(Authentication authentication) {
         String username = authentication.getName();
-        UserProfile user = userService.findUserProfileByUsername(username);
-        return user;
+        return userService.findUserProfileByUsername(username);
     }
 
+    @GetMapping
+    public List<UserProfile> getAllStandardUsers() {
+        return userService.findAllStandardUsers();
+    }
 }
