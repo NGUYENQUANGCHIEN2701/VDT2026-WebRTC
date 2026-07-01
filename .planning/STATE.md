@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 8
-current_phase_name: Screen Share, Recording & Device Control
-status: executing
-stopped_at: Phase 8 Wave 4 (08-04) COMPLETE -- Wave 5 ready to execute
-last_updated: "2026-07-01T02:20:00.000Z"
+current_phase: 9
+current_phase_name: Monitoring, CI/CD & Full Delivery
+status: planning
+stopped_at: Phase 8 CLOSED -- Phase 9 ready to plan
+last_updated: "2026-07-01T10:32:00.000Z"
 last_activity: 2026-07-01
-last_activity_desc: Phase 8 Wave 4 (08-04) COMPLETE -- polish, error handling, state preservation, responsive CSS
+last_activity_desc: Phase 8 Wave 5 (08-05) COMPLETE -- full verification PASS, Phase 8 CLOSED
 progress:
   total_phases: 9
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 37
-  completed_plans: 33
-  percent: 89
+  completed_plans: 37
+  percent: 97
 ---
 
 # Project State
@@ -24,22 +24,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-11)
 
 **Core value:** Two users can make a stable realtime 1-1 peer-to-peer WebRTC video call. If everything else breaks, the 1-1 call must still work.
-**Current focus:** Phase 8 planning -- Screen Share, Recording & Device Control
+**Current focus:** Phase 9 planning -- Monitoring, CI/CD & Full Delivery
 
 ## Current Position
 
-Phase: 8 of 9 (Screen Share, Recording & Device Control) -- EXECUTING
-Status: Wave 5 -- manual verification ready
-Next: Execute 08-05-PLAN.md (end-to-end manual checklist and regression)
-Last activity: 2026-07-01 -- 08-04 polish and hardening complete
+Phase: 9 of 9 (Monitoring, CI/CD & Full Delivery) -- PLANNING
+Status: Phase 8 CLOSED -- Phase 9 not yet planned
+Next: Plan Phase 9 waves (docker compose full stack, Prometheus/Grafana, GitHub Actions CI, Playwright E2E)
+Last activity: 2026-07-01 -- 08-05 full verification PASS; Phase 8 CLOSED
 
-Progress: [########-] 89% (33/37 plans)
+Progress: [#########] 97% (37/37 plans through Phase 8; Phase 9 TBD)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 32
+- Total plans completed: 37
 - Average duration: -
 - Total execution time: -
 
@@ -54,13 +54,13 @@ Progress: [########-] 89% (33/37 plans)
 | 5. Call History & Admin | 4/4 | Complete |
 | 6. Horizontal Scaling | 4/4 | Complete |
 | 7. Group Mesh Calls | 5/5 | Complete |
-| 8. Screen Share, Recording & Device Control | 4/5 | Executing |
+| 8. Screen Share, Recording & Device Control | 5/5 | Complete ✅ |
 | 9. Monitoring, CI/CD & Full Delivery | 0/TBD | Not started |
 
 **Recent Trend:**
 
-- Last completed plan: 08-04 -- Polish and hardening (Wave 4)
-- Next plan: 08-05 -- End-to-end manual verification (Wave 5)
+- Last completed plan: 08-05 -- Full verification (Wave 5)
+- Next plan: Phase 9 Wave 1 (to be planned)
 
 ## Accumulated Context
 
@@ -74,17 +74,17 @@ Recent decisions affecting current work:
 - [Roadmap]: Server-authoritative call state machine in Redis (Phase 4) precedes history (5), scaling (6), and mesh (7).
 - [Roadmap]: Phase 7 uses a separate room path so 1-1 CallService behavior remains intact.
 - [Roadmap]: Phase 7 plans are complete: 5 waves covering RED tests, backend room state/signaling, frontend mesh core, UX, and full verification.
+- [Roadmap]: Phase 8 plans are complete: 5 waves covering RED tests, foundation, recording engine, polish, and full verification.
 
 ### Pending Todos
 
-- Phase 8 Wave 4 (08-04) COMPLETE. Execute 08-05-PLAN.md next.
+- Phase 8 Wave 5 (08-05) COMPLETE. Plan and execute Phase 9 next.
 
 ### Blockers/Concerns
 
-- Phase 7: Protect existing 1-1 call behavior while adding mesh seams.
-- Phase 7: Verify 4-user cross-instance mesh against the Phase 6 nginx/Redis topology.
-- Phase 7: Enforce the 4-user room cap server-side and prove 5th-user rejection.
-- Phase 8: Recording scope decision (local-only vs composited) has real effort implications; decide during phase planning.
+- Phase 9: Playwright E2E with fake media in CI requires careful Docker networking setup.
+- Phase 9: coturn relay range must be mappable in Docker Compose (limit relay port range).
+- Phase 9: Grafana provisioning as code (datasource + dashboards) needs validation.
 
 ### Quick Tasks Completed
 
@@ -104,6 +104,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-01T02:20:00.000Z
-Stopped at: Phase 8 Wave 5 ready to execute
-Resume file: .planning/phases/08-screen-share-recording-device-control/08-05-PLAN.md
+Last session: 2026-07-01T10:32:00.000Z
+Stopped at: Phase 8 CLOSED -- Phase 9 ready to plan
+Resume file: .planning/phases/ (Phase 9 not yet created -- plan first)
