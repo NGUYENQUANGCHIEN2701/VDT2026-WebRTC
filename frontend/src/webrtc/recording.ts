@@ -214,6 +214,31 @@ export class RecordingController {
         return this._isRecording
     }
 
+    // replaceTrackInStream swaps tracks on the same MediaStream object, but some browsers
+    // won't resume decoding without a forced srcObject reassignment (same fix as self-view).
+    refreshLocalStream(localStream: MediaStream): void {
+        if (!this._isRecording || !this.localVideo) return
+        this.localVideo.srcObject = null
+        this.localVideo.srcObject = localStream
+        const playResult = this.localVideo.play()
+        if (playResult && typeof playResult.catch === 'function') {
+            playResult.catch(() => { })
+        }
+    }
+
+    // Same fix as refreshLocalStream, for a remote peer's track replacement.
+    refreshRemoteStream(label: string, stream: MediaStream): void {
+        if (!this._isRecording) return
+        const remote = this.remoteVideos.find((r) => r.label === label)
+        if (!remote) return
+        remote.video.srcObject = null
+        remote.video.srcObject = stream
+        const playResult = remote.video.play()
+        if (playResult && typeof playResult.catch === 'function') {
+            playResult.catch(() => { })
+        }
+    }
+
     start(localStream: MediaStream, remoteStreams: MediaStream | MediaStream[], callId?: string, remoteLabels?: string[]): void {
         if (this._isRecording) return
         if (callId) this.metadata.callId = callId

@@ -88,6 +88,26 @@ export default function GroupCallPage() {
   }, [recordingPreview?.url])
 
   useEffect(() => {
+    const localStream = getRoomLocalStream()
+    if (localStream) recordingControllerRef.current?.refreshLocalStream(localStream)
+  }, [localStreamVersion])
+
+  // Remote đổi track giữa lúc ghi hình (camera<->screen) — video offscreen của
+  // recorder cần ép gán lại srcObject, giống refreshLocalStream phía trên.
+  const remoteStreamVersionsRef = useRef<Record<string, number>>({})
+  useEffect(() => {
+    const prev = remoteStreamVersionsRef.current
+    for (const m of Object.values(members)) {
+      if (m.username === selfId) continue
+      if (prev[m.username] !== undefined && prev[m.username] !== m.streamVersion) {
+        const stream = getRoomRemoteStream(m.username)
+        if (stream) recordingControllerRef.current?.refreshRemoteStream(m.username, stream)
+      }
+      prev[m.username] = m.streamVersion
+    }
+  }, [members, selfId])
+
+  useEffect(() => {
     return () => {
       recordingControllerRef.current?.cleanup()
       if (recordingPreviewUrlRef.current) URL.revokeObjectURL(recordingPreviewUrlRef.current)

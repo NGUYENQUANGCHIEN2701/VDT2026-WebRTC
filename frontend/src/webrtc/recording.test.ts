@@ -82,6 +82,8 @@ type RecordingModule = {
     }) => {
         start(localStream: MediaStream, remoteStreams: MediaStream | MediaStream[], callId?: string, remoteLabels?: string[]): void
         stop(): void
+        refreshLocalStream(stream: MediaStream): void
+        refreshRemoteStream(label: string, stream: MediaStream): void
         isRecording: boolean
     }
     selectMimeType(): string
@@ -437,5 +439,139 @@ describe('RecordingController — sharer-aware draw path', () => {
         expect(ctx.drawImage).toHaveBeenCalledTimes(2)
 
         ctrl.stop()
+    })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════
+// refreshLocalStream — re-attach offscreen localVideo after an in-place track
+// swap (bug fix: recording-layout-not-syncing, root cause #2 — camera<->screen
+// replaceTrackInStream mutates the same MediaStream object, and some browsers
+// won't notice the swapped track on an already-playing <video> without a
+// forced srcObject reassignment, same workaround CallPage.tsx uses for its
+// own on-screen self-view on localStreamVersion bump)
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('RecordingController — refreshLocalStream', () => {
+    it('forces a srcObject reassignment on the offscreen local video while recording', () => {
+        // Capture every <video> element created via document.createElement so we
+        // can reach the controller's private, never-appended-to-DOM localVideo —
+        // createVideo() in recording.ts intentionally keeps offscreen video
+        // elements detached from the document (canvas draw source only).
+        const createdVideos: HTMLVideoElement[] = []
+        const originalCreateElement = document.createElement.bind(document)
+        vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+            const el = originalCreateElement(tag)
+            if (tag === 'video') createdVideos.push(el as HTMLVideoElement)
+            return el
+        })
+
+        const ctrl = new mod.RecordingController()
+        const localStream = fakeStream(['audio', 'video'])
+        ctrl.start(localStream, fakeStream(['video']), 'call-refresh')
+
+        // First created <video> is the local one (createVideo(localStream) runs
+        // before the remoteStreams.map(createVideo) call in start()).
+        const localVideo = createdVideos[0] as HTMLVideoElement & { srcObject: MediaStream | null }
+        // Sanity: start() already attached the original stream.
+        expect(localVideo.srcObject).toBe(localStream)
+
+        const swappedStream = fakeStream(['audio', 'video'])
+        const srcObjectAssignments: (MediaStream | null)[] = []
+        Object.defineProperty(localVideo, 'srcObject', {
+            configurable: true,
+            get() { return srcObjectAssignments[srcObjectAssignments.length - 1] ?? null },
+            set(value: MediaStream | null) { srcObjectAssignments.push(value) },
+        })
+
+        ctrl.refreshLocalStream(swappedStream)
+
+        // Must null it out first, then reassign — not just a single direct set —
+        // so browsers that ignore in-place track swaps are forced to re-notice.
+        expect(srcObjectAssignments).toEqual([null, swappedStream])
+
+        ctrl.stop()
+    })
+
+    it('is a no-op when not currently recording (no crash, no stale video access)', () => {
+        const ctrl = new mod.RecordingController()
+        expect(() => ctrl.refreshLocalStream(fakeStream(['video']))).not.toThrow()
+    })
+
+    it('is a no-op after stop() even if called with a stream', () => {
+        const ctrl = new mod.RecordingController()
+        ctrl.start(fakeStream(['audio', 'video']), fakeStream(['video']), 'call-refresh-2')
+        ctrl.stop()
+
+        expect(() => ctrl.refreshLocalStream(fakeStream(['video']))).not.toThrow()
+    })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════
+// refreshRemoteStream — same re-attach fix, applied to a remote participant's
+// offscreen video (matched by label), for remote-side track replacements.
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('RecordingController — refreshRemoteStream', () => {
+    it('forces a srcObject reassignment on the matching remote video while recording', () => {
+        const createdVideos: HTMLVideoElement[] = []
+        const originalCreateElement = document.createElement.bind(document)
+        vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+            const el = originalCreateElement(tag)
+            if (tag === 'video') createdVideos.push(el as HTMLVideoElement)
+            return el
+        })
+
+        const ctrl = new mod.RecordingController()
+        ctrl.start(
+            fakeStream(['audio', 'video']),
+            [fakeStream(['video']), fakeStream(['video'])],
+            'call-refresh-remote',
+            ['bob', 'carol'],
+        )
+
+        // createdVideos[0] = local, [1] = bob, [2] = carol (creation order in start()).
+        const bobVideo = createdVideos[1] as HTMLVideoElement & { srcObject: MediaStream | null }
+        const carolVideo = createdVideos[2] as HTMLVideoElement & { srcObject: MediaStream | null }
+
+        const bobAssignments: (MediaStream | null)[] = []
+        Object.defineProperty(bobVideo, 'srcObject', {
+            configurable: true,
+            get() { return bobAssignments[bobAssignments.length - 1] ?? null },
+            set(value: MediaStream | null) { bobAssignments.push(value) },
+        })
+        const carolAssignments: (MediaStream | null)[] = []
+        Object.defineProperty(carolVideo, 'srcObject', {
+            configurable: true,
+            get() { return carolAssignments[carolAssignments.length - 1] ?? null },
+            set(value: MediaStream | null) { carolAssignments.push(value) },
+        })
+
+        const swappedStream = fakeStream(['audio', 'video'])
+        ctrl.refreshRemoteStream('bob', swappedStream)
+
+        // Only bob's video is reassigned — carol's is untouched.
+        expect(bobAssignments).toEqual([null, swappedStream])
+        expect(carolAssignments).toEqual([])
+
+        ctrl.stop()
+    })
+
+    it('is a no-op when the label does not match any remote video (no crash)', () => {
+        const ctrl = new mod.RecordingController()
+        ctrl.start(
+            fakeStream(['audio', 'video']),
+            [fakeStream(['video'])],
+            'call-refresh-remote-2',
+            ['bob'],
+        )
+
+        expect(() => ctrl.refreshRemoteStream('unknown', fakeStream(['video']))).not.toThrow()
+
+        ctrl.stop()
+    })
+
+    it('is a no-op when not currently recording', () => {
+        const ctrl = new mod.RecordingController()
+        expect(() => ctrl.refreshRemoteStream('bob', fakeStream(['video']))).not.toThrow()
     })
 })
