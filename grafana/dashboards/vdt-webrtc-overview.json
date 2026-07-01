@@ -1,0 +1,96 @@
+{
+  "uid": "vdt-webrtc-overview",
+  "title": "VDT WebRTC Overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "tags": ["vdt-webrtc"],
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "WS Sessions per Instance",
+      "description": "Active WebSocket signaling sessions per backend instance — headline scale-out panel (Phase 6).",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "vdt_ws_sessions_active",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Online Users",
+      "description": "Proxy metric: one WS session per online user in this system's connection model, so sum(vdt_ws_sessions_active) approximates online-user count. No dedicated online-users Micrometer metric exists yet.",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "sum(vdt_ws_sessions_active)",
+          "legendFormat": "online users (proxy)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Active Calls by Type",
+      "description": "Currently active calls split by call_type (1-1 vs group) per D-03.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "vdt_calls_active",
+          "legendFormat": "{{call_type}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Call Success Rate",
+      "description": "completed / all terminal call outcomes (D-04 formula), rate over a 5m window across all 6 end-reasons.",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "sum(rate(vdt_calls_ended_total{end_reason=\"completed\"}[5m])) / sum(rate(vdt_calls_ended_total[5m]))",
+          "legendFormat": "success rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit" },
+        "overrides": []
+      }
+    }
+  ]
+}
