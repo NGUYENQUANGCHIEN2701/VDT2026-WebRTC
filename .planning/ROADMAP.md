@@ -316,7 +316,23 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. GitHub Actions CI builds, runs backend + frontend tests, and packages Docker images on every push
   4. A Playwright E2E test places a real call between two browser contexts (fake media devices) and passes in CI
 
-**Plans**: TBD
+**Plans:** 5 plans
+
+**Wave 1** *(parallel — no file overlap)*
+
+- [ ] 09-01-PLAN.md — Backend metrics instrumentation: Micrometer Counter/Gauge wiring (vdt_calls_ended_total, vdt_calls_active, vdt_ws_sessions_active), instance/call_type/end_reason tags, replaces AtomicLong CallMetrics
+- [ ] 09-02-PLAN.md — Full-stack compose + observability infra: frontend Dockerfile folded into nginx (D-02), Prometheus + Grafana services with provisioning-as-code, VDT WebRTC Overview dashboard
+- [ ] 09-03-PLAN.md — GitHub Actions CI: backend (mvn verify), frontend (lint+vitest+build), docker-build (no push) as 3 parallel jobs on push/PR to main
+
+**Wave 2** *(blocked on 09-03 completion — shares .github/workflows/ci.yml)*
+
+- [ ] 09-04-PLAN.md — Playwright E2E: data-testid selectors, 2-context fake-media 1-1 call spec, 4th CI job (GitHub Actions service containers, no full compose)
+
+**Wave 3** *(blocked on Waves 1-2 completion)*
+
+- [ ] 09-05-PLAN.md — Full suite gate + manual checkpoint: automated suites green, docker compose up walkthrough, docs/setup.md update, 09-VALIDATION.md + ROADMAP closure
+
+**UI hint**: no (containerizes existing frontend; adds a data-testid selector; no new screens)
 
 ## Progress
 
