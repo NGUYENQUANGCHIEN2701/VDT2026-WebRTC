@@ -15,7 +15,7 @@ import {
   toggleRoomMic,
   canRoomScreenShare,
 } from "../realtime/roomActions"
-import { useRoomStore } from "../store/roomStore"
+import { getActiveSharer, useRoomStore } from "../store/roomStore"
 import { startStatsPolling, type StatsSample } from "../webrtc/stats"
 import MorePanel from "../components/call/MorePanel"
 import "./GroupCallStyles.css"
@@ -67,6 +67,10 @@ export default function GroupCallPage() {
   const roster = useMemo(() => Object.values(members), [members])
   const remoteMembers = roster.filter((m) => m.username !== selfId)
   const alone = Boolean(roomId && roster.length === 1)
+  // Quick task 260701-u3j: who is ACTUALLY sharing (self or a specific remote),
+  // not just this client's own local isScreenSharing flag — drives presentation
+  // mode for every participant in the room, not only the sharer's own tab.
+  const activeSharer = getActiveSharer(members, selfId, isScreenSharing)
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000)
@@ -142,7 +146,11 @@ export default function GroupCallPage() {
     const controller = new RecordingController({
       callId: room.roomId,
       localLabel: "You",
-      isScreenSharing: () => useRoomStore.getState().isScreenSharing,
+      getActiveSharer: () => {
+        const s = useRoomStore.getState()
+        const sharer = getActiveSharer(s.members, s.selfId, s.isScreenSharing)
+        return sharer === null ? null : sharer === s.selfId ? 'local' : sharer
+      },
       onError: (msg) => {
         useRoomStore.getState().setIsRecording(false)
         useRoomStore.getState().setRecordingStartedAt(null)
@@ -234,12 +242,12 @@ export default function GroupCallPage() {
         <MoreVertical size={18} style={{ cursor: 'pointer' }} onClick={() => setMorePanelOpen((open) => !open)} />
       </div>
 
-      {(isScreenSharing || isRecording) && (
+      {(activeSharer !== null || isRecording) && (
         <div className="call-hud-stack">
-          {isScreenSharing && (
+          {activeSharer !== null && (
             <div className="hud-pill hud-pill--share">
               <MonitorUp size={16} />
-              Sharing screen
+              {activeSharer === selfId ? 'Sharing screen' : `${activeSharer} is sharing`}
             </div>
           )}
           {isRecording && (
@@ -252,50 +260,101 @@ export default function GroupCallPage() {
       )}
 
       {/* Video Grid */}
-      {isScreenSharing ? (
+      {activeSharer !== null ? (
         <section className="presentation-layout">
-          <div className="presentation-main">
-            <ParticipantTile
-              username={selfId ?? ""}
-              isSelf={true}
-              stream={getRoomLocalStream()}
-              streamVersion={localStreamVersion + selfVideoVersion.current}
-              micMuted={micMuted}
-              camOff={camOff}
-              connectionState={'connected'}
-              isScreenSharing={true}
-            />
-          </div>
-          <div className="presentation-sidebar">
-            <div className="presentation-speaker">
-              <ParticipantTile
-                username={selfId ?? ""}
-                isSelf={true}
-                stream={getRoomLocalStream()}
-                streamVersion={localStreamVersion + selfVideoVersion.current}
-                micMuted={micMuted}
-                camOff={true}
-                connectionState={'connected'}
-              />
-              <div className="speaker-badge">Người đang nói</div>
-            </div>
-            <div className="presentation-thumbnails">
-              {remoteMembers.map((member) => (
-                <div key={member.username} className="presentation-thumbnail-wrapper">
+          {activeSharer === selfId ? (
+            <>
+              <div className="presentation-main">
+                <ParticipantTile
+                  username={selfId ?? ""}
+                  isSelf={true}
+                  stream={getRoomLocalStream()}
+                  streamVersion={localStreamVersion + selfVideoVersion.current}
+                  micMuted={micMuted}
+                  camOff={camOff}
+                  connectionState={'connected'}
+                  isScreenSharing={true}
+                />
+              </div>
+              <div className="presentation-sidebar">
+                <div className="presentation-speaker">
                   <ParticipantTile
-                    username={member.username}
+                    username={selfId ?? ""}
+                    isSelf={true}
+                    stream={getRoomLocalStream()}
+                    streamVersion={localStreamVersion + selfVideoVersion.current}
+                    micMuted={micMuted}
+                    camOff={true}
+                    connectionState={'connected'}
+                  />
+                  <div className="speaker-badge">Người đang nói</div>
+                </div>
+                <div className="presentation-thumbnails">
+                  {remoteMembers.map((member) => (
+                    <div key={member.username} className="presentation-thumbnail-wrapper">
+                      <ParticipantTile
+                        username={member.username}
+                        isSelf={false}
+                        stream={getRoomRemoteStream(member.username)}
+                        streamVersion={member.streamVersion}
+                        micMuted={member.micMuted}
+                        camOff={member.camOff}
+                        connectionState={member.connectionState}
+                        sinkId={selectedSpeakerDeviceId}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="presentation-main">
+                <ParticipantTile
+                  username={activeSharer ?? ""}
+                  isSelf={false}
+                  stream={getRoomRemoteStream(activeSharer ?? "")}
+                  streamVersion={members[activeSharer ?? ""]?.streamVersion ?? 0}
+                  micMuted={members[activeSharer ?? ""]?.micMuted ?? false}
+                  camOff={members[activeSharer ?? ""]?.camOff ?? false}
+                  connectionState={members[activeSharer ?? ""]?.connectionState ?? 'connecting'}
+                  sinkId={selectedSpeakerDeviceId}
+                  isScreenSharing={true}
+                />
+              </div>
+              <div className="presentation-sidebar">
+                <div className="presentation-speaker">
+                  <ParticipantTile
+                    username={activeSharer ?? ""}
                     isSelf={false}
-                    stream={getRoomRemoteStream(member.username)}
-                    streamVersion={member.streamVersion}
-                    micMuted={member.micMuted}
-                    camOff={member.camOff}
-                    connectionState={member.connectionState}
+                    stream={getRoomRemoteStream(activeSharer ?? "")}
+                    streamVersion={members[activeSharer ?? ""]?.streamVersion ?? 0}
+                    micMuted={members[activeSharer ?? ""]?.micMuted ?? false}
+                    camOff={true}
+                    connectionState={members[activeSharer ?? ""]?.connectionState ?? 'connecting'}
                     sinkId={selectedSpeakerDeviceId}
                   />
+                  <div className="speaker-badge">Người đang nói</div>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="presentation-thumbnails">
+                  {remoteMembers.map((member) => (
+                    <div key={member.username} className="presentation-thumbnail-wrapper">
+                      <ParticipantTile
+                        username={member.username}
+                        isSelf={false}
+                        stream={getRoomRemoteStream(member.username)}
+                        streamVersion={member.streamVersion}
+                        micMuted={member.micMuted}
+                        camOff={member.camOff}
+                        connectionState={member.connectionState}
+                        sinkId={selectedSpeakerDeviceId}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </section>
       ) : (
         <section style={{ position: 'absolute', inset: '80px 24px 140px', display: 'grid', gap: 16, padding: 0, ...gridStyle(roster.length), transition: 'grid-template-columns 0.2s ease' }}>

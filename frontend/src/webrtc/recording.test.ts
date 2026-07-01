@@ -73,14 +73,25 @@ type Rect = { x: number, y: number, width: number, height: number }
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 type RecordingModule = {
-    RecordingController: new () => {
-        start(localStream: MediaStream, remoteStream: MediaStream, callId: string): void
+    RecordingController: new (options?: {
+        callId?: string
+        localLabel?: string
+        remoteLabel?: string
+        onError?: (msg: string) => void
+        getActiveSharer?: () => 'local' | string | null
+    }) => {
+        start(localStream: MediaStream, remoteStreams: MediaStream | MediaStream[], callId?: string, remoteLabels?: string[]): void
         stop(): void
         isRecording: boolean
     }
     selectMimeType(): string
     computeGridLayout(count: number, width: number, height: number): Rect[]
     computePresentationLayout(remoteCount: number, width: number, height: number): { main: Rect, speaker: Rect, thumbnails: Rect[] }
+    selectSharerVideo(
+        sharer: 'local' | string | null,
+        localVideo: HTMLVideoElement | null,
+        remoteVideos: { video: HTMLVideoElement, label: string }[],
+    ): HTMLVideoElement | null
 }
 
 let mod: RecordingModule
@@ -289,5 +300,142 @@ describe('computePresentationLayout', () => {
         const totalGap = THUMB_GAP * (widths.length - 1)
         const totalThumbWidth = widths.reduce((sum, w) => sum + w, 0) + totalGap
         expect(totalThumbWidth).toBeCloseTo(sidebarWidth, 0)
+    })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════
+// selectSharerVideo — pure helper resolving which video element is the actual sharer
+// (quick task 260701-u3j: RecordingController must draw whoever is actually sharing,
+// not unconditionally the local stream)
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('selectSharerVideo', () => {
+    function fakeVideo(): HTMLVideoElement {
+        return {} as HTMLVideoElement
+    }
+
+    it("sharer='local' selects the local video element", () => {
+        const localVideo = fakeVideo()
+        const remoteVideos = [{ video: fakeVideo(), label: 'bob' }]
+        const result = mod.selectSharerVideo('local', localVideo, remoteVideos)
+        expect(result).toBe(localVideo)
+    })
+
+    it("sharer='bob' with remoteLabels ['bob', 'carol'] selects remoteVideos[0] (bob's element), not localVideo", () => {
+        const localVideo = fakeVideo()
+        const bobVideo = fakeVideo()
+        const carolVideo = fakeVideo()
+        const remoteVideos = [
+            { video: bobVideo, label: 'bob' },
+            { video: carolVideo, label: 'carol' },
+        ]
+        const result = mod.selectSharerVideo('bob', localVideo, remoteVideos)
+        expect(result).toBe(bobVideo)
+        expect(result).not.toBe(localVideo)
+    })
+
+    it('sharer=null (no one sharing / stale state) returns null — caller falls back to grid mode', () => {
+        const localVideo = fakeVideo()
+        const remoteVideos = [{ video: fakeVideo(), label: 'bob' }]
+        const result = mod.selectSharerVideo(null, localVideo, remoteVideos)
+        expect(result).toBeNull()
+    })
+
+    it('sharer names a remote not present in remoteVideos returns null (defensive, no crash)', () => {
+        const localVideo = fakeVideo()
+        const remoteVideos = [{ video: fakeVideo(), label: 'bob' }]
+        const result = mod.selectSharerVideo('carol', localVideo, remoteVideos)
+        expect(result).toBeNull()
+    })
+})
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RecordingController — draws the actual sharer (local or a named remote)
+// ══════════════════════════════════════════════════════════════════════════════
+
+describe('RecordingController — sharer-aware draw path', () => {
+    function stubCanvasContext() {
+        const drawImageCalls: unknown[] = []
+        const ctx = {
+            fillStyle: '',
+            font: '',
+            fillRect: vi.fn(),
+            fillText: vi.fn(),
+            drawImage: vi.fn((video: unknown) => { drawImageCalls.push(video) }),
+        }
+        HTMLCanvasElement.prototype.getContext = vi.fn(() => ctx) as unknown as typeof HTMLCanvasElement.prototype.getContext
+        return { ctx, drawImageCalls }
+    }
+
+    // draw() only issues ctx.drawImage when the video's readyState is
+    // >= HAVE_CURRENT_DATA; force that on the jsdom HTMLVideoElement prototype
+    // stub so real (non-placeholder) draw calls are exercised.
+    beforeEach(() => {
+        Object.defineProperty(HTMLVideoElement.prototype, 'readyState', {
+            configurable: true,
+            get: () => 2, // HAVE_CURRENT_DATA
+        })
+    })
+
+    it("getActiveSharer: () => 'local' draws using the local video for both main and speaker regions", () => {
+        const { ctx } = stubCanvasContext()
+        const ctrl = new mod.RecordingController({ getActiveSharer: () => 'local' })
+        ctrl.start(
+            fakeStream(['audio', 'video']),
+            [fakeStream(['video'])],
+            'call-1',
+            ['bob'],
+        )
+
+        // Flush the rAF-scheduled draw() call synchronously (requestAnimationFrame is stubbed to invoke nothing automatically).
+        const rafMock = requestAnimationFrame as unknown as { mock: { calls: unknown[][] } }
+        expect(rafMock.mock.calls.length).toBeGreaterThan(0)
+
+        // drawImage should have been called at least twice (main + speaker), both times
+        // with the SAME target video element reference across both calls that use the
+        // sharer stream (main/speaker) — since local is the only stream registered as
+        // "local", every drawImage call in a 1-remote scenario targeting the sharer
+        // uses the same element reference each time.
+        expect(ctx.drawImage).toHaveBeenCalled()
+        const targets = ctx.drawImage.mock.calls.map((call) => call[0])
+        // main + speaker both draw the sharer video — first two calls (before thumbnails) must be equal
+        expect(targets[0]).toBe(targets[1])
+
+        ctrl.stop()
+    })
+
+    it("getActiveSharer: () => 'bob' with remoteLabels ['bob', 'carol'] selects remoteVideos[0] (bob), not localVideo", () => {
+        const { ctx } = stubCanvasContext()
+        const ctrl = new mod.RecordingController({ getActiveSharer: () => 'bob' })
+        ctrl.start(
+            fakeStream(['audio', 'video']),
+            [fakeStream(['video']), fakeStream(['video'])],
+            'call-2',
+            ['bob', 'carol'],
+        )
+
+        expect(ctx.drawImage).toHaveBeenCalled()
+        const targets = ctx.drawImage.mock.calls.map((call) => call[0])
+        // main + speaker draw bob's video (not local) — first two calls equal each other
+        expect(targets[0]).toBe(targets[1])
+
+        ctrl.stop()
+    })
+
+    it('getActiveSharer: () => null falls back to grid mode (not presentation layout) — treated the same as sharing=false', () => {
+        const { ctx } = stubCanvasContext()
+        const ctrl = new mod.RecordingController({ getActiveSharer: () => null })
+        ctrl.start(
+            fakeStream(['audio', 'video']),
+            [fakeStream(['video'])],
+            'call-3',
+            ['bob'],
+        )
+
+        // In grid mode with 2 total videos (local + 1 remote), computeGridLayout(2, ...)
+        // draws exactly 2 rects — one per participant, no separate main+speaker+thumbnail draws.
+        expect(ctx.drawImage).toHaveBeenCalledTimes(2)
+
+        ctrl.stop()
     })
 })

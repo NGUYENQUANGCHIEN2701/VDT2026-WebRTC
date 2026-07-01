@@ -4,8 +4,16 @@ type RecordingControllerOptions = {
     remoteLabel?: string
     /** Task 3 (Wave 4): callback invoked if MediaRecorder fires an onerror event */
     onError?: (msg: string) => void
-    /** Quick task 260701-tkz: live reader for the current screen-share state, polled every draw frame */
-    isScreenSharing?: () => boolean
+    /**
+     * Quick task 260701-u3j: live reader for WHICH participant is the current
+     * active sharer, polled every draw frame. Replaces the old boolean
+     * `isScreenSharing` reader — a boolean can no longer tell the compositor
+     * WHICH participant's video to draw into the presentation main/speaker
+     * regions. 'local' selects the local video element; a string matching a
+     * `remoteLabels` entry selects that remote's video element; null means no
+     * one is sharing (falls back to grid mode).
+     */
+    getActiveSharer?: () => 'local' | string | null
 }
 
 export type Rect = { x: number, y: number, width: number, height: number }
@@ -118,6 +126,24 @@ export function computePresentationLayout(
     return { main, speaker, thumbnails }
 }
 
+/**
+ * Quick task 260701-u3j: pure helper resolving which video element the
+ * compositor should draw for the active sharer — local self-view, a named
+ * remote participant's view (matched by label), or null if the named sharer
+ * cannot be resolved (defensive: caller should have already treated
+ * `sharer === null` as "not sharing" upstream, but an unresolvable remote
+ * label should not crash the draw loop either).
+ */
+export function selectSharerVideo(
+    sharer: 'local' | string | null,
+    localVideo: HTMLVideoElement | null,
+    remoteVideos: { video: HTMLVideoElement, label: string }[],
+): HTMLVideoElement | null {
+    if (sharer === null) return null
+    if (sharer === 'local') return localVideo
+    return remoteVideos.find((r) => r.label === sharer)?.video ?? null
+}
+
 export function selectMimeType(): string {
     const candidates = [
         'video/webm;codecs=vp9,opus',
@@ -174,14 +200,14 @@ export class RecordingController {
     private startedAt = 0
     private objectUrl: string | null = null
     private _isRecording = false
-    private isScreenSharing: (() => boolean) | undefined
+    private getActiveSharer: (() => 'local' | string | null) | undefined
 
     constructor(options: RecordingControllerOptions = {}) {
         this.metadata = { callId: options.callId ?? '' }
         this.localLabel = options.localLabel ?? 'You'
         this.remoteLabel = options.remoteLabel ?? 'Remote'
         this.onError = options.onError
-        this.isScreenSharing = options.isScreenSharing
+        this.getActiveSharer = options.getActiveSharer
     }
 
     get isRecording(): boolean {
@@ -316,15 +342,22 @@ export class RecordingController {
             ctx.fillStyle = '#111827'
             ctx.fillRect(0, 0, WIDTH, HEIGHT)
 
-            const sharing = this.isScreenSharing?.() ?? false
+            const sharer = this.getActiveSharer?.() ?? null
+            const sharing = sharer !== null
             if (sharing) {
                 const layout = computePresentationLayout(this.remoteVideos.length, WIDTH, HEIGHT)
-                // The local stream carries the screen-share track during presentation
-                // mode (mirrors GroupCallPage's own main + speaker tiles, both of
-                // which render the local self-view while screen sharing).
-                this.drawVideoOrPlaceholder(ctx, this.localVideo, layout.main.x, layout.main.y, layout.main.width, layout.main.height, this.localLabel)
-                this.drawVideoOrPlaceholder(ctx, this.localVideo, layout.speaker.x, layout.speaker.y, layout.speaker.width, layout.speaker.height, this.localLabel)
+                // Draw whichever participant (local or a specific remote) is the
+                // actual current sharer — not unconditionally the local stream.
+                const sharerVideo = selectSharerVideo(sharer, this.localVideo, this.remoteVideos)
+                const sharerLabel = sharer === 'local'
+                    ? this.localLabel
+                    : (this.remoteVideos.find((r) => r.label === sharer)?.label ?? this.localLabel)
+                this.drawVideoOrPlaceholder(ctx, sharerVideo, layout.main.x, layout.main.y, layout.main.width, layout.main.height, sharerLabel)
+                this.drawVideoOrPlaceholder(ctx, sharerVideo, layout.speaker.x, layout.speaker.y, layout.speaker.width, layout.speaker.height, sharerLabel)
 
+                // Thumbnail strip still includes the sharer's own thumbnail if they
+                // are a remote participant (matches Meet/Zoom showing the presenter's
+                // camera thumbnail in the strip) — do not filter remoteVideos.
                 const thumbCount = Math.min(this.remoteVideos.length, layout.thumbnails.length)
                 for (let i = 0; i < thumbCount; i++) {
                     const rect = layout.thumbnails[i]
