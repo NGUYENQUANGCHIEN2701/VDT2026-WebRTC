@@ -16,6 +16,7 @@ class MockMediaRecorder {
     static instances: MockMediaRecorder[] = []
     static isTypeSupported = vi.fn((_mimeType: string) => false)
 
+    readonly stream: MediaStream
     state = 'inactive'
     ondataavailable: ((e: { data: Blob }) => void) | null = null
     onstop: (() => void) | null = null
@@ -27,7 +28,8 @@ class MockMediaRecorder {
     addEventListener = vi.fn()
     removeEventListener = vi.fn()
 
-    constructor(public readonly stream: MediaStream, _options?: { mimeType?: string }) {
+    constructor(stream: MediaStream, _options?: { mimeType?: string }) {
+        this.stream = stream
         MockMediaRecorder.instances.push(this)
     }
 }

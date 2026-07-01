@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { MoreVertical, MicOff } from 'lucide-react'
+import { MoreVertical, MicOff, MonitorUp } from 'lucide-react'
 import type { PeerConnectionState } from '../../store/roomStore'
 
 interface Props {
@@ -10,6 +10,8 @@ interface Props {
   micMuted?: boolean
   camOff?: boolean
   connectionState: PeerConnectionState
+  sinkId?: string | null
+  isScreenSharing?: boolean
 }
 
 function overlayText(state: PeerConnectionState) {
@@ -33,6 +35,8 @@ export default function ParticipantTile({
   micMuted = false,
   camOff = false,
   connectionState,
+  sinkId = null,
+  isScreenSharing = false,
 }: Props) {
   const ref = useRef<HTMLVideoElement>(null)
   const label = isSelf ? `${username} (Bạn)` : username
@@ -43,6 +47,13 @@ export default function ParticipantTile({
   useEffect(() => {
     if (ref.current) ref.current.srcObject = stream
   }, [stream, streamVersion, camOff])
+
+  useEffect(() => {
+    if (!sinkId || !ref.current || !('setSinkId' in HTMLMediaElement.prototype)) return
+    ;(ref.current as HTMLMediaElement & { setSinkId: (sinkId: string) => Promise<void> })
+      .setSinkId(sinkId)
+      .catch(() => { })
+  }, [sinkId])
 
   return (
     <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 16, background: camOff ? '#1f2937' : '#020617', minHeight: 0, width: '100%', height: '100%' }}>
@@ -75,6 +86,13 @@ export default function ParticipantTile({
           boxShadow: '0 2px 8px rgba(239, 68, 68, 0.4)'
         }}>
           <MicOff size={16} />
+        </div>
+      )}
+
+      {isScreenSharing && (
+        <div className="screen-share-badge" aria-label={`${username} is sharing screen`}>
+          <MonitorUp size={14} />
+          Screen
         </div>
       )}
       

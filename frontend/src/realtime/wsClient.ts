@@ -75,6 +75,9 @@ export function connectWs(): void {
                 callSignalHandler?.(msg)
                 roomSignalHandler?.(msg)
                 break
+            case 'recording-state-relay':
+                callSignalHandler?.(msg)
+                break
             default:
                 callSignalHandler?.(msg)
                 break

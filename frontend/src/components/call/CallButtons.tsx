@@ -1,6 +1,10 @@
 import { Mic, MicOff, Phone, PhoneOff, Video, VideoOff, X, MonitorUp, Users, MoreHorizontal } from "lucide-react"
 
 type BtnProps = { onClick: () => void; disabled?: boolean }
+type LabeledToolButtonProps = BtnProps & {
+  active?: boolean
+  loading?: boolean
+}
 
 export function MuteButton({ muted, onClick }: { muted: boolean; onClick: () => void }) {
   return (
@@ -76,8 +80,6 @@ export function LeaveRoomButton({ onClick }: BtnProps) {
   )
 }
 
-/* --- Labeled Buttons for 1v1 Call --- */
-
 export function LabeledMuteButton({ muted, onClick }: { muted: boolean; onClick: () => void }) {
   return (
     <button className={`call-labeled-btn ${muted ? "muted" : ""}`} onClick={onClick} type="button" title={muted ? "Bật mic" : "Tắt mic"}>
@@ -100,24 +102,40 @@ export function LabeledCamButton({ off, onClick }: { off: boolean; onClick: () =
   )
 }
 
-export function LabeledShareButton({ onClick }: BtnProps) {
+export function LabeledShareButton({ onClick, active = false, loading = false, disabled = false }: LabeledToolButtonProps) {
   return (
-    <button className="call-labeled-btn" onClick={onClick} type="button" title="Chia sẻ màn hình">
+    <button
+      className={`call-labeled-btn ${active ? "active" : ""}`}
+      onClick={onClick}
+      type="button"
+      title="Chia sẻ màn hình"
+      disabled={disabled || loading}
+      aria-pressed={active}
+      aria-busy={loading || undefined}
+    >
       <div className="call-labeled-btn-icon">
         <MonitorUp size={22} />
       </div>
-      <span className="call-labeled-btn-text">Chia sẻ</span>
+      <span className="call-labeled-btn-text">{loading ? "Starting..." : "Chia sẻ"}</span>
     </button>
   )
 }
 
-export function LabeledMoreButton({ onClick }: BtnProps) {
+export function LabeledMoreButton({ onClick, active = false, loading = false, disabled = false }: LabeledToolButtonProps) {
   return (
-    <button className="call-labeled-btn" onClick={onClick} type="button" title="Thêm tùy chọn">
+    <button
+      className={`call-labeled-btn ${active ? "active" : ""}`}
+      onClick={onClick}
+      type="button"
+      title="Thêm tùy chọn"
+      disabled={disabled || loading}
+      aria-pressed={active}
+      aria-busy={loading || undefined}
+    >
       <div className="call-labeled-btn-icon">
         <MoreHorizontal size={22} />
       </div>
-      <span className="call-labeled-btn-text">Thêm</span>
+      <span className="call-labeled-btn-text">{loading ? "Starting..." : "Thêm"}</span>
     </button>
   )
 }

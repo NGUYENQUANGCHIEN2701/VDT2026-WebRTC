@@ -1,6 +1,6 @@
 import { CheckCircle2, AlertTriangle, Info, XCircle } from 'lucide-react'
 import { useToastStore } from '../store/toastStore'
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 const ICONS: Record<string, ReactNode> = {
     info: <Info size={18} strokeWidth={2.5} style={{ color: '#3b82f6' }} />,

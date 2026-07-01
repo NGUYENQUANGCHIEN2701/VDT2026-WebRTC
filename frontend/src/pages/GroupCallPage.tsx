@@ -1,12 +1,22 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { useNavigate } from "react-router-dom"
-import { Video, LayoutGrid, MoreVertical, Settings, ShieldCheck, Signal } from "lucide-react"
-import { LabeledMuteButton, LabeledCamButton, LabeledShareButton, LabeledParticipantsButton, LabeledHangUpButton } from "../components/call/CallButtons"
+import { MonitorUp, Video, LayoutGrid, MoreVertical, Settings, ShieldCheck, Signal } from "lucide-react"
+import { LabeledMuteButton, LabeledCamButton, LabeledShareButton, LabeledMoreButton, LabeledHangUpButton } from "../components/call/CallButtons"
 import DebugPanel, { type PeerDebugStats } from "../components/call/DebugPanel"
 import ParticipantTile from "../components/call/ParticipantTile"
-import { getActiveMesh, getRoomLocalStream, getRoomRemoteStream, leaveRoom, toggleRoomCam, toggleRoomMic } from "../realtime/roomActions"
+import {
+  getActiveMesh,
+  getRoomLocalStream,
+  getRoomRemoteStream,
+  leaveRoom,
+  startRoomScreenShare,
+  stopRoomScreenShare,
+  toggleRoomCam,
+  toggleRoomMic,
+} from "../realtime/roomActions"
 import { useRoomStore } from "../store/roomStore"
 import { startStatsPolling, type StatsSample } from "../webrtc/stats"
+import MorePanel from "../components/call/MorePanel"
 
 function formatDuration(startedAt: number | null) {
   if (!startedAt) return "00:00"
@@ -32,7 +42,12 @@ export default function GroupCallPage() {
   const camOff = useRoomStore((s) => s.camOff)
   const connectedAt = useRoomStore((s) => s.connectedAt)
   const activeMaxBitrate = useRoomStore((s) => s.activeMaxBitrate)
+  const isScreenSharing = useRoomStore((s) => s.isScreenSharing)
+  const localStreamVersion = useRoomStore((s) => s.localStreamVersion)
+  const selectedSpeakerDeviceId = useRoomStore((s) => s.selectedSpeakerDeviceId)
   const [debugOpen, setDebugOpen] = useState(false)
+  const [morePanelOpen, setMorePanelOpen] = useState(false)
+  const [shareLoading, setShareLoading] = useState(false)
   const [now, setNow] = useState(Date.now())
   const [statsByPeer, setStatsByPeer] = useState<Record<string, StatsSample | null>>({})
   const selfVideoVersion = useRef(0)
@@ -81,6 +96,16 @@ export default function GroupCallPage() {
     maxBitrateKbps: activeMaxBitrate != null ? Math.round(activeMaxBitrate / 1000) : null,
   }))
 
+  const toggleShare = async () => {
+    setShareLoading(true)
+    try {
+      if (isScreenSharing) await stopRoomScreenShare()
+      else await startRoomScreenShare()
+    } finally {
+      setShareLoading(false)
+    }
+  }
+
   const tiles = roster.map((member, index) => {
     const isSelf = member.username === selfId
     const isThirdInThree = roster.length === 3 && index === 2
@@ -97,10 +122,12 @@ export default function GroupCallPage() {
           username={member.username}
           isSelf={isSelf}
           stream={isSelf ? getRoomLocalStream() : getRoomRemoteStream(member.username)}
-          streamVersion={isSelf ? selfVideoVersion.current : member.streamVersion}
+          streamVersion={isSelf ? localStreamVersion + selfVideoVersion.current : member.streamVersion}
           micMuted={isSelf ? micMuted : member.micMuted}
           camOff={isSelf ? camOff : member.camOff}
           connectionState={isSelf ? 'connected' : member.connectionState}
+          sinkId={isSelf ? null : selectedSpeakerDeviceId}
+          isScreenSharing={isSelf && isScreenSharing}
         />
       </div>
     )
@@ -133,8 +160,17 @@ export default function GroupCallPage() {
       {/* Top Right HUD: Grid and More */}
       <div className="call-1v1-top-right" style={{ gap: 12 }}>
         <LayoutGrid size={18} style={{ cursor: 'pointer' }} />
-        <MoreVertical size={18} style={{ cursor: 'pointer' }} />
+        <MoreVertical size={18} style={{ cursor: 'pointer' }} onClick={() => setMorePanelOpen((open) => !open)} />
       </div>
+
+      {isScreenSharing && (
+        <div className="call-hud-stack">
+          <div className="hud-pill hud-pill--share">
+            <MonitorUp size={16} />
+            Sharing screen
+          </div>
+        </div>
+      )}
 
       {/* Video Grid */}
       <section style={{ position: 'absolute', inset: '80px 24px 140px', display: 'grid', gap: 16, padding: 0, ...gridStyle(roster.length), transition: 'grid-template-columns 0.2s ease' }}>
@@ -151,10 +187,13 @@ export default function GroupCallPage() {
       <footer className="call-1v1-bottom-bar">
         <LabeledMuteButton muted={micMuted} onClick={toggleRoomMic} />
         <LabeledCamButton off={camOff} onClick={toggleRoomCam} />
-        <LabeledShareButton onClick={() => {}} />
-        <LabeledParticipantsButton onClick={() => {}} />
+        <LabeledShareButton onClick={toggleShare} active={isScreenSharing} loading={shareLoading} />
+        <LabeledMoreButton onClick={() => setMorePanelOpen((open) => !open)} active={morePanelOpen} />
         <LabeledHangUpButton onClick={leaveRoom} />
       </footer>
+
+      {/* Recording is intentionally absent in group calls; Phase 8 records 1-1 calls only. */}
+      <MorePanel open={morePanelOpen} onClose={() => setMorePanelOpen(false)} mode="group" />
 
       {debugOpen && (
         <div style={{ position: 'absolute', top: 76, left: '50%', transform: 'translateX(-50%)', zIndex: 20 }}>

@@ -39,6 +39,13 @@ export function getLocalStream() { return localStream }
 export function getRemoteStream() { return peer?.remoteStream ?? null }
 export function getActivePeer(): PeerManager | null { return peer }
 
+export function sendRecordingState(recording: boolean): void {
+    const { remoteUserId, callId } = useCallStore.getState()
+    if (remoteUserId && callId) {
+        sendSignal({ type: 'recording-state', to: remoteUserId, callId, recording })
+    }
+}
+
 function sendCurrentMediaState() {
     const { remoteUserId, micMuted, camOff } = useCallStore.getState()
     if (remoteUserId) sendSignal({ type: 'media-state', to: remoteUserId, micMuted, camOff })
