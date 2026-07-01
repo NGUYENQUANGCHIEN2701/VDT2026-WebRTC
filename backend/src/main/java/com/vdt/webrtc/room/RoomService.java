@@ -100,6 +100,8 @@ public class RoomService {
             return;
         }
 
+        releaseScreenShareIfHeld(roomId, username);
+
         // Room có no ringing/busy/missed semantics — mọi lần 1 participant rời (leave
         // hoặc disconnect, disconnect delegate vào đây) là "completed" cho participant đó.
         metrics.incrementEnded("group", "completed");
@@ -131,5 +133,18 @@ public class RoomService {
         }
 
         handleLeave(username, roomId);
+    }
+
+    /** Room hiện tại của username, hoặc null nếu không ở trong room nào (dùng bởi PresenceWebSocketHandler để rẽ nhánh 1-1 CallService path). */
+    public String roomOf(String username) {
+        return rooms.roomOf(username);
+    }
+
+    public boolean claimOrRejectScreenShare(String roomId, String username) {
+        return rooms.claimSharer(roomId, username);
+    }
+
+    public void releaseScreenShareIfHeld(String roomId, String username) {
+        rooms.releaseSharer(roomId, username);
     }
 }

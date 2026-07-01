@@ -17,11 +17,13 @@ public class RoomRepository {
     private final StringRedisTemplate redis;
     private final RedisScript<Long> joinScript;
     private final RedisScript<Long> leaveScript;
+    private final RedisScript<Long> claimSharerScript;
 
     public RoomRepository(StringRedisTemplate redis) {
         this.redis = redis;
         this.joinScript = RedisScript.of(new ClassPathResource("scripts/join_room.lua"), Long.class);
         this.leaveScript = RedisScript.of(new ClassPathResource("scripts/leave_room.lua"), Long.class);
+        this.claimSharerScript = RedisScript.of(new ClassPathResource("scripts/claim_room_sharer.lua"), Long.class);
     }
 
     private String roomKey(String roomId) {
@@ -30,6 +32,10 @@ public class RoomRepository {
 
     private String userRoomKey(String username) {
         return "user-room:" + username;
+    }
+
+    private String sharerKey(String roomId) {
+        return "room-sharer:" + roomId;
     }
 
     public RoomJoinResult join(String roomId, String username) {
@@ -80,6 +86,32 @@ public class RoomRepository {
 
     public RoomSnapshot snapshot(String roomId) {
         return new RoomSnapshot(roomId, members(roomId));
+    }
+
+    public boolean claimSharer(String roomId, String username) {
+        Long result = redis.execute(
+                claimSharerScript,
+                List.of(sharerKey(roomId)),
+                username,
+                ROOM_TTL_SECONDS);
+
+        if (result == null) {
+            throw new IllegalStateException("Redis claim_room_sharer.lua returned null");
+        }
+
+        return result == 1L;
+    }
+
+    public void releaseSharer(String roomId, String username) {
+        String key = sharerKey(roomId);
+        String current = redis.opsForValue().get(key);
+        if (username.equals(current)) {
+            redis.delete(key);
+        }
+    }
+
+    public String currentSharer(String roomId) {
+        return redis.opsForValue().get(sharerKey(roomId));
     }
 
     // Mỗi key room:{roomId} tồn tại = 1 group call đang active (quy ước lifecycle

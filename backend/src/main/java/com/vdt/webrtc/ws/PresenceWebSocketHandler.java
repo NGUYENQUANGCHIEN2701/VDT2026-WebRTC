@@ -132,7 +132,17 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
             SdpReceived received = new SdpReceived(username, sdpMessage.callId(), sdpMessage.sdp());
             router.sendToUser(sdpMessage.to(), received);
         } else if (clientMessage instanceof MediaState ms) {
-            router.sendToUser(ms.to(), new MediaStateRelay(username, ms.micMuted(), ms.camOff()));
+            String roomId = roomService.roomOf(username);
+            if (roomId == null) {
+                // Không ở trong room nào → đây là 1-1 CallService MediaState path, giữ nguyên hành vi cũ.
+                router.sendToUser(ms.to(), new MediaStateRelay(username, ms.micMuted(), ms.camOff(), ms.isScreenSharing()));
+            } else if (ms.isScreenSharing()) {
+                boolean claimed = roomService.claimOrRejectScreenShare(roomId, username);
+                router.sendToUser(ms.to(), new MediaStateRelay(username, ms.micMuted(), ms.camOff(), claimed));
+            } else {
+                roomService.releaseScreenShareIfHeld(roomId, username);
+                router.sendToUser(ms.to(), new MediaStateRelay(username, ms.micMuted(), ms.camOff(), false));
+            }
         } else if (clientMessage instanceof RecordingState rs) {
             if (callService.areActiveCallPeers(rs.callId(), username, rs.to())) {
                 router.sendToUser(rs.to(), new RecordingStateRelay(username, rs.callId(), rs.recording()));
