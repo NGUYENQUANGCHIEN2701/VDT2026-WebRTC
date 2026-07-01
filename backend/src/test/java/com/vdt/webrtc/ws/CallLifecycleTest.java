@@ -153,4 +153,38 @@ class CallLifecycleTest extends WsTestSupport {
         assertThat(hBob.awaitMatching(f -> f.contains("\"reason\":\"completed\""), 3000)).isNotNull();
         assertThat(hAlice.awaitMatching(f -> f.contains("\"reason\":\"completed\""), 3000)).isNotNull();
     }
+
+    // carol KHÔNG tham gia cuộc gọi (observer) — sau khi alice/bob cúp máy,
+    // carol phải thấy cả 2 quay lại ONLINE mà KHÔNG cần reconnect. Đây là
+    // regression test cho bug: transition_call.lua xóa user-call:{userId}
+    // (đổi IN_CALL -> ONLINE trong snapshot) nhưng không PUBLISH lên kênh
+    // presence-events, nên chỉ 2 bên gọi nhận CallStateChanged — observer bị
+    // "kẹt" thấy trạng thái cũ tới khi có sự kiện khác ép snapshot mới.
+    @Test
+    void hangup_notifiesThirdPartyObserverPresenceWithoutReconnect() throws Exception {
+        CollectingHandler hAlice = new CollectingHandler();
+        CollectingHandler hBob = new CollectingHandler();
+        CollectingHandler hCarol = new CollectingHandler();
+        WebSocketSession alice = connect(mintToken("alice"), hAlice);
+        WebSocketSession bob = connect(mintToken("bob"), hBob);
+        connect(mintToken("carol"), hCarol);
+
+        alice.sendMessage(new TextMessage("{\"type\":\"call-invite\",\"to\":\"bob\"}"));
+        String callId = callIdOf(hBob.awaitMatching(f -> f.contains("\"state\":\"ringing\""), 3000));
+        bob.sendMessage(new TextMessage("{\"type\":\"call-accept\",\"callId\":\"" + callId + "\"}"));
+        assertThat(hAlice.awaitMatching(f -> f.contains("\"state\":\"active\""), 3000)).isNotNull();
+        assertThat(hBob.awaitMatching(f -> f.contains("\"state\":\"active\""), 3000)).isNotNull();
+
+        // xả sạch mọi frame carol đã nhận trước đó (join/heartbeat snapshot) — chỉ
+        // quan tâm frame ĐẾN SAU hangup
+        hCarol.drainMatching(f -> true);
+
+        alice.sendMessage(new TextMessage("{\"type\":\"hang-up\",\"callId\":\"" + callId + "\"}"));
+
+        String carolFrame = hCarol.awaitMatching(
+                f -> f.contains("presence") && !f.contains("IN_CALL"), 3000);
+        assertThat(carolFrame).as("carol (observer, không reconnect) phải hội tụ presence sau hangup")
+                .isNotNull();
+        assertThat(carolFrame).contains("alice").contains("bob").contains("ONLINE");
+    }
 }
