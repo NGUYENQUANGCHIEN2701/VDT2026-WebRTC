@@ -1,0 +1,93 @@
+/* Presentation Layout for Group Call */
+.presentation-layout {
+  position: absolute;
+  inset: 80px 24px 140px;
+  display: flex;
+  gap: 16px;
+  transition: all 0.3s ease;
+}
+
+.presentation-main {
+  flex: 6.5;
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid #3b82f6;
+  background: #000;
+}
+
+.presentation-sidebar {
+  flex: 3.5;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 320px;
+}
+
+.presentation-speaker {
+  position: relative;
+  flex: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #1f2937;
+}
+
+.speaker-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #3b82f6;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.speaker-badge::before {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 12px;
+  background: currentColor;
+  box-shadow: 4px 0 0 currentColor, 8px 0 0 currentColor;
+  transform: scale(0.6);
+  opacity: 0.8;
+}
+
+.presentation-thumbnails {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  height: 140px;
+  flex-shrink: 0;
+}
+
+.presentation-thumbnail-wrapper {
+  flex: 1;
+  min-width: 140px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background: #020617;
+}
+
+/* Custom scrollbar for thumbnails */
+.presentation-thumbnails::-webkit-scrollbar {
+  height: 6px;
+}
+.presentation-thumbnails::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+.presentation-thumbnails::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}

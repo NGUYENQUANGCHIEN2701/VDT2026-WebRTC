@@ -1,4 +1,4 @@
-export type PresenceStatus = 'ONLINE' | 'IN_CALL'
+export type PresenceStatus = 'ONLINE' | 'IN_CALL' | 'OFFLINE'
 export interface OnlineUser {
     username: string
     status: PresenceStatus

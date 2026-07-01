@@ -12,7 +12,7 @@ import {
   stopScreenShare,
   canScreenShare,
 } from "../realtime/callActions"
-import { LabeledMuteButton, LabeledCamButton, LabeledShareButton, LabeledMoreButton, LabeledHangUpButton } from "../components/call/CallButtons"
+import { LabeledMuteButton, LabeledCamButton, LabeledShareButton, LabeledRecordButton, LabeledMoreButton, LabeledHangUpButton } from "../components/call/CallButtons"
 import AudioOnlyBadge from "../components/call/AudioOnlyBadge"
 import { startStatsPolling, type StatsSample } from "../webrtc/stats"
 import DebugPanel from "../components/call/DebugPanel"
@@ -297,6 +297,7 @@ export default function CallPage() {
           disabled={!canScreenShare()}
           title={!canScreenShare() ? 'Screen sharing is unavailable in this browser.' : undefined}
         />
+        <LabeledRecordButton onClick={() => isRecording ? void stopRecording() : startRecording()} active={isRecording} />
         <LabeledMoreButton onClick={() => setMorePanelOpen((open) => !open)} active={morePanelOpen} />
         <LabeledHangUpButton onClick={endCall} />
       </footer>
@@ -305,10 +306,6 @@ export default function CallPage() {
         open={morePanelOpen}
         onClose={() => setMorePanelOpen(false)}
         mode="1-1"
-        onStartRecording={startRecording}
-        onStopRecording={() => { void stopRecording() }}
-        recordingDisabled={false}
-        remoteStreamReady={remoteStreamVersion > 0}
       />
 
       <RecordingPreviewModal

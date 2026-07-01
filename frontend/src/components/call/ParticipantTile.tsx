@@ -64,7 +64,7 @@ export default function ParticipantTile({
           muted={isSelf}
           playsInline
           aria-label={isSelf ? 'Camera của bạn' : `Camera của ${username}`}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', transform: isSelf ? 'scaleX(-1)' : undefined }}
+          style={{ width: '100%', height: '100%', objectFit: isScreenSharing ? 'contain' : 'cover', transform: (isSelf && !isScreenSharing) ? 'scaleX(-1)' : undefined }}
         />
       )}
       {camOff && (

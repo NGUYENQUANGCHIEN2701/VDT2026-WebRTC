@@ -1,4 +1,3 @@
-import { Phone, Users } from "lucide-react"
 import AppChrome from "../components/AppChrome"
 import OnlineUsersList from "../components/presence/OnlineUsersList"
 import SessionKickNotice from "../components/presence/SessionKickNotice"
@@ -13,30 +12,18 @@ export default function HomePage() {
     return <SessionKickNotice />
   }
 
-  const scrollToUsers = () => {
-    const el = document.querySelector('.home-panel')
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
 
   return (
     <AppChrome>
-      <section className="app-hero app-hero--compact">
-        <div>
-          <span className="app-kicker" style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>Welcome</span>
-          <h1>
+      <section className="app-hero app-hero--compact" style={{ display: 'block', width: '100%', marginBottom: 32 }}>
+        <div style={{ marginBottom: 24 }}>
+          <span className="app-kicker" style={{ textTransform: 'uppercase', letterSpacing: '1px', color: '#0f63ff', fontWeight: 600, fontSize: 13 }}>WELCOME</span>
+          <h1 style={{ margin: '8px 0', fontSize: 32, display: 'flex', alignItems: 'center' }}>
             Xin chào, {user?.username}! <span style={{ fontSize: '32px', marginLeft: 8 }}>👋</span>
           </h1>
-          <p>Chúc bạn một ngày làm việc hiệu quả! Hãy chọn người liên hệ bên dưới để bắt đầu cuộc trò chuyện.</p>
-        </div>
-        <div className="app-hero-actions">
-          <button className="app-button app-button--ghost" style={{ borderRadius: '999px', color: 'var(--accent)', borderColor: 'var(--accent-border)' }} onClick={scrollToUsers}>
-            <Phone size={17} />
-            Gọi cá nhân
-          </button>
-          <button className="app-button" style={{ borderRadius: '999px', backgroundColor: '#16a34a', borderColor: '#16a34a' }} onClick={scrollToUsers}>
-            <Users size={17} />
-            Gọi nhóm
-          </button>
+          <p style={{ color: 'var(--text)', fontSize: 15 }}>
+            Chúc bạn một ngày làm việc hiệu quả! Hãy chọn người liên hệ bên dưới để bắt đầu cuộc trò chuyện.
+          </p>
         </div>
       </section>
 

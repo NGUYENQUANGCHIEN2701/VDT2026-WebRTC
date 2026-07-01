@@ -32,6 +32,10 @@ interface RoomStoreState {
     selectedCameraDeviceId: string | null
     selectedMicrophoneDeviceId: string | null
     selectedSpeakerDeviceId: string | null
+    isRecording: boolean
+    recordingStartedAt: number | null
+    hasRecordingPreview: boolean
+    recordingError: string | null
     setIncomingInvite: (invite: RoomInviteState | null) => void
     setOutgoingInvitees: (invitees: string[]) => void
     addDeclinedInvitee: (username: string) => void
@@ -49,6 +53,10 @@ interface RoomStoreState {
     setSelectedCameraDeviceId: (id: string | null) => void
     setSelectedMicrophoneDeviceId: (id: string | null) => void
     setSelectedSpeakerDeviceId: (id: string | null) => void
+    setIsRecording: (v: boolean) => void
+    setRecordingStartedAt: (v: number | null) => void
+    setHasRecordingPreview: (v: boolean) => void
+    setRecordingError: (v: string | null) => void
     reset: () => void
 }
 
@@ -72,6 +80,10 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
     selectedCameraDeviceId: null,
     selectedMicrophoneDeviceId: null,
     selectedSpeakerDeviceId: null,
+    isRecording: false,
+    recordingStartedAt: null,
+    hasRecordingPreview: false,
+    recordingError: null,
     setIncomingInvite: (incomingInvite) => set({ incomingInvite }),
     setOutgoingInvitees: (outgoingInvitees) => set({ outgoingInvitees, declinedInvitees: [] }),
     addDeclinedInvitee: (username) =>
@@ -139,6 +151,10 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
     setSelectedCameraDeviceId: (selectedCameraDeviceId) => set({ selectedCameraDeviceId }),
     setSelectedMicrophoneDeviceId: (selectedMicrophoneDeviceId) => set({ selectedMicrophoneDeviceId }),
     setSelectedSpeakerDeviceId: (selectedSpeakerDeviceId) => set({ selectedSpeakerDeviceId }),
+    setIsRecording: (isRecording) => set({ isRecording }),
+    setRecordingStartedAt: (recordingStartedAt) => set({ recordingStartedAt }),
+    setHasRecordingPreview: (hasRecordingPreview) => set({ hasRecordingPreview }),
+    setRecordingError: (recordingError) => set({ recordingError }),
     reset: () =>
         set({
             roomId: null,
@@ -156,5 +172,9 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
             selectedCameraDeviceId: null,
             selectedMicrophoneDeviceId: null,
             selectedSpeakerDeviceId: null,
+            isRecording: false,
+            recordingStartedAt: null,
+            hasRecordingPreview: false,
+            recordingError: null,
         }),
 }))

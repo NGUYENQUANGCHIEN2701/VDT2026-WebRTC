@@ -1,4 +1,4 @@
-import { Mic, MicOff, Phone, PhoneOff, Video, VideoOff, X, MonitorUp, Users, MoreHorizontal } from "lucide-react"
+import { Mic, MicOff, Phone, PhoneOff, Video, VideoOff, X, MonitorUp, Users, MoreHorizontal, ChevronDown, Circle } from "lucide-react"
 
 type BtnProps = { onClick: () => void; disabled?: boolean }
 type LabeledToolButtonProps = BtnProps & {
@@ -87,7 +87,9 @@ export function LabeledMuteButton({ muted, onClick }: { muted: boolean; onClick:
       <div className="call-labeled-btn-icon">
         {muted ? <MicOff size={22} /> : <Mic size={22} />}
       </div>
-      <span className="call-labeled-btn-text">Mic</span>
+      <span className="call-labeled-btn-text" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        {muted ? "Bật tiếng" : "Tắt tiếng"} <ChevronDown size={14} />
+      </span>
     </button>
   )
 }
@@ -98,7 +100,9 @@ export function LabeledCamButton({ off, onClick }: { off: boolean; onClick: () =
       <div className="call-labeled-btn-icon">
         {off ? <VideoOff size={22} /> : <Video size={22} />}
       </div>
-      <span className="call-labeled-btn-text">Camera</span>
+      <span className="call-labeled-btn-text" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        Camera <ChevronDown size={14} />
+      </span>
     </button>
   )
 }
@@ -136,7 +140,26 @@ export function LabeledMoreButton({ onClick, active = false, loading = false, di
       <div className="call-labeled-btn-icon">
         <MoreHorizontal size={22} />
       </div>
-      <span className="call-labeled-btn-text">{loading ? "Starting..." : "Thêm"}</span>
+      <span className="call-labeled-btn-text" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        {loading ? "Starting..." : "Thêm"} <ChevronDown size={14} />
+      </span>
+    </button>
+  )
+}
+
+export function LabeledRecordButton({ onClick, active = false }: { onClick: () => void, active?: boolean }) {
+  return (
+    <button
+      className={`call-labeled-btn ${active ? "recording" : ""}`}
+      onClick={onClick}
+      type="button"
+      title="Ghi hình"
+      aria-pressed={active}
+    >
+      <div className="call-labeled-btn-icon">
+        <Circle size={22} strokeWidth={2.5} color={active ? "#ef4444" : "currentColor"} fill={active ? "#ef4444" : "transparent"} />
+      </div>
+      <span className="call-labeled-btn-text">Ghi hình</span>
     </button>
   )
 }

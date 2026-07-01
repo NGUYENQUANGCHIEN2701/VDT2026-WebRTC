@@ -64,7 +64,7 @@ export class RecordingController {
     private canvas: HTMLCanvasElement | null = null
     private canvasStream: MediaStream | null = null
     private localVideo: HTMLVideoElement | null = null
-    private remoteVideo: HTMLVideoElement | null = null
+    private remoteVideos: { video: HTMLVideoElement, label: string }[] = []
     private audioContext: AudioContext | null = null
     private recorder: MediaRecorder | null = null
     private chunks: Blob[] = []
@@ -84,7 +84,7 @@ export class RecordingController {
         return this._isRecording
     }
 
-    start(localStream: MediaStream, remoteStream: MediaStream, callId?: string): void {
+    start(localStream: MediaStream, remoteStreams: MediaStream | MediaStream[], callId?: string, remoteLabels?: string[]): void {
         if (this._isRecording) return
         if (callId) this.metadata.callId = callId
 
@@ -96,9 +96,14 @@ export class RecordingController {
         this.canvas.height = HEIGHT
 
         this.localVideo = createVideo(localStream)
-        this.remoteVideo = createVideo(remoteStream)
+        const remotes = Array.isArray(remoteStreams) ? remoteStreams : [remoteStreams]
+        const labels = remoteLabels ?? remotes.map((_, i) => remotes.length === 1 ? this.remoteLabel : `Remote ${i + 1}`)
+        this.remoteVideos = remotes.map((stream, i) => ({
+            video: createVideo(stream),
+            label: labels[i]
+        }))
 
-        const audioTracks = this.mixAudio(localStream, remoteStream)
+        const audioTracks = this.mixAudio(localStream, remotes)
         const canvasCapture = this.canvas.captureStream?.(FPS)
         const videoTracks = canvasCapture?.getVideoTracks() ?? localStream.getVideoTracks()
         this.canvasStream = canvasCapture ?? makeStream(videoTracks)
@@ -178,18 +183,21 @@ export class RecordingController {
         this.recorder = null
         this.canvas = null
         this.localVideo = null
-        this.remoteVideo = null
+        this.remoteVideos = []
         this.chunks = []
     }
 
-    private mixAudio(localStream: MediaStream, remoteStream: MediaStream): MediaStreamTrack[] {
-        const audioTracks = [...localStream.getAudioTracks(), ...remoteStream.getAudioTracks()]
+    private mixAudio(localStream: MediaStream, remoteStreams: MediaStream[]): MediaStreamTrack[] {
+        const audioTracks = [
+            ...localStream.getAudioTracks(),
+            ...remoteStreams.flatMap(s => s.getAudioTracks())
+        ]
         if (audioTracks.length === 0) return []
 
         const AudioContextCtor = getAudioContextCtor()
         this.audioContext = new AudioContextCtor()
         const destination = this.audioContext.createMediaStreamDestination()
-        for (const stream of [localStream, remoteStream]) {
+        for (const stream of [localStream, ...remoteStreams]) {
             if (stream.getAudioTracks().length === 0) continue
             this.audioContext.createMediaStreamSource(stream).connect(destination)
         }
@@ -201,14 +209,26 @@ export class RecordingController {
         if (!this._isRecording || !this.canvas) return
         const ctx = this.canvas.getContext('2d')
         if (ctx) {
-            this.drawVideoOrPlaceholder(ctx, this.remoteVideo, 0, 0, WIDTH, HEIGHT, this.remoteLabel)
-            const pipWidth = Math.round(WIDTH * 0.24)
-            const pipHeight = Math.round((pipWidth / 16) * 9)
-            const pipX = WIDTH - pipWidth - 32
-            const pipY = HEIGHT - pipHeight - 32
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)'
-            ctx.fillRect(pipX - 6, pipY - 6, pipWidth + 12, pipHeight + 12)
-            this.drawVideoOrPlaceholder(ctx, this.localVideo, pipX, pipY, pipWidth, pipHeight, this.localLabel)
+            const allVideos = [
+                { video: this.localVideo, label: this.localLabel },
+                ...this.remoteVideos
+            ]
+            const count = allVideos.length
+            const cols = Math.ceil(Math.sqrt(count))
+            const rows = Math.ceil(count / cols)
+            const cellWidth = WIDTH / cols
+            const cellHeight = HEIGHT / rows
+
+            ctx.fillStyle = '#111827'
+            ctx.fillRect(0, 0, WIDTH, HEIGHT)
+
+            allVideos.forEach((v, index) => {
+                const col = index % cols
+                const row = Math.floor(index / cols)
+                const x = col * cellWidth
+                const y = row * cellHeight
+                this.drawVideoOrPlaceholder(ctx, v.video, x, y, cellWidth, cellHeight, v.label)
+            })
         }
         this.frameId = requestAnimationFrame(this.draw)
     }

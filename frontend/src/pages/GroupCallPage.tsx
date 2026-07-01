@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { useNavigate } from "react-router-dom"
-import { MonitorUp, Video, LayoutGrid, MoreVertical, Settings, ShieldCheck, Signal } from "lucide-react"
-import { LabeledMuteButton, LabeledCamButton, LabeledShareButton, LabeledMoreButton, LabeledHangUpButton } from "../components/call/CallButtons"
+import { MonitorUp, Video, LayoutGrid, MoreVertical, Settings, ShieldCheck, Signal, Radio } from "lucide-react"
+import { LabeledMuteButton, LabeledCamButton, LabeledShareButton, LabeledRecordButton, LabeledMoreButton, LabeledHangUpButton } from "../components/call/CallButtons"
 import DebugPanel, { type PeerDebugStats } from "../components/call/DebugPanel"
 import ParticipantTile from "../components/call/ParticipantTile"
 import {
@@ -18,7 +18,10 @@ import {
 import { useRoomStore } from "../store/roomStore"
 import { startStatsPolling, type StatsSample } from "../webrtc/stats"
 import MorePanel from "../components/call/MorePanel"
-
+import "./GroupCallStyles.css"
+import { RecordingController } from "../webrtc/recording"
+import RecordingPreviewModal from "../components/call/RecordingPreviewModal"
+import { useToastStore } from "../store/toastStore"
 function formatDuration(startedAt: number | null) {
   if (!startedAt) return "00:00"
   const total = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
@@ -50,6 +53,14 @@ export default function GroupCallPage() {
   const [morePanelOpen, setMorePanelOpen] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
   const [now, setNow] = useState(Date.now())
+  const [recordingNow, setRecordingNow] = useState(Date.now())
+  const [recordingPreview, setRecordingPreview] = useState<{ url: string; mimeType: string; durationMs: number } | null>(null)
+  const recordingControllerRef = useRef<RecordingController | null>(null)
+  const recordingPreviewUrlRef = useRef<string | null>(null)
+
+  const isRecording = useRoomStore((s) => s.isRecording)
+  const recordingStartedAt = useRoomStore((s) => s.recordingStartedAt)
+  const hasRecordingPreview = useRoomStore((s) => s.hasRecordingPreview)
   const [statsByPeer, setStatsByPeer] = useState<Record<string, StatsSample | null>>({})
   const selfVideoVersion = useRef(0)
 
@@ -63,9 +74,21 @@ export default function GroupCallPage() {
   }, [])
 
   useEffect(() => {
-    if (!roomId) navigate("/", { replace: true })
-  }, [roomId, navigate])
+    if (!isRecording) return
+    const id = setInterval(() => setRecordingNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [isRecording])
 
+  useEffect(() => {
+    recordingPreviewUrlRef.current = recordingPreview?.url ?? null
+  }, [recordingPreview?.url])
+
+  useEffect(() => {
+    return () => {
+      recordingControllerRef.current?.cleanup()
+      if (recordingPreviewUrlRef.current) URL.revokeObjectURL(recordingPreviewUrlRef.current)
+    }
+  }, [])
   useEffect(() => {
     if (!alone) return
     const timer = setTimeout(() => navigate("/", { replace: true }), 2000)
@@ -105,6 +128,52 @@ export default function GroupCallPage() {
     } finally {
       setShareLoading(false)
     }
+  }
+
+  const startRecording = () => {
+    const localStream = getRoomLocalStream()
+    const room = useRoomStore.getState()
+    const remoteStreams = remoteMembers.map(m => getRoomRemoteStream(m.username)).filter(Boolean) as MediaStream[]
+    
+    if (!localStream || !room.roomId || typeof MediaRecorder === "undefined") {
+      useToastStore.getState().show('Recording is not ready yet.', 'warning')
+      return
+    }
+    const controller = new RecordingController({
+      callId: room.roomId,
+      localLabel: "You",
+      onError: (msg) => {
+        useRoomStore.getState().setIsRecording(false)
+        useRoomStore.getState().setRecordingStartedAt(null)
+        useRoomStore.getState().setRecordingError(msg)
+      },
+    })
+    recordingControllerRef.current = controller
+    const remoteLabels = remoteMembers.map(m => m.username)
+    controller.start(localStream, remoteStreams, room.roomId, remoteLabels)
+    room.setIsRecording(true)
+    room.setRecordingStartedAt(Date.now())
+    room.setRecordingError(null)
+  }
+
+  const stopRecording = async () => {
+    const room = useRoomStore.getState()
+    const result = await recordingControllerRef.current?.stop()
+    room.setIsRecording(false)
+    room.setRecordingStartedAt(null)
+    if (result) {
+      if (recordingPreview?.url) URL.revokeObjectURL(recordingPreview.url)
+      setRecordingPreview({ url: result.previewUrl, mimeType: result.mimeType, durationMs: result.durationMs })
+      room.setHasRecordingPreview(true)
+    } else {
+      useToastStore.getState().show('No recording data was captured.', 'warning')
+    }
+  }
+
+  const closeRecordingPreview = () => {
+    if (recordingPreview?.url) URL.revokeObjectURL(recordingPreview.url)
+    setRecordingPreview(null)
+    useRoomStore.getState().setHasRecordingPreview(false)
   }
 
   const tiles = roster.map((member, index) => {
@@ -164,19 +233,74 @@ export default function GroupCallPage() {
         <MoreVertical size={18} style={{ cursor: 'pointer' }} onClick={() => setMorePanelOpen((open) => !open)} />
       </div>
 
-      {isScreenSharing && (
+      {(isScreenSharing || isRecording) && (
         <div className="call-hud-stack">
-          <div className="hud-pill hud-pill--share">
-            <MonitorUp size={16} />
-            Sharing screen
-          </div>
+          {isScreenSharing && (
+            <div className="hud-pill hud-pill--share">
+              <MonitorUp size={16} />
+              Sharing screen
+            </div>
+          )}
+          {isRecording && (
+            <div className="hud-pill hud-pill--recording" role="status">
+              <Radio size={15} />
+              Recording {formatDuration(recordingStartedAt || recordingNow)}
+            </div>
+          )}
         </div>
       )}
 
       {/* Video Grid */}
-      <section style={{ position: 'absolute', inset: '80px 24px 140px', display: 'grid', gap: 16, padding: 0, ...gridStyle(roster.length), transition: 'grid-template-columns 0.2s ease' }}>
-        {tiles}
-      </section>
+      {isScreenSharing ? (
+        <section className="presentation-layout">
+          <div className="presentation-main">
+            <ParticipantTile
+              username={selfId ?? ""}
+              isSelf={true}
+              stream={getRoomLocalStream()}
+              streamVersion={localStreamVersion + selfVideoVersion.current}
+              micMuted={micMuted}
+              camOff={camOff}
+              connectionState={'connected'}
+              isScreenSharing={true}
+            />
+          </div>
+          <div className="presentation-sidebar">
+            <div className="presentation-speaker">
+              <ParticipantTile
+                username={selfId ?? ""}
+                isSelf={true}
+                stream={getRoomLocalStream()}
+                streamVersion={localStreamVersion + selfVideoVersion.current}
+                micMuted={micMuted}
+                camOff={true}
+                connectionState={'connected'}
+              />
+              <div className="speaker-badge">Người đang nói</div>
+            </div>
+            <div className="presentation-thumbnails">
+              {remoteMembers.map((member) => (
+                <div key={member.username} className="presentation-thumbnail-wrapper">
+                  <ParticipantTile
+                    username={member.username}
+                    isSelf={false}
+                    stream={getRoomRemoteStream(member.username)}
+                    streamVersion={member.streamVersion}
+                    micMuted={member.micMuted}
+                    camOff={member.camOff}
+                    connectionState={member.connectionState}
+                    sinkId={selectedSpeakerDeviceId}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section style={{ position: 'absolute', inset: '80px 24px 140px', display: 'grid', gap: 16, padding: 0, ...gridStyle(roster.length), transition: 'grid-template-columns 0.2s ease' }}>
+          {tiles}
+        </section>
+      )}
 
       {alone && (
         <div className="call-reconnect" role="status" aria-live="polite">
@@ -195,12 +319,25 @@ export default function GroupCallPage() {
           disabled={!canRoomScreenShare()}
           title={!canRoomScreenShare() ? 'Screen sharing is unavailable in this browser.' : undefined}
         />
+        <LabeledRecordButton onClick={() => isRecording ? void stopRecording() : startRecording()} active={isRecording} />
         <LabeledMoreButton onClick={() => setMorePanelOpen((open) => !open)} active={morePanelOpen} />
         <LabeledHangUpButton onClick={leaveRoom} />
       </footer>
 
-      {/* Recording is intentionally absent in group calls; Phase 8 records 1-1 calls only. */}
-      <MorePanel open={morePanelOpen} onClose={() => setMorePanelOpen(false)} mode="group" />
+      <MorePanel 
+        open={morePanelOpen} 
+        onClose={() => setMorePanelOpen(false)} 
+        mode="group" 
+      />
+
+      <RecordingPreviewModal
+        open={hasRecordingPreview && Boolean(recordingPreview?.url)}
+        previewUrl={recordingPreview?.url ?? null}
+        mimeType={recordingPreview?.mimeType ?? "video/webm"}
+        durationMs={recordingPreview?.durationMs ?? 0}
+        downloadName={`group-call-${roomId ?? "recording"}-${Date.now()}.webm`}
+        onClose={closeRecordingPreview}
+      />
 
       {debugOpen && (
         <div style={{ position: 'absolute', top: 76, left: '50%', transform: 'translateX(-50%)', zIndex: 20 }}>
