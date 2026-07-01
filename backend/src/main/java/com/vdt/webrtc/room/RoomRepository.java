@@ -82,4 +82,12 @@ public class RoomRepository {
         return new RoomSnapshot(roomId, members(roomId));
     }
 
+    // Mỗi key room:{roomId} tồn tại = 1 group call đang active (quy ước lifecycle
+    // của repo này: room được xóa khi participant cuối cùng leave). Dùng cho
+    // vdt_calls_active{call_type="group"} gauge.
+    public long countActiveRooms() {
+        Set<String> keys = redis.keys("room:*");
+        return keys == null ? 0 : keys.size();
+    }
+
 }

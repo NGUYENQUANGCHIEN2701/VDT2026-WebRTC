@@ -3,6 +3,7 @@ package com.vdt.webrtc.call;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -43,5 +44,22 @@ public class CallStateRepository {
     public void recordStartedAt(String callId, Instant startedAt) {
         redis.opsForHash().put("call:" + callId, "startedAt",
                 String.valueOf(startedAt.toEpochMilli()));
+    }
+
+    // Đếm số cuộc 1-1 đang "active" LIVE từ Redis tại thời điểm gọi (cho
+    // vdt_calls_active gauge) — không cache local để tránh drift.
+    public long countActive() {
+        Set<String> keys = redis.keys("call:*");
+        if (keys == null || keys.isEmpty()) {
+            return 0;
+        }
+        long count = 0;
+        for (String key : keys) {
+            Object state = redis.opsForHash().get(key, "state");
+            if ("active".equals(state)) {
+                count++;
+            }
+        }
+        return count;
     }
 }

@@ -17,13 +17,13 @@ import com.vdt.webrtc.common.UserNotFoundException;
 import com.vdt.webrtc.history.CallHistory;
 import com.vdt.webrtc.history.CallHistoryRepository;
 import com.vdt.webrtc.history.dto.AdminHistoryRow;
-import com.vdt.webrtc.metrics.CallMetrics;
 import com.vdt.webrtc.presence.PresenceService;
 import com.vdt.webrtc.user.Role;
 import com.vdt.webrtc.user.User;
 import com.vdt.webrtc.user.UserRepository;
 import com.vdt.webrtc.ws.SessionRegistry;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -34,17 +34,17 @@ public class AdminService {
     private final PresenceService presenceService;
     private final StringRedisTemplate redisTemplate;
     private final CallHistoryRepository callHistoryRepository;
-    private final CallMetrics callMetrics;
+    private final MeterRegistry meterRegistry;
 
     public AdminService(UserRepository userRepository, SessionRegistry sessionRegistry,
             PresenceService presenceService, StringRedisTemplate redisTemplate,
-            CallHistoryRepository callHistoryRepository, CallMetrics callMetrics) {
+            CallHistoryRepository callHistoryRepository, MeterRegistry meterRegistry) {
         this.userRepository = userRepository;
         this.sessionRegistry = sessionRegistry;
         this.presenceService = presenceService;
         this.redisTemplate = redisTemplate;
         this.callHistoryRepository = callHistoryRepository;
-        this.callMetrics = callMetrics;
+        this.meterRegistry = meterRegistry;
     }
 
     public List<UserSummary> listUsers() {
@@ -107,8 +107,22 @@ public class AdminService {
         // TODO Phase 6: thay KEYS bằng counter Redis riêng (KEYS blocking khi scale)
         long activeCalls = Optional.ofNullable(redisTemplate.keys("user-call:*"))
                 .map(k -> k.size() / 2L).orElse(0L);
-        return new DashboardDto(onlineUsers, activeCalls,
-                callMetrics.getStarted(), callMetrics.getCompleted(), callMetrics.getMissed());
+
+        // vdt_calls_ended_total là nguồn duy nhất (Prometheus Counter), không còn
+        // AtomicLong daily-reset — số liệu là "từ lúc instance khởi động", không phải
+        // "hôm nay" (đúng D-03/D-04, chi tiết dashboard theo ngày thuộc Grafana ở 09-02).
+        long completed = sumCounter("end_reason", "completed");
+        long missed = sumCounter("end_reason", "missed");
+        long ended = meterRegistry.find("vdt_calls_ended_total").counters().stream()
+                .mapToLong(c -> (long) c.count()).sum();
+        long started = ended + activeCalls;
+
+        return new DashboardDto(onlineUsers, activeCalls, started, completed, missed);
+    }
+
+    private long sumCounter(String tagKey, String tagValue) {
+        return meterRegistry.find("vdt_calls_ended_total").tag(tagKey, tagValue).counters().stream()
+                .mapToLong(c -> (long) c.count()).sum();
     }
 
     public Page<AdminHistoryRow> getSystemHistory(String username, int page, int size) {

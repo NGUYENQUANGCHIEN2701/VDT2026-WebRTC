@@ -35,6 +35,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/error").permitAll() // allow the error dispatch (sendError forwards here)
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll() // LB/Docker healthcheck — no auth
+                        .requestMatchers("/actuator/prometheus").permitAll() // Prometheus scrapes directly, no JWT (internal compose network only, D-05)
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

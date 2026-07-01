@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.vdt.webrtc.metrics.CallMetrics;
 import com.vdt.webrtc.ws.MessageRouter;
 import com.vdt.webrtc.ws.message.ParticipantJoined;
 import com.vdt.webrtc.ws.message.ParticipantLeft;
@@ -17,10 +18,12 @@ import com.vdt.webrtc.ws.message.RoomJoined;
 public class RoomService {
     private final RoomRepository rooms;
     private final MessageRouter router;
+    private final CallMetrics metrics;
 
-    public RoomService(RoomRepository rooms, MessageRouter router) {
+    public RoomService(RoomRepository rooms, MessageRouter router, CallMetrics metrics) {
         this.rooms = rooms;
         this.router = router;
+        this.metrics = metrics;
     }
 
     public void handleGroupInvite(String inviter, List<String> invitees) {
@@ -96,6 +99,10 @@ public class RoomService {
         if (!left) {
             return;
         }
+
+        // Room có no ringing/busy/missed semantics — mọi lần 1 participant rời (leave
+        // hoặc disconnect, disconnect delegate vào đây) là "completed" cho participant đó.
+        metrics.incrementEnded("group", "completed");
 
         for (String member : membersBeforeLeave) {
             if (!member.equals(username)) {

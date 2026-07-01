@@ -53,11 +53,13 @@ public class CallService {
         switch (result) {
             case OK -> {
                 broadcast(callId, "ringing", null, callerId, calleeId); // cả 2 thấy ringing
-                metrics.incrementStarted();
                 timers.scheduleRingTimeout(callId, ringTimeout, () -> onRingTimeout(callId));
             }
-            case BUSY -> router.sendToUser(callerId, // chỉ caller, callee KHÔNG reo
-                    new CallStateChanged(callId, "ended", "busy", callerId, calleeId));
+            case BUSY -> {
+                router.sendToUser(callerId, // chỉ caller, callee KHÔNG reo
+                        new CallStateChanged(callId, "ended", "busy", callerId, calleeId));
+                metrics.incrementEnded("1-1", "busy");
+            }
             case GLARE -> {
                 // Cuộc gọi NGƯỢC (bob->alice) đã tồn tại & đã reo cả 2 bên.
                 // Hòa giải lower-userId-wins sẽ làm phía client khi dựng frontend. Tạm thời
@@ -75,7 +77,7 @@ public class CallService {
                 broadcast(callId, "ended", "missed", call.callerId(), call.calleeId());
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "missed", call.startedAt(), Instant.now()));
-                metrics.incrementMissed();
+                metrics.incrementEnded("1-1", "missed");
             }
         });
     }
@@ -105,6 +107,7 @@ public class CallService {
                 broadcast(callId, "ended", "rejected", call.callerId(), call.calleeId());
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "rejected", call.startedAt(), Instant.now()));
+                metrics.incrementEnded("1-1", "rejected");
             }
         });
     }
@@ -120,6 +123,7 @@ public class CallService {
                 broadcast(callId, "ended", "cancelled", call.callerId(), call.calleeId());
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "cancelled", call.startedAt(), Instant.now()));
+                metrics.incrementEnded("1-1", "cancelled");
             }
         });
     }
@@ -136,8 +140,7 @@ public class CallService {
                 broadcast(callId, "ended", "completed", call.callerId(), call.calleeId());
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "completed", call.startedAt(), Instant.now()));
-                metrics.incrementCompleted();
-
+                metrics.incrementEnded("1-1", "completed");
             }
         });
     }
@@ -165,6 +168,7 @@ public class CallService {
                 broadcast(callId, "ended", "dropped", call.callerId(), call.calleeId());
                 callHistoryPublisher.publish(new CallHistoryEvent(callId, call.callerId(), call.calleeId(),
                         "dropped", call.startedAt(), Instant.now()));
+                metrics.incrementEnded("1-1", "dropped");
             }
         });
     }
