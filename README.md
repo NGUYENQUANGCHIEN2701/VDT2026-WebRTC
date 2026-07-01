@@ -1,189 +1,496 @@
 # VDT WebRTC — Realtime Video Call
 
-Ứng dụng gọi video 1-1 theo mô hình **peer-to-peer (WebRTC)**, signaling qua WebSocket. Đề tài học tập VDT: vừa xây sản phẩm hoàn chỉnh, vừa đi sâu vào WebRTC, kiến trúc realtime và khả năng scale ngang.
+Ứng dụng gọi video realtime theo mô hình peer-to-peer (WebRTC), signaling qua WebSocket. Dự án được thực hiện trong khuôn khổ chương trình học tập VDT, với mục tiêu vừa xây dựng sản phẩm hoàn chỉnh vừa đi sâu vào WebRTC, kiến trúc realtime, và thiết kế hệ thống có khả năng mở rộng ngang.
 
-**Core value:** Hai người dùng gọi video 1-1 ổn định, realtime, đúng mô hình peer-to-peer — nếu mọi thành phần khác hỏng, cuộc gọi 1-1 vẫn phải hoạt động.
+**Nguyên tắc cốt lõi:** Media phải đi peer-to-peer — server chỉ làm signaling, không relay media (ngoại trừ TURN fallback khi NAT chặn). Nếu mọi tính năng khác gặp sự cố, cuộc gọi 1-1 giữa hai người vẫn phải hoạt động ổn định.
 
 ---
 
-## 1. Tech stack
+## Mục lục
+
+1. [Tech Stack](#1-tech-stack)
+2. [Kiến trúc hệ thống](#2-kiến-trúc-hệ-thống)
+3. [Tiến độ tổng quan](#3-tiến-độ-tổng-quan)
+4. [Chi tiết từng phase đã hoàn thành](#4-chi-tiết-từng-phase-đã-hoàn-thành)
+5. [Các luồng chính](#5-các-luồng-chính)
+6. [Cấu trúc repository](#6-cấu-trúc-repository)
+7. [Hướng dẫn chạy thử](#7-hướng-dẫn-chạy-thử)
+8. [Kiểm thử](#8-kiểm-thử)
+9. [Tài liệu quy trình](#9-tài-liệu-quy-trình)
+
+---
+
+## 1. Tech Stack
 
 | Lớp | Công nghệ |
 |-----|-----------|
-| Backend | Java 21, Spring Boot 4, Spring Security (JWT), Spring Data JPA, Spring WebSocket |
-| Database | PostgreSQL 17, Flyway (migration versioned) |
-| Realtime | WebSocket (signaling), WebRTC `RTCPeerConnection` (perfect negotiation) |
-| State & messaging | Redis (call state machine + TTL presence), RabbitMQ (pipeline lịch sử bất đồng bộ) |
-| NAT traversal | coturn (STUN/TURN, ephemeral HMAC credentials), HTTPS/WSS |
-| Frontend | React 19, TypeScript, Vite, Zustand, TanStack Query, React Router |
-| Hạ tầng | Docker Compose |
-| Kiểm thử | JUnit 5, MockMvc, Testcontainers (Postgres/Redis/RabbitMQ), Vitest |
-| Monitoring | Prometheus + Grafana *(Phase 9)* |
+| Backend | Java 21, Spring Boot 4.0, Spring Security 7 (JWT), Spring Data JPA, Spring WebSocket |
+| Database | PostgreSQL 17, Flyway (versioned migration) |
+| Realtime | WebSocket (signaling), WebRTC `RTCPeerConnection` (perfect negotiation pattern) |
+| State & Messaging | Redis 7 (call state machine + TTL presence), RabbitMQ 4.1 (async history pipeline) |
+| NAT Traversal | coturn 4.6 (STUN/TURN, ephemeral HMAC-SHA1 credentials), HTTPS/WSS |
+| Frontend | React 19, TypeScript 5, Vite 7, Zustand 5, TanStack Query 5, React Router 7 |
+| Infrastructure | Docker Compose (nginx load balancer, 2 backend instances, PostgreSQL, Redis, RabbitMQ, coturn) |
+| Testing | JUnit 5, Testcontainers 1.21 (PostgreSQL/Redis/RabbitMQ), Awaitility, Vitest 3 |
+| Monitoring | Prometheus + Grafana *(Phase 9 — chưa bắt đầu)* |
 
 ---
 
-## 2. Tiến độ tổng quan
+## 2. Kiến trúc hệ thống
 
-Trạng thái hiện tại: **đang thực hiện Phase 5 (Call History & Admin)** — phần lịch sử cuộc gọi và quản trị người dùng đã xong; còn lại bảng điều khiển (dashboard) admin.
+```
+Browser A                nginx (LB)           Redis
+    |                      |                    |
+    |--- WSS /ws -------> [backend-1] <-------> |  (pub/sub cross-instance routing)
+    |                      |                    |
+    |                   [backend-2] <---------> |
+    |                                           |
+    |<--- SDP/ICE (relayed opaquely) ---------> Browser B
+    |                                           |
+    |<=================== Media (P2P) =========>|
+              (TURN relay chỉ khi NAT chặn)
+```
 
-| # | Phase | Trạng thái |
-|---|-------|-----------|
-| 1 | Foundation — Auth, Roles & Project Skeleton | Hoàn tất |
-| 2 | Realtime Presence & WebSocket Layer | Hoàn tất |
-| 3 | 1-1 P2P Call Core & NAT Traversal | Hoàn tất |
-| 4 | Call Lifecycle & In-Call Experience | Hoàn tất |
-| 5 | Call History & Admin | Đang thực hiện (3/4 phần) |
-| 6 | Horizontal Scaling | Chưa bắt đầu |
-| 7 | Group Mesh Calls | Chưa bắt đầu |
-| 8 | Screen Share, Recording & Device Control | Chưa bắt đầu |
-| 9 | Monitoring, CI/CD & Full Delivery | Chưa bắt đầu |
+**Nguyên tắc thiết kế:**
 
-Ghi chú: các phase 1–4 đã hoàn thiện ở mức code và kiểm thử tự động; phần còn lại là xác minh thủ công 2 thiết bị thật (HTTPS + TURN relay) — không ảnh hưởng luồng phát triển.
+- **Signaling trung lập:** Server WebSocket chuyển tiếp SDP/ICE dưới dạng opaque payload, không đọc hay xử lý nội dung media. Toàn bộ negotiation diễn ra giữa hai browser.
+- **Tách realtime khỏi lưu trữ:** Trạng thái cuộc gọi sống trong Redis với TTL; lịch sử ghi bất đồng bộ qua RabbitMQ. Đường realtime không bao giờ chờ database.
+- **Server-authoritative state machine:** Client gửi ý định (intent), server quyết định và broadcast kết quả. Client chỉ render trạng thái nhận được — không client nào tự thay đổi trạng thái cuộc gọi.
+- **Scale-seam architecture:** `PresenceService` và `MessageRouter` là interface. Phase 2 dùng in-memory; Phase 6 swap sang Redis pub/sub mà không sửa caller code.
 
 ---
 
-## 3. Chi tiết từng phase đã hoàn thành
+## 3. Tiến độ tổng quan
+
+| # | Phase | Trạng thái | Kế hoạch (waves) |
+|---|-------|-----------|-----------------|
+| 1 | Foundation — Auth, Roles & Project Skeleton | Hoàn tất | 4/4 |
+| 2 | Realtime Presence & WebSocket Layer | Hoàn tất | 3/3 |
+| 3 | 1-1 P2P Call Core & NAT Traversal | Hoàn tất | 5/5 |
+| 4 | Call Lifecycle & In-Call Experience | Hoàn tất | 7/7 |
+| 5 | Call History & Admin | Hoàn tất | 4/4 |
+| 6 | Horizontal Scaling | Hoàn tất | 4/4 |
+| 7 | Group Mesh Calls | Hoàn tất | 5/5 |
+| 8 | Screen Share, Recording & Device Control | Đang thực hiện | 1/5 |
+| 9 | Monitoring, CI/CD & Full Delivery | Chưa bắt đầu | 0/TBD |
+
+**Tiến độ tổng thể:** 30/37 kế hoạch hoàn thành (~81%).
+
+Ghi chú về xác minh: các Phase 1–7 đã hoàn thiện ở mức code và kiểm thử tự động (Testcontainers). Xác minh hai thiết bị thật qua HTTPS/TURN relay là bước riêng biệt, không chặn tiến độ phát triển.
+
+---
+
+## 4. Chi tiết từng phase đã hoàn thành
 
 ### Phase 1 — Foundation: Auth, Roles & Project Skeleton
 
-Mục tiêu: người dùng tạo tài khoản và truy cập an toàn vào bộ khung ứng dụng, đóng gói tái lập được bằng Docker.
+**Mục tiêu:** Người dùng tạo tài khoản, đăng nhập và truy cập vào bộ khung ứng dụng có phân quyền. Toàn bộ stack khởi động bằng một lệnh Docker Compose.
 
-- Đăng ký / đăng nhập bằng JWT (HS512); phân quyền Admin/User, kiểm tra quyền phía server.
-- **Refresh token rotation**: lưu hash SHA-256 trong DB, xoay token mỗi lần refresh, dùng atomic compare-and-set để chống tái sử dụng token cũ.
-- Giữ phiên qua khi tải lại trang: access token lưu in-memory, refresh token đặt trong cookie httpOnly.
-- Đăng xuất phía server (thu hồi token + xoá cookie), idempotent.
-- Endpoint `GET /users/me`, danh sách user cho admin.
-- PostgreSQL + Flyway migration (`V1__create_tables`, `V2__seed_admin`); Docker Compose (postgres + backend).
-- Integration test (Testcontainers): rotation, reuse → 401, logout. Đã qua review code và sửa các điểm phát hiện.
+**Những gì đã xây dựng:**
+
+- Đăng ký / đăng nhập bằng JWT (HS512). Phân quyền Admin / User, kiểm tra quyền phía server.
+- **Refresh token rotation:** Hash SHA-256 lưu trong database; mỗi lần refresh xoay token mới; dùng atomic compare-and-set để chống tái sử dụng token cũ (token reuse detection).
+- **Chiến lược lưu token:** Access token lưu in-memory (không lưu localStorage), refresh token lưu trong cookie `httpOnly` — loại bỏ nguy cơ XSS đánh cắp token.
+- Đăng xuất phía server: thu hồi refresh token trong database và xóa cookie, idempotent.
+- Endpoint `GET /api/users/me` trả về profile của người dùng hiện tại (username, role).
+- PostgreSQL 17 + Flyway migration (`V1__create_tables.sql`, `V2__seed_admin.sql`).
+- Docker Compose (postgres + backend) với healthcheck.
+- Integration test (Testcontainers + PostgreSQL): rotation, reuse-rejection, logout — đã qua code review và sửa các điểm phát hiện.
 
 ### Phase 2 — Realtime Presence & WebSocket Layer
 
-Mục tiêu: người dùng đăng nhập thấy danh sách online realtime qua một WebSocket được server xác thực và sở hữu danh tính.
+**Mục tiêu:** Người dùng đăng nhập thấy danh sách online realtime qua WebSocket được server xác thực và sở hữu danh tính.
 
-- Endpoint `/ws` xác thực JWT **ngay tại handshake** (`JwtHandshakeInterceptor`); danh tính do server gán, client không bao giờ tự khai báo `from`.
-- Envelope dạng sealed interface + Jackson `@JsonTypeInfo` (presence / session-superseded / ping / pong).
-- Presence in-memory đặt sau lớp trừu tượng **scale-seam** (`PresenceService` / `MessageRouter`) — Phase 6 thay bằng Redis pub/sub mà không sửa caller.
-- **Single-session**: đăng nhập ở nơi khác sẽ đẩy phiên cũ ra (thông báo + đóng kết nối), áp dụng cả ở WebSocket lẫn HTTP.
-- **Auto-offline** trong ~60s qua heartbeat + sweeper TTL (`@Scheduled`).
-- Frontend: wrapper WebSocket tự viết (reconnect backoff + jitter, heartbeat 25s), Zustand `presenceStore`, danh sách online cập nhật realtime không cần tải lại, màn hình thông báo khi bị đẩy phiên.
+**Những gì đã xây dựng:**
+
+- Endpoint `/ws` xác thực JWT **ngay tại handshake** (`JwtHandshakeInterceptor`). Danh tính do server gán — client không bao giờ tự khai báo trường `from`.
+- **Sealed interface + Jackson `@JsonTypeInfo`** cho message envelope: server/client message phân biệt rõ ràng, type-safe.
+- **Scale-seam:** `PresenceService` và `MessageRouter` là interface từ đầu. Phase 2 dùng `LocalMessageRouter` (in-memory); Phase 6 swap sang `RedisMessageRouter` mà không sửa handler.
+- **Single-session policy:** Đăng nhập nơi khác đẩy phiên cũ ra (server push `session-superseded` rồi đóng WebSocket). Áp dụng cả HTTP lẫn WebSocket.
+- **Auto-offline:** Heartbeat ping/pong 25s + TTL sweeper `@Scheduled` ~60s.
+- **Frontend:** Native `WebSocket` wrapper tự viết (reconnect exponential backoff + jitter, heartbeat 25s), Zustand `presenceStore`, danh sách online cập nhật realtime, màn hình thông báo bị đẩy phiên.
 - 5 integration test WebSocket (Testcontainers + `StandardWebSocketClient`) và unit test frontend đều xanh.
 
 ### Phase 3 — 1-1 P2P Call Core & NAT Traversal
 
-Mục tiêu: hai người ở hai mạng khác nhau gọi video/audio cho nhau, media đi peer-to-peer, hiển thị chất lượng kết nối.
+**Mục tiêu:** Hai người ở hai mạng khác nhau gọi video/audio cho nhau, media đi peer-to-peer, hiển thị chất lượng kết nối.
 
-- Backend signaling: các bản ghi message cuộc gọi + sealed envelope, `SessionRegistry`, định tuyến SDP/ICE **trung lập** (server chuyển tiếp opaque, không đọc nội dung media).
-- Endpoint cấp **TURN credential tạm thời** theo chuẩn TURN REST API (HMAC-SHA1, hết hạn theo timestamp) — không nhúng mật khẩu TURN tĩnh vào frontend.
-- Frontend call core: lấy media (`getUserMedia`), `PeerManager` triển khai **perfect negotiation + candidate buffering** ngay từ bản đầu, `callStore`, UI cuộc gọi (route `/call`, self-view soi gương, card cuộc gọi đến, nút kết thúc).
-- Xử lý lỗi getUserMedia (từ chối quyền, không có thiết bị, thiết bị bận) kèm fallback audio-only.
-- Chẩn đoán chất lượng: `stats.ts` (qua `getStats`), chỉ báo chất lượng mạng (RTT/packet loss) và panel debug (codec, bitrate, độ phân giải, loại ICE candidate host/srflx/relay).
-- NAT traversal: dịch vụ coturn + `turnserver.conf`, chế độ ép relay (`iceTransportPolicy: 'relay'`) để chứng minh TURN hoạt động; phục vụ qua HTTPS/WSS để getUserMedia chạy trên thiết bị ngoài localhost.
+**Những gì đã xây dựng:**
+
+- **Backend signaling:** Sealed envelope các bản ghi cuộc gọi, `SessionRegistry` tra cứu WebSocket session theo userId, định tuyến SDP/ICE **trung lập** (server chuyển opaque payload không đọc nội dung).
+- **TURN ephemeral credentials:** Endpoint `GET /api/turn-credentials` tạo `username = timestamp:userId`, `credential = base64(HMAC-SHA1(secret, username))` theo chuẩn TURN REST API — không nhúng mật khẩu TURN tĩnh vào frontend.
+- **Frontend call core:** `getUserMedia` với fallback audio-only, `PeerManager` triển khai **perfect negotiation** (polite/impolite peer) + ICE candidate buffering từ bản đầu tiên, Zustand `callStore`, UI cuộc gọi (route `/call`, self-view soi gương, card cuộc gọi đến, nút kết thúc).
+- Xử lý lỗi `getUserMedia`: từ chối quyền, không có thiết bị, thiết bị bận — mỗi trường hợp có thông báo actionable.
+- **Chẩn đoán chất lượng:** `stats.ts` dùng `RTCPeerConnection.getStats()` — chỉ báo RTT/packet loss, panel debug (codec, bitrate, độ phân giải, loại ICE candidate host/srflx/relay).
+- **NAT traversal:** coturn service + `turnserver.conf`, chế độ ép relay (`iceTransportPolicy: 'relay'`) để chứng minh TURN relay hoạt động; phục vụ qua HTTPS/WSS.
 
 ### Phase 4 — Call Lifecycle & In-Call Experience
 
-Mục tiêu: cuộc gọi hành xử như sản phẩm thật qua mọi tình huống biên — đổ chuông, máy bận, nhỡ, gọi chéo (glare), kết thúc sạch và phục hồi sau gián đoạn mạng.
+**Mục tiêu:** Cuộc gọi hành xử như sản phẩm thật qua mọi tình huống biên — đổ chuông, máy bận, nhỡ, gọi chéo (glare), kết thúc sạch, phục hồi sau gián đoạn mạng.
 
-- **State machine cuộc gọi do server làm chủ, đặt trong Redis**, chuyển trạng thái bằng CAS (script Lua) — client gửi ý định, server quyết định, client chỉ render trạng thái.
-- Vòng đời đầy đủ: đổ chuông, chấp nhận/từ chối/huỷ, timeout không trả lời (~30s, ghi nhận là nhỡ), máy bận trả về tức thì, xử lý glare (hai bên gọi nhau cùng lúc) hội tụ sạch.
-- Lý do kết thúc rõ ràng cho cả hai phía: completed / rejected / cancelled / missed / busy / dropped.
-- Trải nghiệm trong cuộc gọi: tắt/bật mic và camera không cần renegotiation (`track.enabled` + relay chỉ báo), chỉ báo mute/tắt cam phía đối phương, self-view PiP, đồng hồ thời lượng, bật sẵn echo cancellation / noise suppression.
-- **Phục hồi**: WebSocket reconnect có backoff rồi resync trạng thái; media phục hồi qua ICE restart; tải lại trang hoặc rớt mạng trong khoảng ân hạn (~10–15s) không làm kết thúc cuộc gọi.
-- Đã qua review code; sửa các điểm CR-01 (refresh TTL để cuộc gọi không chết sau ring timeout) và CR-03 (huỷ grace timer khi hang-up).
+**Những gì đã xây dựng:**
 
-### Phase 5 — Call History & Admin (đang thực hiện)
+- **State machine cuộc gọi do server làm chủ, lưu trong Redis.** Chuyển trạng thái bằng CAS (Lua script atomic) — client gửi intent, server quyết định, broadcast `CallStateChanged`.
+- **Vòng đời đầy đủ:**
+  - Đổ chuông → chấp nhận / từ chối / hủy.
+  - Timeout không trả lời (~30s): ghi nhận missed, thông báo cả hai phía.
+  - Máy bận: trả về tức thì mà không ring callee.
+  - **Glare resolution:** Hai bên gọi nhau đồng thời — server dùng tiebreaker (lexicographic userId) để một bên trở thành callee, hội tụ sạch mà không treo.
+- **Lý do kết thúc rõ ràng:** `completed` / `rejected` / `cancelled` / `missed` / `busy` / `dropped` — cả hai phía đều nhận được đúng lý do.
+- **Trải nghiệm trong cuộc gọi:** Tắt/bật mic và camera không cần renegotiation (`track.enabled` + relay chỉ báo), chỉ báo mute/tắt cam phía đối phương, self-view PiP, đồng hồ thời lượng, echo cancellation / noise suppression bật sẵn.
+- **Phục hồi:** WebSocket reconnect với exponential backoff → resync trạng thái; media phục hồi qua ICE restart; reload trang hoặc rớt mạng trong khoảng ân hạn (~10–15s, lưu qua `sessionStorage`) không làm kết thúc cuộc gọi.
+- Đã qua code review; sửa CR-01 (refresh Redis TTL để không chết sau ring timeout), CR-03 (hủy grace timer khi hang-up).
 
-Mục tiêu: mọi cuộc gọi được ghi lại bền vững mà không chạm vào đường realtime; admin quản lý người dùng và quan sát hệ thống.
+### Phase 5 — Call History & Admin
 
-Đã hoàn thành:
+**Mục tiêu:** Mọi cuộc gọi được ghi lại bền vững mà không chạm vào đường realtime; admin quản lý người dùng và quan sát hệ thống.
 
-- **Pipeline lịch sử bất đồng bộ qua RabbitMQ**: sự kiện vòng đời cuộc gọi được publish khi chuyển trạng thái (fire-and-forget — đường realtime không chờ DB); consumer ghi DB **idempotent** (khoá theo `callId` + loại sự kiện) và có **DLQ** cho message lỗi.
-- Flyway `V3__call_history` (schema lịch sử), entity/repository JPA, các lớp domain trong package `history`.
-- Integration test pipeline bất đồng bộ + idempotency (Testcontainers RabbitMQ) và unit test publisher (fire-and-forget, loại trừ trạng thái busy).
-- API `GET /api/history`: phân trang theo cursor, phân tách quyền truy cập (mỗi user chỉ thấy lịch sử của mình), kiểm thử thứ tự + phân trang + access scoping.
-- Trang lịch sử người dùng `/history`: nhóm theo ngày, cuộn vô hạn (infinite scroll), liên kết điều hướng từ trang chủ.
-- **Quản trị người dùng** (`ADMN-01`): admin khoá/mở khoá, đổi vai trò người dùng, kèm self-protection (admin không tự khoá/hạ quyền chính mình); user bị khoá bị **ngắt kết nối WebSocket ngay lập tức**.
+**Những gì đã xây dựng:**
 
-Đang làm tiếp (phần còn lại của phase):
+- **Pipeline lịch sử bất đồng bộ (RabbitMQ):** Sự kiện vòng đời cuộc gọi được publish khi chuyển trạng thái (fire-and-forget — đường realtime không chờ DB). Consumer ghi database **idempotent** (khóa theo `callId` + loại sự kiện). **DLQ** (Dead Letter Queue) cho message lỗi.
+- Flyway `V3__call_history.sql`, entity/repository JPA, các lớp domain trong package `history`.
+- Integration test pipeline bất đồng bộ + idempotency (Testcontainers RabbitMQ + Awaitility).
+- **API `GET /api/history`:** Phân trang theo cursor, phân tách quyền truy cập (mỗi user chỉ thấy lịch sử của mình).
+- **Trang lịch sử `/history`:** Nhóm theo ngày, infinite scroll (TanStack Query `useInfiniteQuery`), liên kết từ trang chủ.
+- **Quản trị người dùng:** Admin khóa/mở khóa, đổi vai trò người dùng; tự bảo vệ (admin không tự khóa/hạ quyền chính mình); user bị khóa bị **ngắt kết nối WebSocket ngay lập tức**.
+- **Admin dashboard:** Chỉ số cuộc gọi (`CallMetrics` — AtomicLong + reset hàng ngày), `GET /api/admin/dashboard` (online users / active calls / thống kê theo ngày, poll 5s), `GET /api/admin/history` (lịch sử toàn hệ thống, lọc theo username).
 
-- Bảng điều khiển admin: chỉ số cuộc gọi (`CallMetrics`), `GET /api/admin/dashboard` (online users / cuộc gọi đang diễn ra / thống kê theo ngày, poll ~5s) và `GET /api/admin/history` (lịch sử toàn hệ thống, lọc theo username).
+### Phase 6 — Horizontal Scaling
+
+**Mục tiêu:** Hai backend instance hoạt động song song, cuộc gọi giữa hai người kết nối vào các instance khác nhau vẫn hoạt động bình thường.
+
+**Những gì đã xây dựng:**
+
+- **Redis pub/sub cross-instance routing:** `RedisMessageRouter` thay thế `LocalMessageRouter`. Mỗi instance subscribe một channel riêng (`ws-route:{instanceId}`); khi cần gửi đến userId không có session cục bộ, tra Redis để biết instance nào đang giữ session đó và publish vào channel tương ứng.
+- **nginx load balancer** với `upstream` round-robin qua hai backend, hỗ trợ WebSocket (`proxy_http_version 1.1`, header `Upgrade`/`Connection`). Instance affinity không cần thiết — Redis routing làm cho việc phân phối ngẫu nhiên hoạt động đúng.
+- **Presence qua Redis:** TTL key `presence:{userId}` được refresh bởi heartbeat, pub/sub cho presence snapshot cross-instance.
+- Docker Compose cập nhật: `backend-1`, `backend-2` (không expose port trực tiếp), nginx là entry point duy nhất trên port 8080.
+- Integration test: hai `StandardWebSocketClient` kết nối vào hai instance khác nhau, gọi nhau — SDP/ICE relay thành công cross-instance.
+
+### Phase 7 — Group Mesh Calls
+
+**Mục tiêu:** Tối đa 4 người trong một phòng gọi video/audio theo mô hình mesh (mỗi cặp có một `RTCPeerConnection` riêng), với giới hạn phòng được server enforcement.
+
+**Những gì đã xây dựng:**
+
+- **Backend room state (Redis):** `RoomService` + `RoomRepository` quản lý phòng trong Redis. Giới hạn 4 người được enforce server-side — người thứ 5 nhận `RoomFull` ngay lập tức.
+- **Signaling mesh:** Khi thành viên mới join, server broadcast `ParticipantJoined` đến tất cả thành viên hiện tại; mỗi thành viên cũ khởi tạo `RTCPeerConnection` với thành viên mới. Khi leave, broadcast `ParticipantLeft`, các peer connection tương ứng được đóng.
+- **Message types mới:** `GroupInvite`, `CancelGroupInvite`, `DeclineRoomInvite`, `JoinRoom`, `LeaveRoom`, `RoomInvite`, `RoomJoined`, `ParticipantJoined`, `ParticipantLeft`, `RoomFull`, `RoomInviteCancelled`, `RoomInviteDeclined`.
+- **Frontend `MeshManager`:** Map `userId -> PeerManager`. Mỗi `PeerManager` là một instance độc lập với perfect negotiation. `MeshManager` điều phối join/leave và dọn dẹp khi phòng tan.
+- **`GroupCallPage`:** Grid layout tự động co giãn theo số người (1–4), chỉ báo mute/tắt cam từng participant, nút leave phòng.
+- Bảo vệ luồng 1-1: `CallService` và `RoomService` hoạt động trên hai code path độc lập — thêm mesh không ảnh hưởng cuộc gọi 1-1.
+- Kiểm thử 5 wave: RED test scaffolding, backend room state, frontend mesh core, UX, full verification.
 
 ---
 
-## 4. Kiến trúc tóm tắt
+## 5. Các luồng chính
 
-- **Signaling trung lập**: server WebSocket chỉ chuyển tiếp SDP/ICE giữa hai peer, không relay media (đúng ràng buộc P2P; TURN chỉ là fallback khi NAT chặn).
-- **Tách realtime khỏi lưu trữ**: trạng thái cuộc gọi sống trong Redis; lịch sử ghi bất đồng bộ qua RabbitMQ để đường gọi không bao giờ chờ database.
-- **Thiết kế sẵn cho scale**: presence và routing nằm sau interface `PresenceService` / `MessageRouter`; Phase 6 chuyển sang Redis pub/sub đa instance mà không sửa tầng gọi.
-
----
-
-## 5. Cấu trúc repository
+### Luồng 1 — Xác thực và giữ phiên
 
 ```
-backend/
-  src/main/java/com/vdt/webrtc/
-    auth/        Đăng ký, đăng nhập, JWT, refresh token rotation
-    user/        User entity, repository, /users/me
-    admin/       Quản trị: liệt kê user, khoá/mở khoá, đổi vai trò
-    presence/    Presence service + scale-seam
-    ws/          WebSocket handler, handshake interceptor, message envelope
-    call/        State machine cuộc gọi (Redis CAS), routing signaling
-    history/     Pipeline lịch sử RabbitMQ: publisher, consumer, API
-    config/      Cấu hình Security, WebSocket, Redis, RabbitMQ
-    common/      Xử lý exception toàn cục, tiện ích dùng chung
-  src/main/resources/db/migration/   Flyway V1, V2, V3
+Browser                         Backend
+  |                               |
+  |-- POST /api/auth/register --> |-- validate, hash password, lưu DB
+  |-- POST /api/auth/login -----> |-- issue access token (15m) + refresh token (7d)
+  |<-- { accessToken } ----------|-- set cookie: refresh_token=<hash_ref> httpOnly
+  |                               |
+  |-- GET /api/users/me --------> |-- JwtAuthFilter: verify access token
+  |<-- { username, role } --------|
+  |                               |
+  |  (access token hết hạn)       |
+  |-- POST /api/auth/refresh ----> |-- verify cookie, CAS rotate refresh token
+  |<-- { newAccessToken } ---------|
+  |                               |
+  |-- POST /api/auth/logout -----> |-- revoke refresh token in DB, clear cookie
+```
 
-frontend/
-  src/
-    api/         Axios client, interceptor JWT
-    realtime/    Wrapper WebSocket (reconnect, heartbeat)
-    webrtc/      PeerManager (perfect negotiation), media, stats
-    store/       Zustand: presenceStore, callStore
-    pages/       Login, Register, Home, Call, History, Admin
-    components/   call/, presence/, history/
-    routes/      Route được bảo vệ theo phiên
+### Luồng 2 — Kết nối WebSocket và presence
 
-coturn/          turnserver.conf
-docs/            Tài liệu setup
-docker-compose.yml
-.planning/       Artifact quy trình: ROADMAP, plan + summary từng phase, review
+```
+Browser                         Backend (Spring WebSocket)
+  |                               |
+  |-- WS Upgrade /ws?token=... -> |-- JwtHandshakeInterceptor: verify JWT
+  |                               |   -> reject nếu invalid (401)
+  |<-- 101 Switching Protocols ---|   -> gán principal, lưu vào SessionRegistry
+  |                               |   -> publish PresenceSnapshot (online list)
+  |<-- { type: "presence_snapshot", users: [...] }
+  |                               |
+  |  (mỗi 25s)                    |
+  |-- { type: "ping" } ---------> |-- cập nhật TTL Redis, trả pong
+  |<-- { type: "pong" } ----------|
+  |                               |
+  |  (user offline / timeout)     |
+  |                               |-- TTL sweeper @Scheduled xóa presence
+  |<-- { type: "presence_update", userId, status: "offline" } -- broadcast
+```
+
+### Luồng 3 — Cuộc gọi 1-1 (happy path)
+
+```
+Alice (Caller)              Backend (Redis SM)            Bob (Callee)
+  |                               |                           |
+  |-- CallInvite(to: Bob) ------> |-- CAS: IDLE -> RINGING    |
+  |                               |-- publish CallStateChanged |
+  |<-- CallStateChanged(RINGING) -|                           |
+  |                               |-- route CallOfferReceived->|
+  |                               |                           |<-- CallOfferReceived
+  |                               |                           |
+  |   (Bob accept)                |                           |
+  |                               |<-- CallAccept(callId) ----|
+  |                               |-- CAS: RINGING -> ACTIVE  |
+  |<-- CallAcceptReceived --------|-- route to Alice          |
+  |                               |-- CallStateChanged(ACTIVE)->|
+  |                               |                           |
+  |--- SDP Offer (via WS) ------> |-- route opaque payload -> |
+  |<-- SDP Answer (via WS) -------|<-- route opaque payload --|
+  |--- ICE candidates (via WS) -> |-- route -----------------> |
+  |<-- ICE candidates (via WS) ---|<-- route -----------------|
+  |                               |                           |
+  |<====== Media P2P (WebRTC) =============================>  |
+  |                               |                           |
+  |-- HangUp ------------------>  |-- CAS: ACTIVE -> ENDED    |
+  |                               |-- publish to RabbitMQ --->|--- DB (async)
+  |<-- HangUpReceived ------------|-- route to Bob            |
+  |<-- CallStateChanged(ENDED) ---|                           |
+```
+
+### Luồng 4 — Pipeline lịch sử bất đồng bộ
+
+```
+CallService (Redis SM)      RabbitMQ              CallHistoryConsumer
+  |                           |                           |
+  |-- publish event --------> |                           |
+  |   (fire-and-forget)       |-- deliver message ------> |
+  |                           |                           |-- check idempotency key
+  |                           |                           |   (callId + eventType)
+  |                           |                           |-- lưu DB nếu chưa tồn tại
+  |                           |                           |
+  |                           |  (nếu consumer throw)     |
+  |                           |<-- nack ------------------|
+  |                           |-- retry (backoff) ------> |
+  |                           |-- DLQ (nếu hết retry) --> |--- alert / manual review
+```
+
+### Luồng 5 — Cross-instance WebSocket routing (Phase 6)
+
+```
+Alice (backend-1)           Redis                    Bob (backend-2)
+  |                           |                           |
+  |-- gửi SDP Offer           |                           |
+  |                           |                           |
+  |  RedisMessageRouter       |                           |
+  |  tra instanceId của Bob   |                           |
+  |  -> "backend-2"           |                           |
+  |                           |                           |
+  |-- PUBLISH ws-route:backend-2  { payload } ----------> |
+  |                           |                           |
+  |                           |   RoutingMessageListener  |
+  |                           |   deserialize + forward ->|-- WS session Bob
+```
+
+### Luồng 6 — Group mesh call (Phase 7)
+
+```
+Alice (host)      Backend (RoomService)     Bob            Carol
+  |                    |                     |               |
+  |-- JoinRoom(roomId)->|-- create/join room  |               |
+  |                    |-- broadcast RoomJoined              |
+  |                    |-- invite Bob, Carol  |               |
+  |                    |                     |               |
+  |                    |<-- JoinRoom(Bob) ----|               |
+  |                    |-- ParticipantJoined(Bob) ----------->| Alice
+  |<-- ParticipantJoined(Bob)                |               |
+  |  Alice initiates PeerConnection to Bob   |               |
+  |--- SDP Offer (to Bob, via WS) ---------->|               |
+  |<-- SDP Answer (from Bob) ----------------|               |
+  |<====== Media P2P (Alice <-> Bob) =======>|               |
+  |                    |                     |               |
+  |                    |<-- JoinRoom(Carol) ------------------|
+  |                    |-- ParticipantJoined(Carol) --------> Alice, Bob
+  |  Alice + Bob each initiate PeerConnection to Carol ...   |
 ```
 
 ---
 
-## 6. Chạy thử
+## 6. Cấu trúc repository
+
+```
+VDT2026-WebRTC/
+├── backend/
+│   └── src/main/
+│       ├── java/com/vdt/webrtc/
+│       │   ├── auth/                   # Đăng ký, đăng nhập, JWT, refresh token rotation
+│       │   │   ├── AuthController.java
+│       │   │   ├── AuthService.java
+│       │   │   ├── RefreshToken.java
+│       │   │   └── dto/
+│       │   ├── user/                   # User entity, /api/users/me
+│       │   │   ├── User.java
+│       │   │   ├── UserController.java
+│       │   │   └── UserService.java
+│       │   ├── admin/                  # Khóa/mở khóa, đổi vai trò, dashboard
+│       │   │   ├── AdminController.java
+│       │   │   ├── AdminService.java
+│       │   │   └── dto/
+│       │   ├── presence/               # Scale-seam: interface + 2 implementations
+│       │   │   ├── PresenceService.java        # Interface
+│       │   │   ├── LocalPresenceService.java   # Phase 2: in-memory
+│       │   │   ├── RedisPresenceService.java   # Phase 6: Redis TTL
+│       │   │   └── PresenceSweeper.java        # @Scheduled auto-offline
+│       │   ├── ws/                     # WebSocket layer
+│       │   │   ├── PresenceWebSocketHandler.java   # Main handler
+│       │   │   ├── JwtHandshakeInterceptor.java    # Auth tại handshake
+│       │   │   ├── MessageRouter.java              # Interface (scale-seam)
+│       │   │   ├── LocalMessageRouter.java         # Phase 2: in-memory
+│       │   │   ├── RedisMessageRouter.java         # Phase 6: pub/sub
+│       │   │   ├── SessionRegistry.java            # userId -> WS session
+│       │   │   └── message/                        # 39 message types (sealed interface)
+│       │   │       ├── ClientMessage.java
+│       │   │       ├── ServerMessage.java
+│       │   │       └── (SdpMessage, IceCandidateMessage, CallInvite, ...)
+│       │   ├── call/                   # State machine cuộc gọi 1-1
+│       │   │   ├── CallService.java            # Điều phối intents
+│       │   │   ├── CallStateMachine.java        # CAS transitions (Lua script)
+│       │   │   ├── CallStateRepository.java     # Redis operations
+│       │   │   ├── CallTimerService.java        # Ring timeout, grace timer
+│       │   │   └── TurnController.java          # Ephemeral HMAC credentials
+│       │   ├── room/                   # Group call room state (Phase 7)
+│       │   │   ├── RoomService.java
+│       │   │   └── RoomRepository.java         # Redis, giới hạn 4 người
+│       │   ├── history/                # Async pipeline lịch sử
+│       │   │   ├── CallHistoryPublisher.java    # Fire-and-forget to RabbitMQ
+│       │   │   ├── CallHistoryConsumer.java     # Idempotent write + DLQ
+│       │   │   ├── HistoryController.java       # GET /api/history (cursor paging)
+│       │   │   └── dto/
+│       │   ├── metrics/                # CallMetrics (AtomicLong, daily reset)
+│       │   ├── config/                 # Security, WebSocket, Redis, RabbitMQ
+│       │   └── common/                 # GlobalExceptionHandler, custom exceptions
+│       └── resources/db/migration/
+│           ├── V1__create_tables.sql   # users, refresh_tokens
+│           ├── V2__seed_admin.sql      # admin mặc định
+│           └── V3__call_history.sql    # call_history
+│
+├── frontend/src/
+│   ├── api/                        # Axios client, JWT interceptor (refresh-on-401)
+│   │   ├── axios.ts
+│   │   ├── admin.ts
+│   │   ├── history.ts
+│   │   └── turn.ts
+│   ├── realtime/                   # WebSocket wrapper + actions
+│   │   ├── wsClient.ts             # Native WS + reconnect backoff + heartbeat
+│   │   ├── callActions.ts          # Gửi call intents qua WS
+│   │   ├── mediaControls.ts        # Mute/cam relay
+│   │   └── roomActions.ts          # Group call actions
+│   ├── webrtc/                     # WebRTC core
+│   │   ├── PeerManager.ts          # RTCPeerConnection + perfect negotiation
+│   │   ├── MeshManager.ts          # Map<userId, PeerManager> cho group call
+│   │   ├── media.ts                # getUserMedia, EC/NS constraints
+│   │   ├── mediaDevices.ts         # Camera/mic/speaker selection
+│   │   └── stats.ts                # getStats() — RTT, loss, codec, bitrate
+│   ├── store/                      # Zustand stores
+│   │   ├── authStore.ts
+│   │   ├── callStore.ts            # Call state machine (client render state)
+│   │   ├── presenceStore.ts        # Online users
+│   │   └── roomStore.ts            # Group call room state
+│   ├── components/
+│   │   ├── call/                   # IncomingCallCard, QualityIndicator, DebugPanel, ...
+│   │   ├── presence/               # OnlineUsersList, SessionKickNotice, ...
+│   │   ├── history/                # CallHistoryRow, DayGroup
+│   │   └── admin/                  # DashboardCards, AdminUserTable, SystemHistoryTable, ...
+│   ├── pages/
+│   │   ├── LoginPage.tsx / RegisterPage.tsx
+│   │   ├── HomePage.tsx            # Danh sách online, khởi tạo cuộc gọi
+│   │   ├── CallPage.tsx            # 1-1 call (PiP, quality, debug panel)
+│   │   ├── GroupCallPage.tsx       # Group call (dynamic grid)
+│   │   ├── HistoryPage.tsx         # Infinite scroll, nhóm theo ngày
+│   │   └── AdminPage.tsx           # User mgmt + dashboard + system history
+│   └── routes/
+│       └── ProtectedRoute.tsx
+│
+├── coturn/
+│   └── turnserver.conf
+├── nginx/
+│   └── conf.d/                     # Load balancer + WebSocket proxy config
+├── docs/
+│   └── setup.md
+├── docker-compose.yml              # Full stack: 2 backends, nginx, postgres, redis, rabbitmq, coturn
+├── .env.example
+└── .planning/                      # Artifact quy trình: ROADMAP, plan/summary/review từng phase
+```
+
+---
+
+## 7. Hướng dẫn chạy thử
+
+**Yêu cầu:** Docker Desktop, Node.js 22.
 
 ```bash
-cp .env.example .env          # điền POSTGRES_PASSWORD, JWT_SECRET, TURN secret
-docker compose up --build     # postgres, backend, redis, rabbitmq, coturn
+# 1. Cấu hình credentials
+cp .env.example .env
+# Điền vào .env:
+#   POSTGRES_PASSWORD=<mật khẩu DB>
+#   JWT_SECRET=<chuỗi ngẫu nhiên >= 64 ký tự>
+#   TURN_SECRET=<chuỗi ngẫu nhiên>
+#   HOST_IP=<IP máy host, dùng cho coturn external-ip>
 
+# 2. Khởi động toàn bộ stack (postgres, backend-1, backend-2, nginx, redis, rabbitmq, coturn)
+docker compose up --build
+
+# 3. Chạy frontend dev server
 cd frontend
 npm install
-npm run dev                   # http://localhost:5173
+npm run dev
 ```
 
-- Backend: `http://localhost:8080`
-- Tài khoản admin demo: `admin` / `Admin@123` (đổi trước khi triển khai thật).
-- Hướng dẫn chi tiết: [docs/setup.md](docs/setup.md)
+| Service | URL |
+|---------|-----|
+| Frontend (dev) | http://localhost:5173 |
+| Backend API (qua nginx) | http://localhost:8080/api |
+| RabbitMQ Management UI | http://localhost:15672 (guest / guest) |
+| Redis | localhost:6379 |
+
+**Tài khoản demo:** `admin` / `Admin@123` — đổi trước khi triển khai thật.
+
+Hướng dẫn chi tiết (HTTPS/WSS, TURN, hai thiết bị): [docs/setup.md](docs/setup.md)
 
 ---
 
-## 7. Kiểm thử
+## 8. Kiểm thử
 
 ```bash
-cd backend && ./mvnw verify   # JUnit + integration test (Testcontainers)
-cd frontend && npm run test   # Vitest
+# Backend: JUnit 5 + Testcontainers (PostgreSQL, Redis, RabbitMQ tự spin up)
+cd backend && ./mvnw verify
+
+# Frontend: Vitest
+cd frontend && npm run test
 ```
 
-Độ phủ kiểm thử tự động hiện tại: auth (rotation/reuse/logout), WebSocket presence (5 ca), signaling cuộc gọi, phục hồi grace-period, pipeline lịch sử RabbitMQ (bất đồng bộ + idempotency), API lịch sử.
+**Phạm vi kiểm thử hiện tại:**
+
+| Lớp | Test cases |
+|-----|-----------|
+| Auth (backend) | Rotation, token reuse rejection, logout revocation |
+| WebSocket presence (backend) | 5 integration test: connect/auth, heartbeat, single-session kick, offline sweep, cross-client presence |
+| Call signaling (backend) | SDP/ICE routing, TURN credential generation |
+| Call state machine (backend) | CAS transitions, glare resolution, grace timer |
+| History pipeline (backend) | Async consumer write, idempotency (duplicate message), DLQ |
+| History API (backend) | Pagination, access scoping, ordering |
+| Admin (backend) | Lock/unlock, role change, self-protection, force-disconnect |
+| PeerManager (frontend) | Perfect negotiation, ICE buffering, renegotiation |
+| MeshManager (frontend) | Join/leave mesh, multiple peer cleanup |
+| media.ts (frontend) | getUserMedia, constraints, fallback |
+| stats.ts (frontend) | getStats parsing, quality metrics |
 
 ---
 
-## 8. Tài liệu quy trình
+## 9. Tài liệu quy trình
 
-- Roadmap đầy đủ 9 phase: [.planning/ROADMAP.md](.planning/ROADMAP.md)
-- Trạng thái hiện tại: [.planning/STATE.md](.planning/STATE.md)
-- Tổng kết Phase 2: [.planning/phases/02-realtime-presence-websocket-layer/02-SUMMARY.md](.planning/phases/02-realtime-presence-websocket-layer/02-SUMMARY.md)
-- Review code Phase 1 / Phase 4 nằm trong thư mục phase tương ứng dưới `.planning/phases/`.
-</content>
-</invoke>
+| Tài liệu | Mô tả |
+|----------|-------|
+| [.planning/ROADMAP.md](.planning/ROADMAP.md) | Roadmap 9 phase đầy đủ với success criteria từng phase |
+| [.planning/STATE.md](.planning/STATE.md) | Trạng thái hiện tại, velocity, accumulated decisions |
+| [.planning/REQUIREMENTS.md](.planning/REQUIREMENTS.md) | Yêu cầu chi tiết toàn dự án |
+| `.planning/phases/0X-*/0X-NN-PLAN.md` | Kế hoạch chi tiết từng wave (37 file) |
+| `.planning/phases/0X-*/0X-NN-SUMMARY.md` | Tổng kết sau khi hoàn thành wave |
+| `.planning/phases/0X-*/0X-REVIEW.md` | Code review log và các điểm đã sửa |
+| `.planning/phases/0X-*/0X-VALIDATION.md` | Checklist xác minh thủ công |
