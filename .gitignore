@@ -16,3 +16,4 @@ backend/src/main/resources/certs/
 # --- OS / editor ---
 .DS_Store
 Thumbs.db
+.planning/research/.cache
