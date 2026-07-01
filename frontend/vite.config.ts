@@ -18,5 +18,16 @@ export default defineConfig({
     host: '0.0.0.0', // cho thiết bị khác trong LAN truy cập qua IP
     port: 5173,
     https,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
 })
