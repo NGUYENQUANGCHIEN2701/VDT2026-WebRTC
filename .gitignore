@@ -17,3 +17,6 @@ backend/src/main/resources/certs/
 .DS_Store
 Thumbs.db
 .planning/research/.cache
+
+# --- GSD local config (per-machine, not shared) ---
+.planning/config.json
