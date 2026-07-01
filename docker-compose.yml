@@ -79,9 +79,11 @@ services:
       retries: 10
       start_period: 40s
 
-  # Load balancer + WebSocket-aware reverse proxy. Sole external entry point.
+  # Load balancer + WebSocket-aware reverse proxy + frontend SPA. Sole external entry point.
   nginx:
-    image: nginx:1.27-alpine
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     depends_on:
       backend-1:
         condition: service_healthy
@@ -90,8 +92,11 @@ services:
     ports:
       # Host 8080 -> nginx 80 (same external port as the old single backend).
       - "8080:80"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   coturn:
     image: coturn/coturn:4.6
