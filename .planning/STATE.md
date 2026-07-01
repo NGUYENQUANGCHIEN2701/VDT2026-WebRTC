@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-06-11)
 Phase: 09 (monitoring-ci-cd-full-delivery) — EXECUTING
 Status: Executing Phase 09
 Next: Plan Phase 9 waves (docker compose full stack, Prometheus/Grafana, GitHub Actions CI, Playwright E2E)
-Last activity: 2026-07-01 — Phase 09 execution started
+Last activity: 2026-07-01 — Completed quick task 260702-3sd: Fix presence status not updating in realtime after a call ends
 
 Progress: [#########] 97% (37/37 plans through Phase 8; Phase 9 TBD)
 
@@ -102,6 +102,8 @@ Recent decisions affecting current work:
 | 260613-kxw | Externalize DB/JWT credentials via env vars (.env.example, root .gitignore) | 2026-06-13 | 9678bda | [260613-kxw-env-config-credentials](./quick/260613-kxw-env-config-credentials/) |
 | 260613-laz | Docker Compose (postgres + backend) + backend Dockerfile | 2026-06-13 | dd77b42 | [260613-laz-docker-compose-backend](./quick/260613-laz-docker-compose-backend/) |
 | 260701-tkz | Fix group-call recording to mirror the on-screen layout instead of a fixed square grid | 2026-07-01 | 64912e8 | [260701-tkz-fix-group-call-recording-to-mirror-the-o](./quick/260701-tkz-fix-group-call-recording-to-mirror-the-o/) |
+| 260701-u3j | Sync screen-share focus across all group-call participants (server-authoritative single-sharer lock + recording alignment) | 2026-07-01 | 1a33cbc | [260701-u3j-sync-screen-share-focus-across-all-group](./quick/260701-u3j-sync-screen-share-focus-across-all-group/) |
+| 260702-3sd | Fix presence status not updating in realtime after a call ends (transition_call.lua/CallService missing presence-events publish) | 2026-07-01 | 2f4b33e | [260702-3sd-fix-presence-status-not-updating-in-real](./quick/260702-3sd-fix-presence-status-not-updating-in-real/) |
 
 ## Deferred Items
 
