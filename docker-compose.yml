@@ -93,11 +93,9 @@ services:
         condition: service_healthy
     ports:
       # Host 8080 -> nginx 80 (same external port as the old single backend).
+      # PROD (AWS): TLS/443 + mount cert nằm ở docker-compose.prod.yml —
+      # chạy: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
       - "8080:80"
-      - "443:443"
-    volumes:
-      # Let's Encrypt certs live on the host (certbot run outside Docker); read-only mount.
-      - /etc/letsencrypt:/etc/letsencrypt:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/"]
       interval: 10s

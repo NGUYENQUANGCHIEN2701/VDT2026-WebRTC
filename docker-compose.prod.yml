@@ -1,0 +1,22 @@
+# PROD override (AWS EC2) — chạy kèm file base:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Base compose giữ nguyên cho local dev (nginx HTTP-only trên 8080, không cert).
+# Override này: đè config nginx bằng bản TLS + mount cert Let's Encrypt + mở 80/443.
+services:
+  nginx:
+    ports:
+      - "80:80"     # HTTP -> HTTPS redirect (server_name = domain EC2)
+      - "443:443"   # HTTPS chính
+    volumes:
+      # Đè default.conf (bản dev bake trong image) bằng config TLS prod.
+      - ./nginx/prod/vdt.conf:/etc/nginx/conf.d/default.conf:ro
+      # Cert Let's Encrypt trên host EC2 (certbot standalone chạy ngoài Docker).
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    healthcheck:
+      # Bản prod: port 80 chỉ trả 301 -> https; wget mặc định không follow được
+      # (self-signed check không cần) nên chỉ cần nginx trả lời là healthy.
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://127.0.0.1/ || wget -qO- http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
