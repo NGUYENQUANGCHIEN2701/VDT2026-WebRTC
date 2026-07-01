@@ -7,6 +7,7 @@ export interface RoomMember {
     connectionState: PeerConnectionState
     micMuted: boolean
     camOff: boolean
+    isScreenSharing: boolean
     streamVersion: number
 }
 
@@ -43,7 +44,10 @@ interface RoomStoreState {
     addMember: (username: string) => void
     removeMember: (username: string) => void
     setPeerConnectionState: (username: string, connectionState: PeerConnectionState) => void
-    setPeerMediaState: (username: string, media: { micMuted?: boolean; camOff?: boolean }) => void
+    setPeerMediaState: (
+        username: string,
+        media: { micMuted?: boolean; camOff?: boolean; isScreenSharing?: boolean }
+    ) => void
     bumpStreamVersion: (username: string) => void
     setActiveMaxBitrate: (maxBitrate: number | null) => void
     setMicMuted: (micMuted: boolean) => void
@@ -61,7 +65,14 @@ interface RoomStoreState {
 }
 
 function member(username: string): RoomMember {
-    return { username, connectionState: 'connecting', micMuted: false, camOff: false, streamVersion: 0 }
+    return {
+        username,
+        connectionState: 'connecting',
+        micMuted: false,
+        camOff: false,
+        isScreenSharing: false,
+        streamVersion: 0,
+    }
 }
 
 export const useRoomStore = create<RoomStoreState>((set) => ({
@@ -129,6 +140,7 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
                         ...current,
                         micMuted: media.micMuted ?? current.micMuted,
                         camOff: media.camOff ?? current.camOff,
+                        isScreenSharing: media.isScreenSharing ?? current.isScreenSharing,
                     },
                 },
             }
@@ -178,3 +190,21 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
             recordingError: null,
         }),
 }))
+
+/**
+ * Trả về username của participant đang là "active sharer" trong room (self hoặc
+ * một remote cụ thể), hoặc null nếu không ai đang chia sẻ màn hình. Pure function
+ * (không subscribe store) để dùng chung được ở cả GroupCallPage.tsx (JSX) và
+ * recording.ts (RecordingController's getActiveSharer callback).
+ */
+export function getActiveSharer(
+    members: Record<string, RoomMember>,
+    selfId: string | null,
+    selfIsScreenSharing: boolean
+): string | null {
+    if (selfIsScreenSharing && selfId) return selfId
+    const remoteSharer = Object.values(members).find(
+        (m) => m.isScreenSharing && m.username !== selfId
+    )
+    return remoteSharer ? remoteSharer.username : null
+}

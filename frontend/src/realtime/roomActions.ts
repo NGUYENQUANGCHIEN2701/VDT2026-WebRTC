@@ -1,6 +1,6 @@
 import { fetchIceConfig } from '../api/turn'
 import { useAuthStore } from '../store/authStore'
-import { useRoomStore } from '../store/roomStore'
+import { getActiveSharer, useRoomStore } from '../store/roomStore'
 import { useToastStore } from '../store/toastStore'
 import { MeshManager, remoteStreams } from '../webrtc/MeshManager'
 import { acquireLocalMedia, MediaAcquisitionError } from '../webrtc/media'
@@ -53,6 +53,16 @@ export const canRoomScreenShare = (): boolean =>
 export async function startRoomScreenShare(): Promise<void> {
     if (!canRoomScreenShare()) {
         reportRoomMediaControlError('Screen sharing is unavailable in this browser.')
+        return
+    }
+
+    // Client-side pre-check (UX fast-path): if a synced remote member is already
+    // marked as the active sharer, reject before ever touching getDisplayMedia.
+    // The server-side claim in Task 1 remains the authoritative backstop for races.
+    const { members, selfId, isScreenSharing } = useRoomStore.getState()
+    const existingSharer = getActiveSharer(members, selfId, isScreenSharing)
+    if (existingSharer !== null && existingSharer !== selfId) {
+        reportRoomMediaControlError('Someone else is already sharing their screen.')
         return
     }
 
@@ -284,9 +294,9 @@ export function toggleRoomCam(): void {
 }
 
 function sendRoomMediaState(): void {
-    const { members, selfId, micMuted, camOff } = useRoomStore.getState()
+    const { members, selfId, micMuted, camOff, isScreenSharing } = useRoomStore.getState()
     for (const username of Object.keys(members)) {
-        if (username !== selfId) sendSignal({ type: 'media-state', to: username, micMuted, camOff })
+        if (username !== selfId) sendSignal({ type: 'media-state', to: username, micMuted, camOff, isScreenSharing })
     }
 }
 
@@ -411,7 +421,13 @@ function handleRoomSignal(msg: RoomServerSignal | CallServerSignal): void {
             }
             if (msg.roomId !== room.roomId) return
             room.addMember(msg.username)
-            sendSignal({ type: 'media-state', to: msg.username, micMuted: room.micMuted, camOff: room.camOff })
+            sendSignal({
+                type: 'media-state',
+                to: msg.username,
+                micMuted: room.micMuted,
+                camOff: room.camOff,
+                isScreenSharing: room.isScreenSharing,
+            })
             const totalParticipants = Object.keys(useRoomStore.getState().members).length
             void mesh?.handleParticipantJoined(msg.username, totalParticipants).then(updateBitrateStore)
             break
@@ -457,7 +473,11 @@ function handleRoomSignal(msg: RoomServerSignal | CallServerSignal): void {
             useRoomStore.getState().setOutgoingInvitees([])
             break
         case 'media-state-relay':
-            useRoomStore.getState().setPeerMediaState(msg.from, { micMuted: msg.micMuted, camOff: msg.camOff })
+            useRoomStore.getState().setPeerMediaState(msg.from, {
+                micMuted: msg.micMuted,
+                camOff: msg.camOff,
+                isScreenSharing: msg.isScreenSharing,
+            })
             break
         case 'sdp-received':
             deliverRoomSignal(msg.callId, msg.from, { sdp: msg.sdp })

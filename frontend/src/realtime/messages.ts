@@ -22,7 +22,7 @@ export type CallServerSignal =
     | CallStateChanged
     | { type: 'sdp-received'; from: string; callId: string; sdp: RTCSessionDescriptionInit }
     | { type: 'ice-candidate-received'; from: string; callId: string; candidate: RTCIceCandidateInit }
-    | { type: 'media-state-relay'; from: string; micMuted: boolean; camOff: boolean }
+    | { type: 'media-state-relay'; from: string; micMuted: boolean; camOff: boolean; isScreenSharing: boolean }
     | { type: 'recording-state-relay'; from: string; callId: string; recording: boolean }
 
 export type RoomServerSignal =
@@ -51,7 +51,7 @@ export type ClientMessage =
     | { type: 'hang-up'; callId: string }
     | { type: 'sdp'; to: string; callId: string; sdp: RTCSessionDescription | null }
     | { type: 'ice-candidate'; to: string; callId: string; candidate: RTCIceCandidateInit }
-    | { type: 'media-state'; to: string; micMuted: boolean; camOff: boolean }
+    | { type: 'media-state'; to: string; micMuted: boolean; camOff: boolean; isScreenSharing: boolean }
     | { type: 'recording-state'; to: string; callId: string; recording: boolean }
     | { type: 'group-invite'; to: string[] }
     | { type: 'cancel-group-invite'; to: string[] }

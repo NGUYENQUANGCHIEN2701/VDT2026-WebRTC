@@ -3,8 +3,8 @@ import { sendSignal } from './wsClient'
 import { useCallStore } from '../store/callStore'
 
 function sendMediaState() {
-    const { remoteUserId, micMuted, camOff } = useCallStore.getState()
-    if (remoteUserId) sendSignal({ type: 'media-state', to: remoteUserId, micMuted, camOff })
+    const { remoteUserId, micMuted, camOff, isScreenSharing } = useCallStore.getState()
+    if (remoteUserId) sendSignal({ type: 'media-state', to: remoteUserId, micMuted, camOff, isScreenSharing })
 }
 
 export function toggleMic() {

@@ -49,8 +49,8 @@ export function sendRecordingState(recording: boolean): void {
 }
 
 function sendCurrentMediaState() {
-    const { remoteUserId, micMuted, camOff } = useCallStore.getState()
-    if (remoteUserId) sendSignal({ type: 'media-state', to: remoteUserId, micMuted, camOff })
+    const { remoteUserId, micMuted, camOff, isScreenSharing } = useCallStore.getState()
+    if (remoteUserId) sendSignal({ type: 'media-state', to: remoteUserId, micMuted, camOff, isScreenSharing })
 }
 
 // Task 1 (Wave 4): show UI-SPEC-approved strings only, never raw browser errors
@@ -394,6 +394,10 @@ function handleServerSignal(msg: CallServerSignal) {
             call.setRemoteCamOff(msg.camOff)
             break
         }
+        // Note: 1-1 calls do not use msg.isScreenSharing — CallService/PresenceWebSocketHandler
+        // passes it through unchanged (no room-based single-sharer lock applies to 1-1 calls),
+        // and the 1-1 UI's own presentation layout already derives sharer state locally from
+        // useCallStore's isScreenSharing (a single-peer call has no "who is sharing" ambiguity).
         case 'recording-state-relay': {
             const call = useCallStore.getState()
             if (call.callId === msg.callId) call.setRemoteRecording(msg.recording)
