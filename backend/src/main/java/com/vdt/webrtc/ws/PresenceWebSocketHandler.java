@@ -32,6 +32,8 @@ import com.vdt.webrtc.ws.message.MediaStateRelay;
 import com.vdt.webrtc.ws.message.Ping;
 import com.vdt.webrtc.ws.message.Pong;
 import com.vdt.webrtc.ws.message.PresenceSnapshot;
+import com.vdt.webrtc.ws.message.RecordingState;
+import com.vdt.webrtc.ws.message.RecordingStateRelay;
 import com.vdt.webrtc.ws.message.SdpMessage;
 import com.vdt.webrtc.ws.message.SdpReceived;
 import com.vdt.webrtc.ws.message.SessionSuperseded;
@@ -131,9 +133,11 @@ public class PresenceWebSocketHandler extends TextWebSocketHandler {
             router.sendToUser(sdpMessage.to(), received);
         } else if (clientMessage instanceof MediaState ms) {
             router.sendToUser(ms.to(), new MediaStateRelay(username, ms.micMuted(), ms.camOff()));
-        } else if (clientMessage instanceof
-
-        IceCandidateMessage iceCandidateMessage) {
+        } else if (clientMessage instanceof RecordingState rs) {
+            if (callService.areActiveCallPeers(rs.callId(), username, rs.to())) {
+                router.sendToUser(rs.to(), new RecordingStateRelay(username, rs.callId(), rs.recording()));
+            }
+        } else if (clientMessage instanceof IceCandidateMessage iceCandidateMessage) {
             IceCandidateReceived received = new IceCandidateReceived(username, iceCandidateMessage.callId(),
                     iceCandidateMessage.candidate());
             router.sendToUser(iceCandidateMessage.to(), received);

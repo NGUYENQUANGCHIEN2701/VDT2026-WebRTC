@@ -27,6 +27,11 @@ interface RoomStoreState {
     camOff: boolean
     connectedAt: number | null
     activeMaxBitrate: number | null
+    isScreenSharing: boolean
+    localStreamVersion: number
+    selectedCameraDeviceId: string | null
+    selectedMicrophoneDeviceId: string | null
+    selectedSpeakerDeviceId: string | null
     setIncomingInvite: (invite: RoomInviteState | null) => void
     setOutgoingInvitees: (invitees: string[]) => void
     addDeclinedInvitee: (username: string) => void
@@ -39,6 +44,11 @@ interface RoomStoreState {
     setActiveMaxBitrate: (maxBitrate: number | null) => void
     setMicMuted: (micMuted: boolean) => void
     setCamOff: (camOff: boolean) => void
+    setIsScreenSharing: (v: boolean) => void
+    bumpLocalStream: () => void
+    setSelectedCameraDeviceId: (id: string | null) => void
+    setSelectedMicrophoneDeviceId: (id: string | null) => void
+    setSelectedSpeakerDeviceId: (id: string | null) => void
     reset: () => void
 }
 
@@ -57,6 +67,11 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
     camOff: false,
     connectedAt: null,
     activeMaxBitrate: null,
+    isScreenSharing: false,
+    localStreamVersion: 0,
+    selectedCameraDeviceId: null,
+    selectedMicrophoneDeviceId: null,
+    selectedSpeakerDeviceId: null,
     setIncomingInvite: (incomingInvite) => set({ incomingInvite }),
     setOutgoingInvitees: (outgoingInvitees) => set({ outgoingInvitees, declinedInvitees: [] }),
     addDeclinedInvitee: (username) =>
@@ -119,6 +134,11 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
     setActiveMaxBitrate: (activeMaxBitrate) => set({ activeMaxBitrate }),
     setMicMuted: (micMuted) => set({ micMuted }),
     setCamOff: (camOff) => set({ camOff }),
+    setIsScreenSharing: (isScreenSharing) => set({ isScreenSharing }),
+    bumpLocalStream: () => set((s) => ({ localStreamVersion: s.localStreamVersion + 1 })),
+    setSelectedCameraDeviceId: (selectedCameraDeviceId) => set({ selectedCameraDeviceId }),
+    setSelectedMicrophoneDeviceId: (selectedMicrophoneDeviceId) => set({ selectedMicrophoneDeviceId }),
+    setSelectedSpeakerDeviceId: (selectedSpeakerDeviceId) => set({ selectedSpeakerDeviceId }),
     reset: () =>
         set({
             roomId: null,
@@ -131,5 +151,10 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
             camOff: false,
             connectedAt: null,
             activeMaxBitrate: null,
+            isScreenSharing: false,
+            localStreamVersion: 0,
+            selectedCameraDeviceId: null,
+            selectedMicrophoneDeviceId: null,
+            selectedSpeakerDeviceId: null,
         }),
 }))

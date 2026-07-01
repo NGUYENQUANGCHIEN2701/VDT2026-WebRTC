@@ -34,6 +34,26 @@ interface CallStoreState {
     setRemoteCamOff: (b: boolean) => void
     remoteStreamVersion: number   // bump mỗi khi remote track tới → CallPage gắn lại srcObject
     bumpRemoteStream: () => void
+    isScreenSharing: boolean
+    localStreamVersion: number
+    selectedCameraDeviceId: string | null
+    selectedMicrophoneDeviceId: string | null
+    selectedSpeakerDeviceId: string | null
+    isRecording: boolean
+    recordingStartedAt: number | null
+    remoteRecording: boolean
+    recordingError: string | null
+    hasRecordingPreview: boolean
+    setIsScreenSharing: (v: boolean) => void
+    bumpLocalStream: () => void
+    setSelectedCameraDeviceId: (id: string | null) => void
+    setSelectedMicrophoneDeviceId: (id: string | null) => void
+    setSelectedSpeakerDeviceId: (id: string | null) => void
+    setIsRecording: (v: boolean) => void
+    setRecordingStartedAt: (ts: number | null) => void
+    setRemoteRecording: (v: boolean) => void
+    setRecordingError: (msg: string | null) => void
+    setHasRecordingPreview: (v: boolean) => void
 
     setMediaError: (error: MediaErrorType | null) => void
     setCallState: (s: CallState) => void
@@ -64,6 +84,26 @@ export const useCallStore = create<CallStoreState>((set) => ({
     setRemoteCamOff: (remoteCamOff) => set({ remoteCamOff }),
     remoteStreamVersion: 0,
     bumpRemoteStream: () => set((s) => ({ remoteStreamVersion: s.remoteStreamVersion + 1 })),
+    isScreenSharing: false,
+    localStreamVersion: 0,
+    selectedCameraDeviceId: null,
+    selectedMicrophoneDeviceId: null,
+    selectedSpeakerDeviceId: null,
+    isRecording: false,
+    recordingStartedAt: null,
+    remoteRecording: false,
+    recordingError: null,
+    hasRecordingPreview: false,
+    setIsScreenSharing: (isScreenSharing) => set({ isScreenSharing }),
+    bumpLocalStream: () => set((s) => ({ localStreamVersion: s.localStreamVersion + 1 })),
+    setSelectedCameraDeviceId: (selectedCameraDeviceId) => set({ selectedCameraDeviceId }),
+    setSelectedMicrophoneDeviceId: (selectedMicrophoneDeviceId) => set({ selectedMicrophoneDeviceId }),
+    setSelectedSpeakerDeviceId: (selectedSpeakerDeviceId) => set({ selectedSpeakerDeviceId }),
+    setIsRecording: (isRecording) => set({ isRecording }),
+    setRecordingStartedAt: (recordingStartedAt) => set({ recordingStartedAt }),
+    setRemoteRecording: (remoteRecording) => set({ remoteRecording }),
+    setRecordingError: (recordingError) => set({ recordingError }),
+    setHasRecordingPreview: (hasRecordingPreview) => set({ hasRecordingPreview }),
     setMediaError: (mediaError) => set({ mediaError }),
     // Lần ĐẦU vào 'connected' thì chốt mốc đếm giờ; lần sau (reconnecting→connected) giữ nguyên
     setCallState: (callState) =>
@@ -83,5 +123,5 @@ export const useCallStore = create<CallStoreState>((set) => ({
             durationMs: s.connectedAt != null ? Date.now() - s.connectedAt : 0,
         })),
 
-    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null, endReason: null, connectedAt: null, durationMs: null, micMuted: false, camOff: false, remoteMicMuted: false, remoteCamOff: false, remoteStreamVersion: 0 }),
+    reset: () => set({ callState: 'idle', remoteUserId: null, callId: null, mediaMode: null, mediaError: null, endReason: null, connectedAt: null, durationMs: null, micMuted: false, camOff: false, remoteMicMuted: false, remoteCamOff: false, remoteStreamVersion: 0, isScreenSharing: false, localStreamVersion: 0, selectedCameraDeviceId: null, selectedMicrophoneDeviceId: null, selectedSpeakerDeviceId: null, isRecording: false, recordingStartedAt: null, remoteRecording: false, recordingError: null, hasRecordingPreview: false }),
 }))

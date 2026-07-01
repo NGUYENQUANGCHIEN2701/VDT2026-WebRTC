@@ -1,4 +1,11 @@
 import { acquireLocalMedia, MediaAcquisitionError } from '../webrtc/media'
+import {
+    acquireAudioTrack,
+    acquireVideoTrack,
+    getCurrentTrack,
+    replaceTrackInStream,
+    stopTrack,
+} from '../webrtc/mediaDevices'
 import { PeerManager, type InboundSignal } from '../webrtc/PeerManager'
 import { sendSignal, setCallSignalHandler } from './wsClient'
 import { useCallStore } from '../store/callStore'
@@ -12,6 +19,8 @@ let localStream: MediaStream | null = null
 let peer: PeerManager | null = null
 let peerGeneration = 0
 let creatingPeerCallId: string | null = null
+let cameraTrackBeforeShare: MediaStreamTrack | null = null
+let isRestoringCamera = false
 // SDP/ICE có thể tới TRƯỚC khi peer kịp tạo (createPeer phải await fetchIceConfig).
 // Đệm lại để KHÔNG rớt offer → tránh deadlock perfect-negotiation (kẹt "đang kết nối").
 type BufferedSignal = InboundSignal & { callId: string }
@@ -29,6 +38,129 @@ function deliverSignal(callId: string, sig: InboundSignal) {
 export function getLocalStream() { return localStream }
 export function getRemoteStream() { return peer?.remoteStream ?? null }
 export function getActivePeer(): PeerManager | null { return peer }
+
+function sendCurrentMediaState() {
+    const { remoteUserId, micMuted, camOff } = useCallStore.getState()
+    if (remoteUserId) sendSignal({ type: 'media-state', to: remoteUserId, micMuted, camOff })
+}
+
+function reportMediaControlError(message: string): void {
+    useCallStore.getState().setRecordingError(message)
+    useToastStore.getState().show(message, 'warning')
+}
+
+export async function startScreenShare(): Promise<void> {
+    const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+    const screenTrack = displayStream.getVideoTracks()[0]
+    if (!screenTrack) {
+        reportMediaControlError('Khong co screen track de chia se')
+        return
+    }
+
+    const activePeer = peer
+    const stream = localStream
+    const cameraTrack = stream ? getCurrentTrack(stream, 'video') : null
+    if (!activePeer || !stream || !cameraTrack) {
+        stopTrack(screenTrack)
+        reportMediaControlError('Chua co video call de chia se man hinh')
+        return
+    }
+
+    try {
+        cameraTrackBeforeShare = cameraTrack
+        screenTrack.enabled = true
+        await activePeer.replaceVideoTrack(screenTrack)
+        replaceTrackInStream(stream, cameraTrack, screenTrack)
+        screenTrack.onended = () => { void stopScreenShare() }
+
+        const call = useCallStore.getState()
+        call.setIsScreenSharing(true)
+        call.setCamOff(false)
+        call.bumpLocalStream()
+        sendCurrentMediaState()
+    } catch (err) {
+        stopTrack(screenTrack)
+        reportMediaControlError(`Khong the chia se man hinh: ${err instanceof Error ? err.message : 'unknown'}`)
+    }
+}
+
+export async function stopScreenShare(): Promise<void> {
+    if (isRestoringCamera) return
+    const activePeer = peer
+    const stream = localStream
+    const screenTrack = stream ? getCurrentTrack(stream, 'video') : null
+    if (!activePeer || !stream || !screenTrack) return
+
+    isRestoringCamera = true
+    try {
+        const call = useCallStore.getState()
+        const reusableCamera =
+            cameraTrackBeforeShare && cameraTrackBeforeShare.readyState !== 'ended'
+                ? cameraTrackBeforeShare
+                : null
+        const cameraTrack = reusableCamera ?? await acquireVideoTrack(call.selectedCameraDeviceId ?? undefined)
+        cameraTrack.enabled = !call.camOff
+
+        await activePeer.replaceVideoTrack(cameraTrack)
+        replaceTrackInStream(stream, screenTrack, cameraTrack)
+        stopTrack(screenTrack)
+        cameraTrackBeforeShare = null
+        call.setIsScreenSharing(false)
+        call.bumpLocalStream()
+    } catch (err) {
+        reportMediaControlError(`Khong the khoi phuc camera: ${err instanceof Error ? err.message : 'unknown'}`)
+    } finally {
+        isRestoringCamera = false
+    }
+}
+
+export async function switchCamera(deviceId: string): Promise<void> {
+    const call = useCallStore.getState()
+    if (call.isScreenSharing) {
+        call.setSelectedCameraDeviceId(deviceId)
+        return
+    }
+
+    const activePeer = peer
+    const stream = localStream
+    const oldTrack = stream ? getCurrentTrack(stream, 'video') : null
+    if (!activePeer || !stream || !oldTrack) return
+
+    let newTrack: MediaStreamTrack | null = null
+    try {
+        newTrack = await acquireVideoTrack(deviceId)
+        newTrack.enabled = !call.camOff
+        await activePeer.replaceVideoTrack(newTrack)
+        replaceTrackInStream(stream, oldTrack, newTrack)
+        stopTrack(oldTrack)
+        call.setSelectedCameraDeviceId(deviceId)
+        call.bumpLocalStream()
+    } catch (err) {
+        stopTrack(newTrack)
+        reportMediaControlError(`Khong the doi camera: ${err instanceof Error ? err.message : 'unknown'}`)
+    }
+}
+
+export async function switchMicrophone(deviceId: string): Promise<void> {
+    const activePeer = peer
+    const stream = localStream
+    const oldTrack = stream ? getCurrentTrack(stream, 'audio') : null
+    if (!activePeer || !stream || !oldTrack) return
+
+    let newTrack: MediaStreamTrack | null = null
+    try {
+        const call = useCallStore.getState()
+        newTrack = await acquireAudioTrack(deviceId)
+        newTrack.enabled = !call.micMuted
+        await activePeer.replaceAudioTrack(newTrack)
+        replaceTrackInStream(stream, oldTrack, newTrack)
+        stopTrack(oldTrack)
+        call.setSelectedMicrophoneDeviceId(deviceId)
+    } catch (err) {
+        stopTrack(newTrack)
+        reportMediaControlError(`Khong the doi microphone: ${err instanceof Error ? err.message : 'unknown'}`)
+    }
+}
 
 // ── FE-C: nhớ cuộc đang diễn ra qua sessionStorage để sống sót F5 ──
 // sessionStorage tự xóa khi đóng tab → key chỉ tồn tại đúng trường hợp REFRESH giữa cuộc.
@@ -155,6 +287,8 @@ function teardownMedia() {
     peer = null
     localStream?.getTracks().forEach((t) => t.stop())  // tắt đèn camera
     localStream = null
+    cameraTrackBeforeShare = null
+    isRestoringCamera = false
     pendingSignals = []   // bỏ tín hiệu đệm còn sót của cuộc vừa kết thúc
     clearSavedCall()   // FE-C: cuộc đã kết thúc → quên đi, F5 không khôi phục nữa
 }
@@ -175,6 +309,11 @@ function handleServerSignal(msg: CallServerSignal) {
             const call = useCallStore.getState()
             call.setRemoteMicMuted(msg.micMuted)
             call.setRemoteCamOff(msg.camOff)
+            break
+        }
+        case 'recording-state-relay': {
+            const call = useCallStore.getState()
+            if (call.callId === msg.callId) call.setRemoteRecording(msg.recording)
             break
         }
     }

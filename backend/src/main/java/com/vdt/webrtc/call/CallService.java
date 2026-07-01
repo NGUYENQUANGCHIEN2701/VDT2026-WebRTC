@@ -23,7 +23,7 @@ public class CallService {
     private final Duration gracePeriod;
     private final CallHistoryPublisher callHistoryPublisher;
     private final CallMetrics metrics;
-    
+
     public CallService(CallStateMachine stateMachine, CallTimerService timers,
             CallStateRepository repo, MessageRouter router,
             CallHistoryPublisher callHistoryPublisher,
@@ -180,6 +180,15 @@ public class CallService {
                     // Cả 2 dựng mới = đúng luồng 'active' lần đầu (perfect negotiation lo offer).
                     broadcast(call.callId(), "active", null, call.callerId(), call.calleeId());
                 });
+    }
+
+    public boolean areActiveCallPeers(String callId, String actorId, String peerId) {
+        return repo.find(callId)
+                .filter(call -> "active".equals(call.state()))
+                .filter(call -> actorId.equals(call.callerId()) || actorId.equals(call.calleeId()))
+                .filter(call -> peerId.equals(call.callerId()) || peerId.equals(call.calleeId()))
+                .filter(call -> !actorId.equals(peerId))
+                .isPresent();
     }
 
 }

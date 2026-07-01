@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 8
 current_phase_name: Screen Share, Recording & Device Control
 status: executing
-stopped_at: Phase 8 Wave 2 ready to execute
-last_updated: "2026-06-30T23:54:00.000Z"
-last_activity: 2026-06-30
-last_activity_desc: Phase 8 Wave 1 (08-01) COMPLETE — RED test scaffolding done
+stopped_at: Phase 8 Wave 3 ready to execute
+last_updated: "2026-07-01T01:40:00.000Z"
+last_activity: 2026-07-01
+last_activity_desc: Phase 8 Wave 2 (08-02) COMPLETE -- foundation implementation done
 progress:
   total_phases: 9
   completed_phases: 7
   total_plans: 37
-  completed_plans: 30
-  percent: 81
+  completed_plans: 31
+  percent: 84
 ---
 
 # Project State
@@ -29,17 +29,17 @@ See: .planning/PROJECT.md (updated 2026-06-11)
 ## Current Position
 
 Phase: 8 of 9 (Screen Share, Recording & Device Control) -- EXECUTING
-Status: Wave 2 — Backend signaling + production code
-Next: Execute 08-02-PLAN.md (backend recording-state handler + PeerManager/MeshManager/recording.ts implementation)
-Last activity: 2026-06-30 -- 08-01 RED tests complete (4 PeerManager + 5 MeshManager + 8 recording + 6 backend RED tests)
+Status: Wave 3 -- RecordingController and UI wiring ready
+Next: Execute 08-03-PLAN.md (RecordingController, MorePanel, CallPage/GroupCallPage wiring)
+Last activity: 2026-07-01 -- 08-02 foundation implementation complete (FE media controls + BE recording relay)
 
-Progress: [#######--] 78% (7/9 phases)
+Progress: [########-] 84% (31/37 plans)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 29
+- Total plans completed: 31
 - Average duration: -
 - Total execution time: -
 
@@ -54,13 +54,13 @@ Progress: [#######--] 78% (7/9 phases)
 | 5. Call History & Admin | 4/4 | Complete |
 | 6. Horizontal Scaling | 4/4 | Complete |
 | 7. Group Mesh Calls | 5/5 | Complete |
-| 8. Screen Share, Recording & Device Control | 1/5 | Executing |
+| 8. Screen Share, Recording & Device Control | 2/5 | Executing |
 | 9. Monitoring, CI/CD & Full Delivery | 0/TBD | Not started |
 
 **Recent Trend:**
 
-- Last completed plan: 08-01 -- RED tests (Wave 1)
-- Next plan: 08-02 -- Implementation (Wave 2)
+- Last completed plan: 08-02 -- Foundation implementation (Wave 2)
+- Next plan: 08-03 -- RecordingController and UI wiring (Wave 3)
 
 ## Accumulated Context
 
@@ -77,7 +77,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Phase 8 Wave 1 (08-01) COMPLETE. Execute 08-02-PLAN.md next.
+- Phase 8 Wave 2 (08-02) COMPLETE. Execute 08-03-PLAN.md next.
 
 ### Blockers/Concerns
 
@@ -104,6 +104,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-30T23:54:00.000Z
-Stopped at: Phase 8 Wave 2 ready to execute
-Resume file: .planning/phases/08-screen-share-recording-device-control/08-02-PLAN.md
+Last session: 2026-07-01T01:40:00.000Z
+Stopped at: Phase 8 Wave 3 ready to execute
+Resume file: .planning/phases/08-screen-share-recording-device-control/08-03-PLAN.md

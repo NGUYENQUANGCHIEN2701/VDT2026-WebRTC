@@ -4,6 +4,13 @@ import { useRoomStore } from '../store/roomStore'
 import { useToastStore } from '../store/toastStore'
 import { MeshManager, remoteStreams } from '../webrtc/MeshManager'
 import { acquireLocalMedia, MediaAcquisitionError } from '../webrtc/media'
+import {
+    acquireAudioTrack,
+    acquireVideoTrack,
+    getCurrentTrack,
+    replaceTrackInStream,
+    stopTrack,
+} from '../webrtc/mediaDevices'
 import type { InboundSignal } from '../webrtc/PeerManager'
 import type { CallServerSignal, RoomServerSignal } from './messages'
 import { sendSignal, setRoomSignalHandler } from './wsClient'
@@ -15,6 +22,8 @@ let creatingRoomId: string | null = null
 let pendingInitialMembers = new Set<string>()
 let initialMembersCanInitiateOffer = false
 let meshSetup: Promise<void> | null = null
+let roomCameraTrackBeforeShare: MediaStreamTrack | null = null
+let isRestoringRoomCamera = false
 
 export function getRoomLocalStream(): MediaStream | null {
     return localStream
@@ -26,6 +35,127 @@ export function getRoomRemoteStream(username: string): MediaStream | null {
 
 export function getActiveMesh(): MeshManager | null {
     return mesh
+}
+
+function reportRoomMediaControlError(message: string): void {
+    useToastStore.getState().show(message, 'warning')
+}
+
+export async function startRoomScreenShare(): Promise<void> {
+    const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+    const screenTrack = displayStream.getVideoTracks()[0]
+    if (!screenTrack) {
+        reportRoomMediaControlError('Khong co screen track de chia se')
+        return
+    }
+
+    const activeMesh = mesh
+    const stream = localStream
+    const cameraTrack = stream ? getCurrentTrack(stream, 'video') : null
+    if (!activeMesh || !stream || !cameraTrack) {
+        stopTrack(screenTrack)
+        reportRoomMediaControlError('Chua co group call de chia se man hinh')
+        return
+    }
+
+    try {
+        roomCameraTrackBeforeShare = cameraTrack
+        screenTrack.enabled = true
+        await activeMesh.replaceVideoTrack(screenTrack)
+        replaceTrackInStream(stream, cameraTrack, screenTrack)
+        screenTrack.onended = () => { void stopRoomScreenShare() }
+
+        const room = useRoomStore.getState()
+        room.setIsScreenSharing(true)
+        room.setCamOff(false)
+        room.bumpLocalStream()
+        sendRoomMediaState()
+    } catch (err) {
+        stopTrack(screenTrack)
+        reportRoomMediaControlError(`Khong the chia se man hinh: ${err instanceof Error ? err.message : 'unknown'}`)
+    }
+}
+
+export async function stopRoomScreenShare(): Promise<void> {
+    if (isRestoringRoomCamera) return
+    const activeMesh = mesh
+    const stream = localStream
+    const screenTrack = stream ? getCurrentTrack(stream, 'video') : null
+    if (!activeMesh || !stream || !screenTrack) return
+
+    isRestoringRoomCamera = true
+    try {
+        const room = useRoomStore.getState()
+        const reusableCamera =
+            roomCameraTrackBeforeShare && roomCameraTrackBeforeShare.readyState !== 'ended'
+                ? roomCameraTrackBeforeShare
+                : null
+        const cameraTrack = reusableCamera ?? await acquireVideoTrack(room.selectedCameraDeviceId ?? undefined)
+        cameraTrack.enabled = !room.camOff
+
+        await activeMesh.replaceVideoTrack(cameraTrack)
+        replaceTrackInStream(stream, screenTrack, cameraTrack)
+        stopTrack(screenTrack)
+        roomCameraTrackBeforeShare = null
+        room.setIsScreenSharing(false)
+        room.bumpLocalStream()
+    } catch (err) {
+        reportRoomMediaControlError(`Khong the khoi phuc camera: ${err instanceof Error ? err.message : 'unknown'}`)
+    } finally {
+        isRestoringRoomCamera = false
+    }
+}
+
+export async function switchRoomCamera(deviceId: string): Promise<void> {
+    const room = useRoomStore.getState()
+    if (room.isScreenSharing) {
+        room.setSelectedCameraDeviceId(deviceId)
+        return
+    }
+
+    const activeMesh = mesh
+    const stream = localStream
+    const oldTrack = stream ? getCurrentTrack(stream, 'video') : null
+    if (!activeMesh || !stream || !oldTrack) return
+
+    let newTrack: MediaStreamTrack | null = null
+    try {
+        newTrack = await acquireVideoTrack(deviceId)
+        newTrack.enabled = !room.camOff
+        await activeMesh.replaceVideoTrack(newTrack)
+        replaceTrackInStream(stream, oldTrack, newTrack)
+        stopTrack(oldTrack)
+        room.setSelectedCameraDeviceId(deviceId)
+        room.bumpLocalStream()
+    } catch (err) {
+        stopTrack(newTrack)
+        reportRoomMediaControlError(`Khong the doi camera: ${err instanceof Error ? err.message : 'unknown'}`)
+    }
+}
+
+export async function switchRoomMicrophone(deviceId: string): Promise<void> {
+    const activeMesh = mesh
+    const stream = localStream
+    const oldTrack = stream ? getCurrentTrack(stream, 'audio') : null
+    if (!activeMesh || !stream || !oldTrack) return
+
+    let newTrack: MediaStreamTrack | null = null
+    try {
+        const room = useRoomStore.getState()
+        newTrack = await acquireAudioTrack(deviceId)
+        newTrack.enabled = !room.micMuted
+        await activeMesh.replaceAudioTrack(newTrack)
+        replaceTrackInStream(stream, oldTrack, newTrack)
+        stopTrack(oldTrack)
+        room.setSelectedMicrophoneDeviceId(deviceId)
+    } catch (err) {
+        stopTrack(newTrack)
+        reportRoomMediaControlError(`Khong the doi microphone: ${err instanceof Error ? err.message : 'unknown'}`)
+    }
+}
+
+export async function setRoomSinkId(deviceId: string): Promise<void> {
+    useRoomStore.getState().setSelectedSpeakerDeviceId(deviceId)
 }
 
 export function startGroupInvite(invitees: string[]): void {
@@ -172,6 +302,8 @@ function teardownRoom(): void {
     mesh = null
     localStream?.getTracks().forEach((track) => track.stop())
     localStream = null
+    roomCameraTrackBeforeShare = null
+    isRestoringRoomCamera = false
     pendingSignals = []
     useRoomStore.getState().reset()
 }

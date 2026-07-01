@@ -71,6 +71,18 @@ export class MeshManager {
         await Promise.all([...this.peers.values()].map((peer) => peer.setSendersMaxBitrate(nextMaxBitrate)))
     }
 
+    async replaceVideoTrack(track: MediaStreamTrack): Promise<void> {
+        const peers = [...this.peers.values()]
+        await Promise.all(peers.map((peer) => peer.replaceVideoTrack(track)))
+        if (this.activeMaxBitrate != null) {
+            await Promise.all(peers.map((peer) => peer.setSendersMaxBitrate(this.activeMaxBitrate)))
+        }
+    }
+
+    async replaceAudioTrack(track: MediaStreamTrack): Promise<void> {
+        await Promise.all([...this.peers.values()].map((peer) => peer.replaceAudioTrack(track)))
+    }
+
     async handleSignal(from: string, signal: InboundSignal): Promise<void> {
         const peer = this.ensurePeer(from, false)
         await peer.handleSignalingMessage(signal)

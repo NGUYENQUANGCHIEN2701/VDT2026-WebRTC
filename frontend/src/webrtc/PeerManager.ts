@@ -150,6 +150,16 @@ export class PeerManager {
         await Promise.all(updates)
     }
 
+    async replaceVideoTrack(track: MediaStreamTrack): Promise<void> {
+        const sender = this.pc.getSenders().find((s) => s.track?.kind === 'video')
+        if (sender) await sender.replaceTrack(track)
+    }
+
+    async replaceAudioTrack(track: MediaStreamTrack): Promise<void> {
+        const sender = this.pc.getSenders().find((s) => s.track?.kind === 'audio')
+        if (sender) await sender.replaceTrack(track)
+    }
+
     private setupHandlers() {
         // Khi cần đàm phán (vd vừa addTrack) → tạo offer rồi gửi
         this.pc.onnegotiationneeded = () => this.handleNegotiationNeeded()
