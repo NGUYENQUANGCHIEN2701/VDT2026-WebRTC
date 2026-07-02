@@ -1,15 +1,12 @@
 package com.vdt.webrtc.auth.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record RegisterRequest(
-        @NotBlank(message = "Username cannot be blank")
-        @Size(min = 3, max = 50, message = "Username must be 3-50 characters")
-        @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "Username can only contain letters, numbers, dots, underscores, or hyphens")
-        String username,
+public record ResetPasswordRequest(
+        @NotBlank(message = "Reset token cannot be blank")
+        String token,
 
         @NotBlank(message = "Password cannot be blank")
         @Size(min = 8, message = "Password must be at least 8 characters")
@@ -17,9 +14,5 @@ public record RegisterRequest(
         String password,
 
         @NotBlank(message = "Password confirmation cannot be blank")
-        String confirmPassword,
-
-        @NotBlank(message = "Email cannot be blank")
-        @Email(message = "Email must be valid")
-        String email) {
+        String confirmPassword) {
 }

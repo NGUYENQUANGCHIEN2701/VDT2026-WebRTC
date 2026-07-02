@@ -43,6 +43,7 @@ class CallHistoryApiTest {
         mockMvc.perform(post("/api/auth/register")
                 .contentType("application/json")
                 .content("{\"username\":\"" + username + "\",\"password\":\"Password123\","
+                        + "\"confirmPassword\":\"Password123\","
                         + "\"email\":\"" + username + "@test.com\"}"));
         MvcResult res = mockMvc.perform(post("/api/auth/login")
                 .contentType("application/json")

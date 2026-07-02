@@ -469,6 +469,31 @@ code {
   font-weight: 700;
 }
 
+.auth-success,
+.auth-help {
+  padding: 11px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.auth-success {
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.auth-help {
+  color: var(--auth-blue-strong);
+  background: rgba(10, 102, 194, 0.08);
+  border: 1px solid rgba(10, 102, 194, 0.18);
+}
+
+.auth-help a {
+  color: inherit;
+  font-weight: 900;
+}
+
 .auth-submit {
   display: inline-flex;
   align-items: center;
@@ -503,6 +528,51 @@ code {
 
 .auth-submit:hover svg {
   transform: translateX(3px);
+}
+
+.auth-submit:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.15);
+  opacity: 0.68;
+  box-shadow: none;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 14px;
+  color: inherit;
+  opacity: 0.58;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--auth-line);
+}
+
+.auth-google-slot,
+.auth-google-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 44px;
+}
+
+.auth-google-fallback {
+  border: 1px solid var(--auth-line);
+  border-radius: 6px;
+  color: inherit;
+  background: var(--social-bg);
+  font: 800 14px/1 var(--sans);
+  cursor: not-allowed;
+  opacity: 0.66;
 }
 
 .auth-switch {

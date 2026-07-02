@@ -46,7 +46,7 @@ class AdminHistoryApiTest {
 
     private void register(String u) throws Exception {
         mockMvc.perform(post("/api/auth/register").contentType("application/json")
-                .content("{\"username\":\"" + u + "\",\"password\":\"Password123\",\"email\":\"" + u + "@test.com\"}"));
+                .content("{\"username\":\"" + u + "\",\"password\":\"Password123\",\"confirmPassword\":\"Password123\",\"email\":\"" + u + "@test.com\"}"));
     }
 
     private String login(String u) throws Exception {

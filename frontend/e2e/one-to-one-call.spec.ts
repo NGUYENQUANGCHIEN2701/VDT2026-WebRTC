@@ -11,6 +11,7 @@ const API_BASE_URL = process.env.E2E_BASE_URL_API ?? 'http://localhost:8080'
 interface TestUser {
   username: string
   password: string
+  confirmPassword: string
   email: string
 }
 
@@ -20,6 +21,7 @@ function makeTestUser(role: 'caller' | 'callee'): TestUser {
   return {
     username,
     password: 'password123',
+    confirmPassword: 'password123',
     email: `${username}@e2e.test`,
   }
 }

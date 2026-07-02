@@ -34,7 +34,7 @@ class AdminLockTest {
     private void register(String username) throws Exception {
         mockMvc.perform(post("/api/auth/register")
                 .contentType("application/json")
-                .content("{\"username\":\"" + username + "\",\"password\":\"Password123\",\"email\":\""
+                .content("{\"username\":\"" + username + "\",\"password\":\"Password123\",\"confirmPassword\":\"Password123\",\"email\":\""
                         + username + "@test.com\"}"));
     }
 

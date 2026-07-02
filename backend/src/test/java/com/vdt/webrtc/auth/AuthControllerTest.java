@@ -17,21 +17,24 @@ import org.springframework.test.web.servlet.MvcResult;
 import com.vdt.webrtc.TestcontainersConfiguration;
 
 import jakarta.servlet.http.Cookie;
+import tools.jackson.databind.ObjectMapper;
 
-@SpringBootTest
+@SpringBootTest(properties = "app.password-reset.expose-token=true")
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 class AuthControllerTest {
 
     @Autowired
     MockMvc mockMvc;
+    @Autowired
+    ObjectMapper objectMapper;
 
     // Helper (Arrange dùng chung): đăng ký + login 1 user, trả về cookie refreshToken
     private Cookie loginAndGetCookie(String username) throws Exception {
         String email = username + "@test.com";
         mockMvc.perform(post("/api/auth/register")
                 .contentType("application/json")
-                .content("{\"username\":\"" + username + "\",\"password\":\"Password123\",\"email\":\"" + email + "\"}"))
+                .content("{\"username\":\"" + username + "\",\"password\":\"Password123\",\"confirmPassword\":\"Password123\",\"email\":\"" + email + "\"}"))
                 .andExpect(status().isCreated());
 
         MvcResult res = mockMvc.perform(post("/api/auth/login")
@@ -93,5 +96,66 @@ class AuthControllerTest {
         // token đã revoke → refresh bằng cookie đó phải fail
         mockMvc.perform(post("/api/auth/refresh").cookie(cookie))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void register_with_mismatched_confirm_password_returns_400() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                .contentType("application/json")
+                .content("""
+                        {
+                          "username": "mismatch_user",
+                          "password": "Password123",
+                          "confirmPassword": "Password124",
+                          "email": "mismatch_user@test.com"
+                        }
+                        """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void forgot_password_then_reset_allows_login_with_new_password() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                .contentType("application/json")
+                .content("""
+                        {
+                          "username": "reset_user",
+                          "password": "Password123",
+                          "confirmPassword": "Password123",
+                          "email": "reset_user@test.com"
+                        }
+                        """))
+                .andExpect(status().isCreated());
+
+        MvcResult forgot = mockMvc.perform(post("/api/auth/forgot-password")
+                .contentType("application/json")
+                .content("{\"email\":\"reset_user@test.com\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String resetToken = objectMapper.readTree(forgot.getResponse().getContentAsString())
+                .get("resetToken").asString();
+        assertThat(resetToken).isNotBlank();
+
+        mockMvc.perform(post("/api/auth/reset-password")
+                .contentType("application/json")
+                .content("""
+                        {
+                          "token": "%s",
+                          "password": "NewPassword123",
+                          "confirmPassword": "NewPassword123"
+                        }
+                        """.formatted(resetToken)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType("application/json")
+                .content("{\"username\":\"reset_user\",\"password\":\"Password123\"}"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType("application/json")
+                .content("{\"username\":\"reset_user\",\"password\":\"NewPassword123\"}"))
+                .andExpect(status().isOk());
     }
 }

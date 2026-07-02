@@ -1,10 +1,29 @@
-import { useState, type SyntheticEvent } from "react"
+import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { ArrowRightCircle, Eye, EyeOff, LockKeyhole, Moon, ShieldCheck, Sun, User, Video } from "lucide-react"
 import api from "../api/axios"
 import { useAuthTheme } from "../hooks/useAuthTheme"
 import { useAuthStore } from "../store/authStore"
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (options: {
+            client_id: string
+            callback: (response: { credential?: string }) => void
+          }) => void
+          renderButton: (
+            element: HTMLElement,
+            options: { theme: "outline", size: "large", width: number, text: "signin_with" },
+          ) => void
+        }
+      }
+    }
+  }
+}
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -15,6 +34,13 @@ export default function LoginPage() {
   const setAuth = useAuthStore((state) => state.setAuth)
   const { theme, toggleTheme } = useAuthTheme()
   const navigate = useNavigate()
+  const googleButtonRef = useRef<HTMLDivElement | null>(null)
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+
+  const finishLogin = useCallback((data: { token: string, username: string, role: string }) => {
+    setAuth(data.token, { username: data.username, role: data.role })
+    navigate("/")
+  }, [navigate, setAuth])
 
   const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault()
@@ -22,8 +48,7 @@ export default function LoginPage() {
 
     try {
       const res = await api.post("/api/auth/login", { username, password })
-      setAuth(res.data.token, { username: res.data.username, role: res.data.role })
-      navigate("/")
+      finishLogin(res.data)
     } catch (err) {
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 403) {
@@ -36,6 +61,60 @@ export default function LoginPage() {
       setError("Đăng nhập thất bại. Vui lòng thử lại.")
     }
   }
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current) return
+
+    const renderGoogleButton = () => {
+      if (!window.google || !googleButtonRef.current) return
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async ({ credential }) => {
+          if (!credential) {
+            setError("Google không trả về thông tin đăng nhập.")
+            return
+          }
+          setError("")
+          try {
+            const res = await api.post("/api/auth/google", { credential })
+            finishLogin(res.data)
+          } catch (err) {
+            if (axios.isAxiosError(err)) {
+              setError(err.response?.data?.message ?? "Đăng nhập Google thất bại.")
+              return
+            }
+            setError("Đăng nhập Google thất bại.")
+          }
+        },
+      })
+      googleButtonRef.current.innerHTML = ""
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        width: 320,
+        text: "signin_with",
+      })
+    }
+
+    if (window.google) {
+      renderGoogleButton()
+      return
+    }
+
+    const existing = document.getElementById("google-identity-script")
+    if (existing) {
+      existing.addEventListener("load", renderGoogleButton, { once: true })
+      return
+    }
+
+    const script = document.createElement("script")
+    script.id = "google-identity-script"
+    script.src = "https://accounts.google.com/gsi/client"
+    script.async = true
+    script.defer = true
+    script.addEventListener("load", renderGoogleButton, { once: true })
+    document.head.appendChild(script)
+  }, [finishLogin, googleClientId])
 
   return (
     <main className={`auth-page auth-page--${theme}`}>
@@ -108,7 +187,7 @@ export default function LoginPage() {
                 <input type="checkbox" defaultChecked />
                 <span>Ghi nhớ đăng nhập</span>
               </label>
-              <a href="#forgot-password">Quên mật khẩu?</a>
+              <Link to="/forgot-password">Quên mật khẩu?</Link>
             </div>
 
             {error && <p className="auth-error">{error}</p>}
@@ -118,6 +197,15 @@ export default function LoginPage() {
               <ArrowRightCircle size={20} strokeWidth={2} />
             </button>
           </form>
+
+          <div className="auth-divider"><span>hoặc</span></div>
+          {googleClientId ? (
+            <div className="auth-google-slot" ref={googleButtonRef} />
+          ) : (
+            <button className="auth-google-fallback" type="button" disabled>
+              Google chưa được cấu hình
+            </button>
+          )}
 
           <p className="auth-switch">
             Chưa có tài khoản? <Link to="/register">Đăng ký</Link>

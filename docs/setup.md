@@ -25,6 +25,8 @@ Sửa `.env` (đặc biệt `POSTGRES_PASSWORD` và `JWT_SECRET` — secret nên
 | `JWT_SECRET` | Secret ký JWT (HS512) |
 | `JWT_ACCESS_TTL_MS` | TTL access token (mặc định 1h dev) |
 | `COOKIE_SECURE` | `false` ở dev (HTTP), đặt `true` ở prod (HTTPS) |
+| `GOOGLE_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID` | Google OAuth Client ID cho backend verify token và frontend render Google Sign-In |
+| `PASSWORD_RESET_EXPOSE_TOKEN` | `true` chỉ cho demo nội bộ quên mật khẩu khi chưa có email sender; giữ `false` ở production public |
 | `GRAFANA_ADMIN_PASSWORD` | Mật khẩu tài khoản `admin` của Grafana (mặc định local là `admin` nếu để trống) |
 
 ## Cách 1 — Chạy full-stack bằng Docker Compose (nhanh nhất)

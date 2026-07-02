@@ -7,6 +7,8 @@
 # --- Build stage: compile the React app ---
 FROM node:22-alpine AS build
 WORKDIR /app
+ARG VITE_GOOGLE_CLIENT_ID=
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
 # Cache dependencies: resolve them before copying source so edits to src
 # don't re-install the world on every build.

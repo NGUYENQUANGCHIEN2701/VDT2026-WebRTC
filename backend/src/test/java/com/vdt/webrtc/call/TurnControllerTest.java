@@ -46,6 +46,7 @@ class TurnControllerTest {
         mockMvc.perform(post("/api/auth/register")
                 .contentType("application/json")
                 .content("{\"username\":\"" + username + "\",\"password\":\"Password123\","
+                        + "\"confirmPassword\":\"Password123\","
                         + "\"email\":\"" + username + "@test.com\"}"))
                 .andExpect(status().isCreated());
 

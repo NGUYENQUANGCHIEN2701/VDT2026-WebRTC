@@ -41,6 +41,9 @@ public class User {
     @NotNull(message = "Email cannot be null")
     private String email;
 
+    @Column(unique = true)
+    private String googleSub;
+
     @Column(nullable = false)
     private boolean locked = false;
 

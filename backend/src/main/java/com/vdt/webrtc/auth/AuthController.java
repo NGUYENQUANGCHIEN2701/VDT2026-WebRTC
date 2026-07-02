@@ -14,9 +14,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.vdt.webrtc.auth.dto.AuthResponse;
+import com.vdt.webrtc.auth.dto.ForgotPasswordRequest;
+import com.vdt.webrtc.auth.dto.ForgotPasswordResponse;
+import com.vdt.webrtc.auth.dto.GoogleLoginRequest;
 import com.vdt.webrtc.auth.dto.LoginRequest;
 import com.vdt.webrtc.auth.dto.RegisterRequest;
 import com.vdt.webrtc.auth.dto.RegisterResponse;
+import com.vdt.webrtc.auth.dto.ResetPasswordRequest;
 
 import jakarta.validation.Valid;
 
@@ -40,13 +44,27 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResult result = authService.login(request);
+        return authResponse(result);
+    }
 
-        ResponseCookie cookie = buildRefreshCookie(result.rawRefreshToken(), Duration.ofDays(7));
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        LoginResult result = authService.loginWithGoogle(request);
+        return authResponse(result);
+    }
 
-        AuthResponse body = new AuthResponse(result.accessToken(), result.username(), result.role());
-        return ResponseEntity.ok()
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ForgotPasswordResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        return ResponseEntity.ok(authService.requestPasswordReset(request.email()));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        ResponseCookie cookie = buildRefreshCookie("", Duration.ZERO);
+        return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(body);
+                .build();
     }
 
     @PostMapping("/refresh")
@@ -87,5 +105,13 @@ public class AuthController {
                 .path("/api/auth")
                 .maxAge(maxAge)
                 .build();
+    }
+
+    private ResponseEntity<AuthResponse> authResponse(LoginResult result) {
+        ResponseCookie cookie = buildRefreshCookie(result.rawRefreshToken(), Duration.ofDays(7));
+        AuthResponse body = new AuthResponse(result.accessToken(), result.username(), result.role());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(body);
     }
 }

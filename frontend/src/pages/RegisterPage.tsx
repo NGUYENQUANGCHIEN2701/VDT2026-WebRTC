@@ -9,6 +9,7 @@ export default function RegisterPage() {
   const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
 
@@ -19,8 +20,32 @@ export default function RegisterPage() {
     e.preventDefault()
     setError("")
 
+    const trimmedUsername = username.trim()
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!/^[a-zA-Z0-9._-]{3,50}$/.test(trimmedUsername)) {
+      setError("Username phải dài 3-50 ký tự và chỉ gồm chữ, số, dấu chấm, gạch dưới hoặc gạch ngang.")
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setError("Email không hợp lệ.")
+      return
+    }
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      setError("Mật khẩu phải có ít nhất 8 ký tự, gồm chữ và số.")
+      return
+    }
+    if (password !== confirmPassword) {
+      setError("Xác nhận mật khẩu chưa khớp.")
+      return
+    }
+
     try {
-      await api.post("/api/auth/register", { username, email, password })
+      await api.post("/api/auth/register", {
+        username: trimmedUsername,
+        email: normalizedEmail,
+        password,
+        confirmPassword,
+      })
       navigate("/login")
     } catch (err) {
       if (axios.isAxiosError(err) && err.response) {
@@ -113,6 +138,21 @@ export default function RegisterPage() {
                 >
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
+              </span>
+            </label>
+
+            <label className="auth-field">
+              <span>Xác nhận mật khẩu</span>
+              <span className="auth-input-wrap">
+                <LockKeyhole className="auth-input-icon" size={17} strokeWidth={1.8} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Nhập lại mật khẩu"
+                  autoComplete="new-password"
+                  required
+                />
               </span>
             </label>
 

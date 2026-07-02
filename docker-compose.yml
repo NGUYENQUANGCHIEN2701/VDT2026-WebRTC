@@ -42,6 +42,8 @@ services:
       REDIS_HOST: redis
       RABBITMQ_HOST: rabbitmq
       JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      PASSWORD_RESET_EXPOSE_TOKEN: ${PASSWORD_RESET_EXPOSE_TOKEN:-false}
       TURN_SECRET: ${TURN_SECRET}
       TURN_SERVER: ${TURN_SERVER}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
@@ -70,6 +72,8 @@ services:
       REDIS_HOST: redis
       RABBITMQ_HOST: rabbitmq
       JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      PASSWORD_RESET_EXPOSE_TOKEN: ${PASSWORD_RESET_EXPOSE_TOKEN:-false}
       TURN_SECRET: ${TURN_SECRET}
       TURN_SERVER: ${TURN_SERVER}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
@@ -86,6 +90,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     depends_on:
       backend-1:
         condition: service_healthy
