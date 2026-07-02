@@ -379,14 +379,24 @@ export class RecordingController {
                 // live/recording layout-parity invariant from quick-task 260701-tkz).
                 const thumbnailVideos = this.remoteVideos.filter((r) => r.label !== sharer)
                 const layout = computePresentationLayout(thumbnailVideos.length, WIDTH, HEIGHT)
-                // Draw whichever participant (local or a specific remote) is the
-                // actual current sharer — not unconditionally the local stream.
+
+                // Draw the screen share into the large main region.
                 const sharerVideo = selectSharerVideo(sharer, this.localVideo, this.remoteVideos)
                 const sharerLabel = sharer === 'local'
                     ? this.localLabel
                     : (this.remoteVideos.find((r) => r.label === sharer)?.label ?? this.localLabel)
                 this.drawVideoOrPlaceholder(ctx, sharerVideo, layout.main.x, layout.main.y, layout.main.width, layout.main.height, sharerLabel)
-                this.drawVideoOrPlaceholder(ctx, sharerVideo, layout.speaker.x, layout.speaker.y, layout.speaker.width, layout.speaker.height, sharerLabel)
+
+                // Bugfix (recording-overexpose): speaker slot previously drew the sharer
+                // video a second time (double-composite → overexposure/washed-out).
+                // Draw the LOCAL self-view camera in the speaker slot instead — this matches
+                // what the on-screen GroupCallPage UI actually shows (PiP of local camera
+                // while the screen share fills the main area).
+                // When the local participant IS the sharer, skip the speaker slot entirely
+                // (no separate camera feed is available).
+                if (sharer !== 'local') {
+                    this.drawVideoOrPlaceholder(ctx, this.localVideo, layout.speaker.x, layout.speaker.y, layout.speaker.width, layout.speaker.height, this.localLabel)
+                }
 
                 const thumbCount = Math.min(thumbnailVideos.length, layout.thumbnails.length)
                 for (let i = 0; i < thumbCount; i++) {
@@ -410,6 +420,15 @@ export class RecordingController {
         this.frameId = requestAnimationFrame(this.draw)
     }
 
+    /**
+     * Draw a video element (or a dark placeholder) into a canvas rect using
+     * object-fit:cover semantics — the video fills the slot without stretching,
+     * cropping from the centre when the aspect ratio differs.
+     *
+     * Using cover (instead of plain drawImage stretch) prevents dark letterbox
+     * bars from bleeding into adjacent regions, which was a secondary contributor
+     * to the washed-out appearance when black bars overlapped bright video tiles.
+     */
     private drawVideoOrPlaceholder(
         ctx: CanvasRenderingContext2D,
         video: HTMLVideoElement | null,
@@ -419,15 +438,51 @@ export class RecordingController {
         height: number,
         label: string,
     ): void {
-        if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-            ctx.drawImage(video, x, y, width, height)
-            return
-        }
+        // Per-tile background — prevents canvas bleed-through between adjacent tiles.
         ctx.fillStyle = '#111827'
         ctx.fillRect(x, y, width, height)
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.72)'
-        ctx.font = '600 24px system-ui, sans-serif'
-        ctx.fillText(label, x + 24, y + 42)
+
+        if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+            && video.videoWidth > 0 && video.videoHeight > 0) {
+            // Cover-fit: scale to fill the slot, crop from the centre.
+            const vw = video.videoWidth
+            const vh = video.videoHeight
+            const scale = Math.max(width / vw, height / vh)
+            const sw = width / scale   // source crop width
+            const sh = height / scale  // source crop height
+            const sx = (vw - sw) / 2   // centre horizontally
+            const sy = (vh - sh) / 2   // centre vertically
+
+            ctx.save()
+            ctx.beginPath()
+            ctx.rect(x, y, width, height)
+            ctx.clip()
+            ctx.drawImage(video, sx, sy, sw, sh, x, y, width, height)
+            ctx.restore()
+        } else {
+            // Placeholder: label centered in the slot.
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.72)'
+            ctx.font = '600 24px system-ui, sans-serif'
+            ctx.textAlign = 'center'
+            ctx.fillText(label, x + width / 2, y + height / 2)
+            ctx.textAlign = 'left' // restore default
+        }
+
+        // Label pill — semi-transparent background so text is legible without
+        // brightening the video area.
+        const PILL_H = 28
+        const PILL_PAD = 10
+        ctx.font = '500 13px system-ui, sans-serif'
+        const tw = ctx.measureText(label).width
+        const pillW = tw + PILL_PAD * 2
+        const pillX = x + 10
+        const pillY = y + height - PILL_H - 10
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)'
+        ctx.beginPath()
+        ctx.roundRect(pillX, pillY, pillW, PILL_H, 6)
+        ctx.fill()
+        ctx.fillStyle = '#ffffff'
+        ctx.fillText(label, pillX + PILL_PAD, pillY + PILL_H - 8)
     }
 
     private closeAudioContext(): void {
