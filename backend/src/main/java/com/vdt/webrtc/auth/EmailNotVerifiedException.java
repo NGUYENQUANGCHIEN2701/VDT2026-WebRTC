@@ -4,7 +4,7 @@ public class EmailNotVerifiedException extends RuntimeException {
     private final String email;
 
     public EmailNotVerifiedException(String email) {
-        super("Email is not verified");
+        super("Email chưa được xác minh");
         this.email = email;
     }
 

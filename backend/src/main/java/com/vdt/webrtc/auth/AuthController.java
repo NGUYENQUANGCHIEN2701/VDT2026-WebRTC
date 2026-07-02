@@ -59,7 +59,7 @@ public class AuthController {
     @PostMapping("/verify-email")
     public ResponseEntity<MessageResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
         authService.verifyEmail(request.email(), request.otp());
-        return ResponseEntity.ok(new MessageResponse("Email verified successfully"));
+        return ResponseEntity.ok(new MessageResponse("Email đã được xác minh thành công"));
     }
 
     @PostMapping("/resend-verification-otp")
@@ -67,7 +67,7 @@ public class AuthController {
             HttpServletRequest httpRequest) {
         rateLimitService.enforce("resend-verification-otp", resolveClientIp(httpRequest));
         authService.resendEmailVerificationCode(request.email());
-        return ResponseEntity.ok(new MessageResponse("If the email needs verification, a code has been sent"));
+        return ResponseEntity.ok(new MessageResponse("Nếu email cần xác minh, mã OTP mới đã được gửi"));
     }
 
     @PostMapping("/google")

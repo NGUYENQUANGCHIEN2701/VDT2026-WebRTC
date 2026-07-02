@@ -104,7 +104,7 @@ public class AuthService {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
+                .orElseThrow(() -> new BadCredentialsException("Tên đăng nhập hoặc mật khẩu không đúng"));
 
         if (!user.isEmailVerified()) {
             throw new EmailNotVerifiedException(user.getEmail());
@@ -180,7 +180,7 @@ public class AuthService {
             }
         }
 
-        String message = "If this email exists, a password reset link has been created.";
+        String message = "Nếu email này tồn tại, liên kết đặt lại mật khẩu đã được tạo.";
         return new ForgotPasswordResponse(message, exposePasswordResetToken ? rawResetToken : null);
     }
 
@@ -190,10 +190,10 @@ public class AuthService {
 
         String tokenHash = sha256Hex(request.token());
         PasswordResetToken token = passwordResetTokenRepository.findByTokenHashAndUsedFalse(tokenHash)
-                .orElseThrow(() -> new IllegalArgumentException("Reset token is invalid or expired"));
+                .orElseThrow(() -> new IllegalArgumentException("Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn"));
 
         if (token.getExpiresAt().isBefore(Instant.now())) {
-            throw new IllegalArgumentException("Reset token is invalid or expired");
+            throw new IllegalArgumentException("Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn");
         }
 
         User user = token.getUser();

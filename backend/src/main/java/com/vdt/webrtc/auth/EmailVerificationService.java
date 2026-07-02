@@ -63,7 +63,7 @@ public class EmailVerificationService {
             tokenRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
                     .filter(token -> token.getCreatedAt().plus(RESEND_COOLDOWN).isAfter(now))
                     .ifPresent(token -> {
-                        throw new IllegalArgumentException("Please wait before requesting another verification code");
+                        throw new IllegalArgumentException("Vui lòng chờ trước khi yêu cầu mã xác minh mới");
                     });
         }
 
@@ -87,19 +87,19 @@ public class EmailVerificationService {
     @Transactional(dontRollbackOn = IllegalArgumentException.class)
     public void verify(String email, String otp) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Verification code is invalid or expired"));
+                .orElseThrow(() -> new IllegalArgumentException("Mã xác minh không hợp lệ hoặc đã hết hạn"));
 
         if (user.isEmailVerified()) {
             return;
         }
 
         EmailVerificationToken token = tokenRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
-                .orElseThrow(() -> new IllegalArgumentException("Verification code is invalid or expired"));
+                .orElseThrow(() -> new IllegalArgumentException("Mã xác minh không hợp lệ hoặc đã hết hạn"));
 
         if (token.getExpiresAt().isBefore(Instant.now())) {
             token.setUsed(true);
             tokenRepository.save(token);
-            throw new IllegalArgumentException("Verification code is invalid or expired");
+            throw new IllegalArgumentException("Mã xác minh không hợp lệ hoặc đã hết hạn");
         }
 
         if (!token.getCodeHash().equals(sha256Hex(otp))) {
@@ -110,7 +110,7 @@ public class EmailVerificationService {
                 token.setUsed(true);
             }
             tokenRepository.save(token);
-            throw new IllegalArgumentException("Verification code is invalid or expired");
+            throw new IllegalArgumentException("Mã xác minh không hợp lệ hoặc đã hết hạn");
         }
 
         token.setUsed(true);

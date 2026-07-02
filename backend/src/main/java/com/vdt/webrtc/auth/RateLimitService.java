@@ -35,7 +35,7 @@ public class RateLimitService {
         }
 
         if (count > maxRequests) {
-            throw new RateLimitExceededException("Too many requests. Please try again later.");
+            throw new RateLimitExceededException("Bạn thao tác quá nhiều lần. Vui lòng thử lại sau.");
         }
     }
 }

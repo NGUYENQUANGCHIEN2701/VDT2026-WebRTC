@@ -66,10 +66,10 @@ public class GoogleTokenVerifier {
 
             return new GoogleIdentity(subject, email, name);
         } catch (IOException e) {
-            throw new IllegalArgumentException("Unable to verify Google credential");
+            throw new IllegalArgumentException("Không thể xác minh thông tin đăng nhập Google");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalArgumentException("Unable to verify Google credential");
+            throw new IllegalArgumentException("Không thể xác minh thông tin đăng nhập Google");
         }
     }
 

@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
         @ExceptionHandler(BadCredentialsException.class)
         public ResponseEntity<ApiError> handleBadCredentials(BadCredentialsException ex, HttpServletRequest request) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                .body(build(HttpStatus.UNAUTHORIZED, "Invalid username or password", null, request));
+                                .body(build(HttpStatus.UNAUTHORIZED, "Tên đăng nhập hoặc mật khẩu không đúng", null, request));
         }
 
         @ExceptionHandler(InvalidRefreshTokenException.class)
@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
                 ex.getBindingResult().getFieldErrors()
                                 .forEach(error -> fieldErrors.put(error.getField(), error.getDefaultMessage()));
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                .body(build(HttpStatus.BAD_REQUEST, "Validation failed", fieldErrors, request));
+                                .body(build(HttpStatus.BAD_REQUEST, "Dữ liệu không hợp lệ", fieldErrors, request));
         }
 
         @ExceptionHandler(LockedException.class)
@@ -77,7 +77,7 @@ public class GlobalExceptionHandler {
                 details.put("reason", "EMAIL_NOT_VERIFIED");
                 details.put("email", ex.getEmail());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                .body(build(HttpStatus.FORBIDDEN, "Email is not verified", details, request));
+                                .body(build(HttpStatus.FORBIDDEN, "Email chưa được xác minh", details, request));
         }
 
         @ExceptionHandler(RateLimitExceededException.class)
@@ -92,7 +92,7 @@ public class GlobalExceptionHandler {
                 // Log full details server-side; client only sees a generic message.
                 log.error("Unhandled exception at {}", request.getRequestURI(), ex);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                .body(build(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", null,
+                                .body(build(HttpStatus.INTERNAL_SERVER_ERROR, "Đã xảy ra lỗi không mong muốn", null,
                                                 request));
         }
 
