@@ -25,6 +25,19 @@ const processQueue = (error: unknown, token: string | null) => {
   failedQueue = []
 }
 
+const isAuthPublicEndpoint = (url?: string) => {
+  if (!url) return false
+  return [
+    '/api/auth/login',
+    '/api/auth/google',
+    '/api/auth/register',
+    '/api/auth/forgot-password',
+    '/api/auth/reset-password',
+    '/api/auth/verify-email',
+    '/api/auth/resend-verification-otp',
+  ].some((path) => url.includes(path))
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -32,6 +45,8 @@ api.interceptors.response.use(
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
     if (error.response?.status !== 401 || !original) return Promise.reject(error)
+
+    if (isAuthPublicEndpoint(original.url)) return Promise.reject(error)
 
     // chính /auth/refresh bị 401 → cookie hỏng → logout (chặn lặp vô hạn)
     if (original.url?.includes('/auth/refresh')) {
