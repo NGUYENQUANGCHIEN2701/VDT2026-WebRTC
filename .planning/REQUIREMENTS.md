@@ -75,7 +75,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **INFR-03**: App is served over HTTPS/WSS for cross-device demos (getUserMedia secure-context requirement)
 - [x] **INFR-04**: Prometheus + Grafana dashboards show per-instance metrics (WS sessions, active calls, call success rate)
 - [x] **INFR-05**: GitHub Actions CI builds, tests (backend + frontend), and packages Docker images
-- [ ] **INFR-06**: E2E test places a real call between two browser contexts (Playwright, fake media devices) in CI
+- [x] **INFR-06**: E2E test places a real call between two browser contexts (Playwright, fake media devices) in CI
 - [ ] **INFR-07**: Database schema is delivered as versioned SQL migrations (Flyway) with setup documentation
 
 ## v2 Requirements
@@ -152,7 +152,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFR-03 | Phase 3 | Pending |
 | INFR-04 | Phase 9 | Complete |
 | INFR-05 | Phase 9 | Complete |
-| INFR-06 | Phase 9 | Pending |
+| INFR-06 | Phase 9 | Complete |
 | INFR-07 | Phase 1 | Pending |
 
 **Coverage:**

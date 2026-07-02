@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 09
 current_phase_name: monitoring-ci-cd-full-delivery
 status: executing
-stopped_at: Completed 09-03-PLAN.md (GitHub Actions CI workflow: backend/frontend/docker-build)
-last_updated: "2026-07-02T04:13:28.563Z"
+stopped_at: Completed 09-04-PLAN.md (Playwright E2E 1-1 call + CI e2e job)
+last_updated: "2026-07-02T04:37:24.829Z"
 last_activity: 2026-07-02
-last_activity_desc: Completed 09-03-PLAN.md (GitHub Actions CI workflow)
+last_activity_desc: "Completed 09-04-PLAN.md (Playwright E2E 1-1 call + CI e2e job)"
 progress:
   total_phases: 9
   completed_phases: 2
   total_plans: 42
-  completed_plans: 14
-  percent: 33
+  completed_plans: 15
+  percent: 22
 ---
 
 # Project State
@@ -30,10 +30,10 @@ See: .planning/PROJECT.md (updated 2026-06-11)
 
 Phase: 09 (monitoring-ci-cd-full-delivery) — EXECUTING
 Status: Executing Phase 09
-Next: Continue Phase 9 (Plan 09-04 — Playwright E2E CI job)
-Last activity: 2026-07-02 — Completed 09-03-PLAN.md (GitHub Actions CI workflow: backend/frontend/docker-build)
+Next: Continue Phase 9 (Plan 09-05)
+Last activity: 2026-07-02 — Completed 09-04-PLAN.md (Playwright E2E 1-1 call + CI e2e job)
 
-Progress: [###░░░░░░░] 33% (14/42 plans; Phase 9 in progress — 3 plans done)
+Progress: [###░░░░░░░] 36% (15/42 plans; Phase 9 in progress — 4 plans done)
 
 ## Performance Metrics
 
@@ -55,16 +55,17 @@ Progress: [###░░░░░░░] 33% (14/42 plans; Phase 9 in progress — 3
 | 6. Horizontal Scaling | 4/4 | Complete |
 | 7. Group Mesh Calls | 5/5 | Complete |
 | 8. Screen Share, Recording & Device Control | 5/5 | Complete ✅ |
-| 9. Monitoring, CI/CD & Full Delivery | 3/TBD | In progress |
+| 9. Monitoring, CI/CD & Full Delivery | 4/TBD | In progress |
 
 **Recent Trend:**
 
-- Last completed plan: 09-03 -- GitHub Actions CI workflow (backend/frontend/docker-build)
-- Next plan: 09-04 -- Playwright E2E CI job
+- Last completed plan: 09-04 -- Playwright E2E 1-1 call + CI e2e job
+- Next plan: 09-05
 
 | Phase 09 P01 | 26min | 3 tasks | 9 files |
 | Phase 09 P09-02 | 5min | 3 tasks | 8 files |
 | Phase 09 P03 | 6min | 2 tasks | 2 files |
+| Phase 09 P04 | 18min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [Phase 09]: Dashboard todayStarted/Completed/Missed now derived live from MeterRegistry sums instead of removed AtomicLong counters — semantics shift from since-midnight to since-instance-start
 - [Phase 09]: /actuator/prometheus added to SecurityConfig permitAll (Prometheus cannot present a JWT; internal-network-only per threat model T-09-01/T-09-02)
 - [Phase 09]: CI docker-build job builds frontend image from repo-root context (-f frontend/Dockerfile .) since the Dockerfile COPYs nginx/conf.d/vdt.conf from outside frontend/
+- [Phase ?]: Phase 09: E2E CI job seeds two fresh users per run via /api/auth/register HTTP calls (no pre-seeded fixtures) to avoid username collisions across repeated CI runs
+- [Phase ?]: Phase 09: e2e CI job has no needs: dependency on backend/frontend/docker-build, runs fully independently for fast feedback
 
 ### Pending Todos
 
@@ -118,6 +121,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-02T04:10:41.635Z
-Stopped at: Completed 09-03-PLAN.md (GitHub Actions CI workflow: backend/frontend/docker-build)
+Last session: 2026-07-02T04:37:24.822Z
+Stopped at: Completed 09-04-PLAN.md (Playwright E2E 1-1 call + CI e2e job)
 Resume file: None

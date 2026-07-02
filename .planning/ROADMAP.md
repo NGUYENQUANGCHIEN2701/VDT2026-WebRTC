@@ -316,7 +316,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. GitHub Actions CI builds, runs backend + frontend tests, and packages Docker images on every push
   4. A Playwright E2E test places a real call between two browser contexts (fake media devices) and passes in CI
 
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 **Wave 1** *(parallel — no file overlap)*
 
@@ -326,7 +326,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 2** *(blocked on 09-03 completion — shares .github/workflows/ci.yml)*
 
-- [ ] 09-04-PLAN.md — Playwright E2E: data-testid selectors, 2-context fake-media 1-1 call spec, 4th CI job (GitHub Actions service containers, no full compose)
+- [x] 09-04-PLAN.md — Playwright E2E: data-testid selectors, 2-context fake-media 1-1 call spec, 4th CI job (GitHub Actions service containers, no full compose)
 
 **Wave 3** *(blocked on Waves 1-2 completion)*
 
@@ -349,7 +349,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Horizontal Scaling | 4/4 | ✅ Complete | 2026-06-29 |
 | 7. Group Mesh Calls | 5/5 | ✅ Complete | 2026-06-30 |
 | 8. Screen Share, Recording & Device Control | 5/5 | ✅ Complete | 2026-07-01 |
-| 9. Monitoring, CI/CD & Full Delivery | 3/5 | In Progress|  |
+| 9. Monitoring, CI/CD & Full Delivery | 4/5 | In Progress|  |
 
 ---
 *Roadmap created: 2026-06-11*
