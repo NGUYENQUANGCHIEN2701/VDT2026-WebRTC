@@ -14,7 +14,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // Minimal MediaRecorder stub (constructor + instance methods)
 class MockMediaRecorder {
     static instances: MockMediaRecorder[] = []
-    static isTypeSupported = vi.fn((_mimeType: string) => false)
+    static isTypeSupported = vi.fn((mimeType: string) => {
+        void mimeType
+        return false
+    })
 
     readonly stream: MediaStream
     state = 'inactive'
@@ -28,7 +31,7 @@ class MockMediaRecorder {
     addEventListener = vi.fn()
     removeEventListener = vi.fn()
 
-    constructor(stream: MediaStream, _options?: { mimeType?: string }) {
+    constructor(stream: MediaStream) {
         this.stream = stream
         MockMediaRecorder.instances.push(this)
     }
@@ -71,7 +74,6 @@ function fakeStream(kinds: Array<'audio' | 'video'> = []): MediaStream {
 // ── Import the module under test (will fail RED) ────────────────────────────
 type Rect = { x: number, y: number, width: number, height: number }
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 type RecordingModule = {
     RecordingController: new (options?: {
         callId?: string

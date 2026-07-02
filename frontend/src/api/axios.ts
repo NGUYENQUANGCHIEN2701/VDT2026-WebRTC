@@ -3,7 +3,7 @@ import { useAuthStore } from '../store/authStore'
 
 // Base HTTP client. baseURL đọc từ .env (VITE_API_URL).
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL as string,
+  baseURL: (import.meta.env.VITE_API_URL as string | undefined) ?? '',
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true
 })

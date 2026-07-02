@@ -62,8 +62,9 @@ function App() {
 
     const restore = async () => {
       try {
+        const apiBase = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
         const res = await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/auth/refresh`,
+          `${apiBase}/api/auth/refresh`,
           {},
           { withCredentials: true }   // bắt buộc để gửi cookie
         )

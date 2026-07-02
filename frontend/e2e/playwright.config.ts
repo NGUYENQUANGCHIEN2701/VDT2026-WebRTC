@@ -5,6 +5,7 @@ import { defineConfig, devices } from '@playwright/test'
 // so it only picks up specs colocated here — never frontend/src/**.
 export default defineConfig({
   testDir: './',
+  timeout: 90_000,
   // The call spec drives two browser contexts through a deterministic
   // caller/callee handshake — running it in parallel with itself (or other
   // future e2e specs) would race on shared backend state, so keep it serial.

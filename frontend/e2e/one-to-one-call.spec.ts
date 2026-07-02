@@ -1,4 +1,4 @@
-import { test, expect, request as playwrightRequest, type Browser, type Page } from '@playwright/test'
+import { test, expect, request as playwrightRequest, type Browser, type BrowserContext, type Page } from '@playwright/test'
 
 // Real 1-1 P2P call E2E test: two independent Chromium contexts (fake-media
 // devices, per playwright.config.ts) place a real WebRTC call through the
@@ -54,6 +54,14 @@ async function waitForRemoteFrames(page: Page): Promise<void> {
   )
 }
 
+async function closeContextBestEffort(context: BrowserContext): Promise<void> {
+  const closePromise = context.close().catch(() => undefined)
+  await Promise.race([
+    closePromise,
+    new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+  ])
+}
+
 test('places a real 1-1 call between two fake-media contexts and renders remote video frames', async ({ browser }: { browser: Browser }) => {
   const caller = makeTestUser('caller')
   const callee = makeTestUser('callee')
@@ -81,7 +89,7 @@ test('places a real 1-1 call between two fake-media contexts and renders remote 
     // Callee waits for the incoming-call dialog naming the caller, then accepts.
     const incomingDialog = calleePage.getByRole('dialog', { name: caller.username })
     await expect(incomingDialog).toBeVisible({ timeout: 15000 })
-    await calleePage.getByRole('button', { name: 'Nhận cuộc gọi' }).click()
+    await incomingDialog.getByRole('button', { name: 'Nhận' }).click()
 
     await expect(callerPage).toHaveURL(/\/call/, { timeout: 15000 })
     await expect(calleePage).toHaveURL(/\/call/, { timeout: 15000 })
@@ -95,7 +103,9 @@ test('places a real 1-1 call between two fake-media contexts and renders remote 
     // Clean up so no active call is left dangling in Redis state for subsequent CI runs.
     await callerPage.getByTitle('Kết thúc cuộc gọi / Rời phòng').click()
   } finally {
-    await callerContext.close()
-    await calleeContext.close()
+    await Promise.all([
+      closeContextBestEffort(callerContext),
+      closeContextBestEffort(calleeContext),
+    ])
   }
 })
