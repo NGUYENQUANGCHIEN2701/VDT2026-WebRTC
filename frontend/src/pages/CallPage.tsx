@@ -289,29 +289,31 @@ export default function CallPage() {
           </div>
         )}
         {/* Self Video: LUÔN render <video> (không ẩn khi camOff) để ref ổn định */}
-        <video
-          ref={selfRef}
-          autoPlay
-          muted
-          playsInline
-          data-testid="local-video"
-          aria-label="Camera của bạn"
-          className={activeSharer === "local" ? "self-video self-video--presenting" : "self-video"}
-          // Đang share màn hình thì KHÔNG mirror — scaleX(-1) sẽ lật ngược chữ trên màn hình chia sẻ
-          style={{ transform: isScreenSharing ? 'none' : 'scaleX(-1)', visibility: camOff ? 'hidden' : 'visible' }}
-        />
-        {camOff && (
-          <div className="self-video" style={{ display: 'grid', placeItems: 'center', background: '#1f2937' }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: '50%', background: 'var(--code-bg)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#fff', fontWeight: 700
-            }}>
-              {useAuthStore.getState().user?.username?.charAt(0)?.toUpperCase() || 'B'}
+        <div className={activeSharer === "local" ? "self-video-box self-video-box--presenting" : "self-video-box"}>
+          <video
+            ref={selfRef}
+            autoPlay
+            muted
+            playsInline
+            data-testid="local-video"
+            aria-label="Camera của bạn"
+            className="self-video"
+            // Đang share màn hình thì KHÔNG mirror — scaleX(-1) sẽ lật ngược chữ trên màn hình chia sẻ
+            style={{ transform: isScreenSharing ? 'none' : 'scaleX(-1)', visibility: camOff ? 'hidden' : 'visible' }}
+          />
+          {camOff && (
+            <div className="self-video" style={{ display: 'grid', placeItems: 'center', background: '#1f2937' }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%', background: 'var(--code-bg)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#fff', fontWeight: 700
+              }}>
+                {useAuthStore.getState().user?.username?.charAt(0)?.toUpperCase() || 'B'}
+              </div>
             </div>
-          </div>
-        )}
-        {/* Nhãn "Bạn" nằm ở góc PiP — khi mình share, góc đó là video của REMOTE nên ẩn nhãn đi */}
-        {activeSharer !== "local" && <div className="self-video-label">Bạn</div>}
+          )}
+          {/* Nhãn "Bạn" nằm ở góc PiP — khi mình share, góc đó là video của REMOTE nên ẩn nhãn đi */}
+          {activeSharer !== "local" && <div className="self-video-label">Bạn</div>}
+        </div>
       </section>
 
       {/* Bottom Center HUD: Main Controls */}

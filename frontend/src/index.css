@@ -1509,7 +1509,7 @@ code {
   object-fit: cover;
 }
 
-.self-video {
+.self-video-box {
   position: absolute;
   right: 20px;
   bottom: 104px;
@@ -1517,11 +1517,19 @@ code {
   width: min(240px, 28vw);
   aspect-ratio: 16 / 10;
   border-radius: 10px;
-  object-fit: cover;
-  
+  overflow: hidden;
+
   background: #111827;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.self-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .call-video--dimmed {
@@ -1560,7 +1568,7 @@ code {
 }
 
 /* Mình đang share: self video chiếm stage (dưới PiP của remote — z-index thấp hơn 15) */
-.self-video--presenting {
+.self-video-box--presenting {
   top: 80px;
   left: 24px;
   right: auto;
@@ -1569,12 +1577,15 @@ code {
   height: calc(100% - 220px);
   aspect-ratio: auto;
   z-index: 5;
-  object-fit: contain;
   background: #000;
   border: 2px solid #3b82f6;
   border-radius: 16px;
   box-sizing: border-box;
   box-shadow: none;
+}
+
+.self-video-box--presenting .self-video {
+  object-fit: contain;
 }
 
 .call-top-bar {
