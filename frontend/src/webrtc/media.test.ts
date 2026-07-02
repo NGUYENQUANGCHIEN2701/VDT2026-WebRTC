@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // media.ts CHƯA tồn tại → import fail → RED
-import { acquireLocalMedia } from './media'
+import { acquireLocalMedia, acquireAudioOnlyMedia } from './media'
 
 const getUserMedia = vi.fn()
 // MediaStream giả (chỉ cần đủ shape để code không nổ)
@@ -57,5 +57,24 @@ describe('acquireLocalMedia — error taxonomy + audio-only fallback', () => {
             .mockRejectedValueOnce(domError('OverconstrainedError'))
             .mockRejectedValueOnce(domError('OverconstrainedError'))
         await expect(acquireLocalMedia()).rejects.toMatchObject({ type: 'overconstrained' })
+    })
+})
+
+describe('acquireAudioOnlyMedia — retry chủ động chỉ-audio', () => {
+    it('thành công → mode "audio-only", chỉ xin audio (KHÔNG video)', async () => {
+        getUserMedia.mockResolvedValueOnce(fakeStream)
+        const res = await acquireAudioOnlyMedia()
+        expect(res.mode).toBe('audio-only')
+        expect(getUserMedia).toHaveBeenCalledWith({ video: false, audio: expect.any(Object) })
+    })
+
+    it('NotAllowedError → permission-denied', async () => {
+        getUserMedia.mockRejectedValueOnce(domError('NotAllowedError'))
+        await expect(acquireAudioOnlyMedia()).rejects.toMatchObject({ type: 'permission-denied' })
+    })
+
+    it('NotFoundError → no-device', async () => {
+        getUserMedia.mockRejectedValueOnce(domError('NotFoundError'))
+        await expect(acquireAudioOnlyMedia()).rejects.toMatchObject({ type: 'no-device' })
     })
 })

@@ -1,4 +1,4 @@
-import { acquireLocalMedia, MediaAcquisitionError } from '../webrtc/media'
+import { acquireLocalMedia, acquireAudioOnlyMedia, MediaAcquisitionError, mediaErrorToastMessage, type MediaErrorType } from '../webrtc/media'
 import {
     acquireAudioTrack,
     acquireVideoTrack,
@@ -262,13 +262,15 @@ export function readSavedCall(): { callId: string; remote: string } | null {
     return callId && remote ? { callId, remote } : null
 }
 
-// Lấy camera/mic; true nếu OK, false nếu lỗi (đã set callStore.mediaError)
-async function getMedia(): Promise<boolean> {
+// Lấy camera/mic; true nếu OK, false nếu lỗi (đã set callStore.mediaError).
+// opts.audioOnly: dùng đường retry chủ động acquireAudioOnlyMedia() thay vì
+// acquireLocalMedia() (vd khi user bấm "Tiếp tục với âm thanh" sau khi đã lỗi).
+async function getMedia(opts?: { audioOnly?: boolean }): Promise<boolean> {
     if (localStream) return true   // đã có sẵn (vd glare: bên thua đã xin media lúc bấm Gọi)
     const call = useCallStore.getState()
     call.setMediaError(null)
     try {
-        const media = await acquireLocalMedia()
+        const media = opts?.audioOnly ? await acquireAudioOnlyMedia() : await acquireLocalMedia()
         localStream = media.stream
         call.setMediaMode(media.mode)
         return true
@@ -276,6 +278,15 @@ async function getMedia(): Promise<boolean> {
         call.setMediaError(e instanceof MediaAcquisitionError ? e.type : 'unknown')
         return false
     }
+}
+
+// Bugfix (cancel-call-permission-denied): getMedia() chỉ set mediaError rồi trả false —
+// KHÔNG tự hiển thị lỗi ở mọi nơi (vd IncomingCallCard không có chỗ hiện mediaError) và
+// KHÔNG tự hủy/báo phía kia. Toast dùng chung 1 câu tiếng Việt với MediaErrorNotice
+// (mediaErrorToastMessage) để luôn có PHẢN HỒI RÕ RÀNG bất kể UI đang ở màn nào.
+function reportGetMediaError(): void {
+    const type: MediaErrorType = useCallStore.getState().mediaError ?? 'unknown'
+    useToastStore.getState().show(mediaErrorToastMessage(type), 'warning')
 }
 
 function forceRelayEnabled(): boolean {
@@ -321,7 +332,17 @@ async function enterActiveCall(msg: CallStateChanged, amCaller: boolean, remote:
     if (isRebuild) call.setCallState('reconnecting') // overlay spinner; tránh nhấp nháy card
 
     saveActiveCall(msg.callId, remote)               // FE-C: nhớ để sống sót F5 kế tiếp
-    if (!(await getMedia())) return                  // sau F5 phải xin lại media
+    if (!(await getMedia())) {                        // sau F5 phải xin lại media
+        // Bugfix (cancel-call-permission-denied): trước đây return trần — không báo
+        // lỗi, không báo phía kia, kẹt vĩnh viễn ở 'reconnecting'. callId đã có thật
+        // (server đã biết cuộc này) → phải hangUp() để server phát 'ended' cho CẢ 2 bên,
+        // teardownMedia() + reset UI tự chạy qua handleCallState như luồng hangUp bình thường.
+        if (generation === peerGeneration) {
+            reportGetMediaError()
+            hangUp()
+        }
+        return
+    }
     if (generation !== peerGeneration) return
 
     // Đóng PC CŨ trước khi dựng mới: bên kia đã có PC mới (DTLS mới) → không thể tái dùng
@@ -336,24 +357,72 @@ async function enterActiveCall(msg: CallStateChanged, amCaller: boolean, remote:
     }
 }
 
+// UX (getUserMedia permission-denied follow-up): dùng chung cho startCall và cho
+// retryOutgoingMedia/continueOutgoingAudioOnly — thử xin media rồi gửi call-invite
+// nếu được; nếu lỗi thì CHỈ báo toast + giữ nguyên overlay 'outgoing' (KHÔNG reset
+// UI, KHÔNG gửi gì cho server) để user tự chọn Thử lại / Tiếp tục với âm thanh / Hủy.
+async function attemptOutgoingMedia(remoteUsername: string, opts?: { audioOnly?: boolean }): Promise<void> {
+    if (!(await getMedia(opts))) {
+        reportGetMediaError()
+        return
+    }
+    sendSignal({ type: 'call-invite', to: remoteUsername })
+}
+
 // ── CALLER bấm Gọi → gửi INTENT; callId do server sinh, về qua 'ringing' ──
 export async function startCall(remoteUsername: string) {
     useCallStore.getState().startOutgoing(remoteUsername, '')  // UI hiện ngay; callId điền khi ringing về
-    if (!(await getMedia())) return
-    sendSignal({ type: 'call-invite', to: remoteUsername })
+    await attemptOutgoingMedia(remoteUsername)
 }
+
+// User bấm "Thử lại" trên MediaErrorNotice sau khi startCall() lỗi — chỉ hợp lệ
+// khi còn đang ở overlay outgoing với callId RỖNG (call-invite thật sự chưa từng
+// gửi thành công; callId chỉ được điền khi server trả 'ringing').
+export async function retryOutgoingMedia(): Promise<void> {
+    const { callState, remoteUserId, callId } = useCallStore.getState()
+    if (callState !== 'outgoing' || !remoteUserId || callId) return
+    await attemptOutgoingMedia(remoteUserId)
+}
+
+// User bấm "Tiếp tục với âm thanh" (nhóm lỗi có fallback: no-device/overconstrained).
+export async function continueOutgoingAudioOnly(): Promise<void> {
+    const { callState, remoteUserId, callId } = useCallStore.getState()
+    if (callState !== 'outgoing' || !remoteUserId || callId) return
+    await attemptOutgoingMedia(remoteUserId, { audioOnly: true })
+}
+
+// Đủ để user đọc toast lỗi trước khi IncomingCallCard biến mất (UX permission-denied follow-up).
+const CALLEE_REJECT_DELAY_MS = 1750
 
 // ── CALLEE bấm Nhận → gửi INTENT; peer tạo khi 'active' về (đối xứng 2 bên) ──
 export async function acceptCall() {
     const { callId } = useCallStore.getState()
     if (!callId) return
-    if (!(await getMedia())) return
+    if (!(await getMedia())) {
+        // Bugfix (cancel-call-permission-denied) + UX follow-up: IncomingCallCard không
+        // có chỗ hiện mediaError, nên toast phải hiện NGAY; nhưng gửi call-reject ngay
+        // lập tức khiến card biến mất tức khắc trước khi user kịp đọc toast — trì hoãn
+        // reject để có thời gian đọc. Guard theo callId chụp lại tại thời điểm lỗi: nếu
+        // trong lúc chờ, cuộc gọi này đã kết thúc/đổi vì lý do khác, KHÔNG được reject nhầm.
+        reportGetMediaError()
+        const capturedCallId = callId
+        setTimeout(() => {
+            if (useCallStore.getState().callId === capturedCallId) rejectCall()
+        }, CALLEE_REJECT_DELAY_MS)
+        return
+    }
     sendSignal({ type: 'call-accept', callId })
 }
 
 // ── Từ chối / Hủy / Cúp → gửi INTENT; teardown khi nhận 'ended' từ server ──
 export function rejectCall() { sendIntent('call-reject') }
-export function cancelCall() { sendIntent('call-cancel') }
+// callId có thể vẫn rỗng nếu user bấm Hủy trong lúc getMedia() còn đang chờ quyền
+// (call-invite chưa kịp gửi) — sendIntent() sẽ no-op vì không có gì để hủy phía
+// server, nên phải tự reset UI tại chỗ để nút Hủy không im lặng vô tác dụng.
+export function cancelCall() {
+    if (useCallStore.getState().callId) sendIntent('call-cancel')
+    else useCallStore.getState().reset()
+}
 export function hangUp() { sendIntent('hang-up') }
 
 function sendIntent(type: 'call-reject' | 'call-cancel' | 'hang-up') {
@@ -362,7 +431,7 @@ function sendIntent(type: 'call-reject' | 'call-cancel' | 'hang-up') {
 }
 
 // Dọn MEDIA (peer + stream). KHÔNG đụng store — để 'ended'/summary tự lo.
-function teardownMedia() {
+export function teardownMedia() {
     peerGeneration++
     creatingPeerCallId = null
     peer?.close()

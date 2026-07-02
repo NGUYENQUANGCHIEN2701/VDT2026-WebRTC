@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useCallStore } from '../../store/callStore'
-import { acceptCall, rejectCall, cancelCall, getLocalStream, readSavedCall, clearSavedCall, getActivePeer } from '../../realtime/callActions'
+import { acceptCall, rejectCall, cancelCall, retryOutgoingMedia, continueOutgoingAudioOnly, getLocalStream, readSavedCall, clearSavedCall, getActivePeer } from '../../realtime/callActions'
 import IncomingCallCard from './IncomingCallCard'
 import SelfViewPreview from './SelfViewPreview'
 import CallSummaryScreen from './CallSummaryScreen'
@@ -64,6 +64,8 @@ export default function CallLayer() {
                 mediaError={mediaError}
                 mode={mediaMode}
                 onCancel={cancelCall}
+                onRetry={retryOutgoingMedia}
+                onAudioOnly={continueOutgoingAudioOnly}
             />
         )
     }

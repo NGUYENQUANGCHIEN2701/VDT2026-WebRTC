@@ -11,6 +11,8 @@ interface Props {
     mediaError: MediaErrorType | null
     mode: MediaMode | null
     onCancel: () => void
+    onRetry: () => void
+    onAudioOnly: () => void
 }
 
 function getAvatarColor(username: string) {
@@ -20,7 +22,7 @@ function getAvatarColor(username: string) {
 }
 
 // Thẻ overlay xem trước camera mình khi đang gọi đi (caller chờ đối phương trả lời).
-export default function SelfViewPreview({ remoteUsername, localStream, mediaError, mode, onCancel }: Props) {
+export default function SelfViewPreview({ remoteUsername, localStream, mediaError, mode, onCancel, onRetry, onAudioOnly }: Props) {
     const videoRef = useRef<HTMLVideoElement>(null)
     const initial = remoteUsername.charAt(0).toUpperCase()
     const avatarColor = getAvatarColor(remoteUsername)
@@ -37,7 +39,7 @@ export default function SelfViewPreview({ remoteUsername, localStream, mediaErro
             <div className="popup-card outgoing-card">
                 <div className="outgoing-video-container">
                     {mediaError ? (
-                        <MediaErrorNotice type={mediaError} />
+                        <MediaErrorNotice type={mediaError} onRetry={onRetry} onAudioOnly={onAudioOnly} />
                     ) : (
                         <>
                             <video
