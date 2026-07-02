@@ -51,6 +51,9 @@ app:
   cookie:
     secure: ${COOKIE_SECURE:false}
   instance-id: ${INSTANCE_ID:${HOSTNAME:unknown}}
+  # WS handshake origin whitelist — dùng CHUNG env ALLOWED_ORIGINS với CORS REST (CorsConfig).
+  # Default gồm cả 8080 (nginx serve SPA cùng origin) lẫn 5173 (Vite dev).
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:8080,http://localhost:5173,https://localhost:5173}
 turn:
   secret: ${TURN_SECRET:dev-turn-secret}
   server: ${TURN_SERVER:127.0.0.1:3478}
