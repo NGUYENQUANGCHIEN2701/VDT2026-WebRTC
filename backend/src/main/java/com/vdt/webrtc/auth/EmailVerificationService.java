@@ -29,12 +29,14 @@ public class EmailVerificationService {
     private final EmailVerificationTokenRepository tokenRepository;
     private final EmailDeliveryService emailDeliveryService;
     private final Set<String> autoVerifyDomains;
+    private final int maxAttempts;
 
     public EmailVerificationService(
             UserRepository userRepository,
             EmailVerificationTokenRepository tokenRepository,
             EmailDeliveryService emailDeliveryService,
-            @Value("${app.email-verification.auto-verify-domains:}") String autoVerifyDomains) {
+            @Value("${app.email-verification.auto-verify-domains:}") String autoVerifyDomains,
+            @Value("${app.email-verification.max-attempts:5}") int maxAttempts) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.emailDeliveryService = emailDeliveryService;
@@ -43,6 +45,7 @@ public class EmailVerificationService {
                 .map(String::toLowerCase)
                 .filter(domain -> !domain.isBlank())
                 .collect(Collectors.toUnmodifiableSet());
+        this.maxAttempts = maxAttempts;
     }
 
     public boolean shouldAutoVerify(String email) {
@@ -77,7 +80,11 @@ public class EmailVerificationService {
         emailDeliveryService.sendVerificationCode(user.getEmail(), code);
     }
 
-    @Transactional
+    // dontRollbackOn: các nhánh throw dưới đây CỐ Ý ghi trạng thái token trước khi throw
+    // (đánh dấu expired/lock sau nhiều lần đoán sai) — nếu để mặc định rollback,
+    // toàn bộ mutation trong transaction này sẽ bị hủy khi throw, attempts/used
+    // sẽ không bao giờ persist.
+    @Transactional(dontRollbackOn = IllegalArgumentException.class)
     public void verify(String email, String otp) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Verification code is invalid or expired"));
@@ -86,11 +93,22 @@ public class EmailVerificationService {
             return;
         }
 
-        EmailVerificationToken token = tokenRepository.findByUserAndCodeHashAndUsedFalse(user, sha256Hex(otp))
+        EmailVerificationToken token = tokenRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
                 .orElseThrow(() -> new IllegalArgumentException("Verification code is invalid or expired"));
 
         if (token.getExpiresAt().isBefore(Instant.now())) {
             token.setUsed(true);
+            tokenRepository.save(token);
+            throw new IllegalArgumentException("Verification code is invalid or expired");
+        }
+
+        if (!token.getCodeHash().equals(sha256Hex(otp))) {
+            token.setAttempts(token.getAttempts() + 1);
+            if (token.getAttempts() >= maxAttempts) {
+                // Lock the current code after too many wrong guesses — the account
+                // owner must call resend for a fresh code (subject to its own cooldown).
+                token.setUsed(true);
+            }
             tokenRepository.save(token);
             throw new IllegalArgumentException("Verification code is invalid or expired");
         }

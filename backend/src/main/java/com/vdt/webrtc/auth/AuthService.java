@@ -242,7 +242,11 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    @Transactional
+    // dontRollbackOn phải khớp với EmailVerificationService.verify() — cả hai method
+    // đều tham gia CÙNG MỘT transaction vật lý (REQUIRED lồng nhau); nếu method ngoài
+    // này không khai báo dontRollbackOn, nó sẽ đánh dấu rollback-only khi exception đi
+    // qua, ghi đè mất rule của method trong, khiến attempts/lock không bao giờ persist.
+    @Transactional(dontRollbackOn = IllegalArgumentException.class)
     public void verifyEmail(String email, String otp) {
         emailVerificationService.verify(email, otp);
     }

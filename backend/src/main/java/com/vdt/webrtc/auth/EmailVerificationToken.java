@@ -46,4 +46,6 @@ public class EmailVerificationToken {
 
     @Column(nullable = false)
     private boolean used;
+
+    private int attempts;
 }

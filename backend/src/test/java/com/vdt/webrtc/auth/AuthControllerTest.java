@@ -269,6 +269,46 @@ class AuthControllerTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void verify_email_locksOtpAfterFiveWrongAttempts() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                .contentType("application/json")
+                .content("""
+                        {
+                          "username": "lockout_user",
+                          "password": "Password123",
+                          "confirmPassword": "Password123",
+                          "email": "lockout_user@test.com"
+                        }
+                        """))
+                .andExpect(status().isCreated());
+
+        User user = userRepository.findByEmail("lockout_user@test.com").orElseThrow();
+        emailVerificationTokenRepository.save(EmailVerificationToken.builder()
+                .user(user)
+                .codeHash(sha256Hex("123456"))
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(600))
+                .used(false)
+                .build());
+
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/auth/verify-email")
+                    .contentType("application/json")
+                    .content("{\"email\":\"lockout_user@test.com\",\"otp\":\"000000\"}"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        User stillUnverified = userRepository.findByEmail("lockout_user@test.com").orElseThrow();
+        assertThat(stillUnverified.isEmailVerified()).isFalse();
+
+        // 6th attempt, using the ORIGINALLY-correct OTP, must still fail — the token is locked.
+        mockMvc.perform(post("/api/auth/verify-email")
+                .contentType("application/json")
+                .content("{\"email\":\"lockout_user@test.com\",\"otp\":\"123456\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
     private void markEmailVerified(String email) {
         User user = userRepository.findByEmail(email).orElseThrow();
         user.setEmailVerified(true);

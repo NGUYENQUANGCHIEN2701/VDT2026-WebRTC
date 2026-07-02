@@ -15,8 +15,6 @@ import com.vdt.webrtc.user.User;
 public interface EmailVerificationTokenRepository extends JpaRepository<EmailVerificationToken, Long> {
     Optional<EmailVerificationToken> findTopByUserAndUsedFalseOrderByCreatedAtDesc(User user);
 
-    Optional<EmailVerificationToken> findByUserAndCodeHashAndUsedFalse(User user, String codeHash);
-
     @Modifying
     @Query("update EmailVerificationToken t set t.used = true where t.user = :user and t.used = false")
     int markAllUnusedByUserAsUsed(@Param("user") User user);
