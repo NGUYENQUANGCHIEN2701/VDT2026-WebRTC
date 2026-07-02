@@ -31,8 +31,9 @@
 | NAT Traversal | coturn 4.6 (STUN/TURN, ephemeral HMAC-SHA1 credentials), HTTPS/WSS |
 | Frontend | React 19, TypeScript 5, Vite 7, Zustand 5, TanStack Query 5, React Router 7 |
 | Infrastructure | Docker Compose (nginx load balancer, 2 backend instances, PostgreSQL, Redis, RabbitMQ, coturn) |
-| Testing | JUnit 5, Testcontainers 1.21 (PostgreSQL/Redis/RabbitMQ), Awaitility, Vitest 3 |
-| Monitoring | Prometheus + Grafana *(Phase 9 — chưa bắt đầu)* |
+| Testing | JUnit 5, Testcontainers 1.21 (PostgreSQL/Redis/RabbitMQ), Awaitility, Vitest 3, Playwright (E2E 1-1 call) |
+| Monitoring | Prometheus (scrape per-instance `/actuator/prometheus`) + Grafana (dashboard `VDT WebRTC Overview`, auto-provisioned) |
+| CI/CD | GitHub Actions — 4 job song song: backend (`mvn verify`), frontend (lint/test/build), docker-build, e2e (Playwright) |
 
 ---
 
@@ -71,12 +72,14 @@ Browser A                nginx (LB)           Redis
 | 5 | Call History & Admin | Hoàn tất | 4/4 |
 | 6 | Horizontal Scaling | Hoàn tất | 4/4 |
 | 7 | Group Mesh Calls | Hoàn tất | 5/5 |
-| 8 | Screen Share, Recording & Device Control | Đang thực hiện | 1/5 |
-| 9 | Monitoring, CI/CD & Full Delivery | Chưa bắt đầu | 0/TBD |
+| 8 | Screen Share, Recording & Device Control | Hoàn tất | 5/5 |
+| 9 | Monitoring, CI/CD & Full Delivery | Đang thực hiện | 4/5 |
 
-**Tiến độ tổng thể:** 30/37 kế hoạch hoàn thành (~81%).
+**Tiến độ tổng thể:** 41/42 kế hoạch hoàn thành (~98%).
 
-Ghi chú về xác minh: các Phase 1–7 đã hoàn thiện ở mức code và kiểm thử tự động (Testcontainers). Xác minh hai thiết bị thật qua HTTPS/TURN relay là bước riêng biệt, không chặn tiến độ phát triển.
+**Trạng thái hiện tại (Phase 9):** 4 plan đầu (metrics Micrometer, Prometheus/Grafana + Docker Compose 9 service, GitHub Actions CI 3 job, Playwright E2E 1-1 call trong CI) đã xong và commit. Plan cuối (09-05 — full suite gate) đã hoàn thành Task 1 (chạy toàn bộ test suite backend/frontend/E2E) và Task 2 (cập nhật `docs/setup.md`), đang tạm dừng ở Task 2b — checkpoint xác minh thủ công (`docker compose up --build` toàn bộ 9 service + xem dashboard Grafana render dữ liệu live khi gọi thật), chờ người thực hiện thao tác tay.
+
+Ghi chú về xác minh: Phase 1–8 đã hoàn thiện ở mức code, kiểm thử tự động (Testcontainers) và validation checklist thủ công (xem `.planning/phases/0X-*/0X-VALIDATION.md`). Phase 9 đã có Playwright E2E chạy trong CI; bước xác minh thủ công cuối cùng (Docker Compose + Grafana) là hạng mục duy nhất còn lại của toàn bộ milestone v1.
 
 ---
 
@@ -180,6 +183,35 @@ Ghi chú về xác minh: các Phase 1–7 đã hoàn thiện ở mức code và 
 - **`GroupCallPage`:** Grid layout tự động co giãn theo số người (1–4), chỉ báo mute/tắt cam từng participant, nút leave phòng.
 - Bảo vệ luồng 1-1: `CallService` và `RoomService` hoạt động trên hai code path độc lập — thêm mesh không ảnh hưởng cuộc gọi 1-1.
 - Kiểm thử 5 wave: RED test scaffolding, backend room state, frontend mesh core, UX, full verification.
+
+### Phase 8 — Screen Share, Recording & Device Control
+
+**Mục tiêu:** Người dùng kiểm soát trọn vẹn nội dung chia sẻ và thiết bị dùng trong cuộc gọi — chia sẻ màn hình, chọn camera/mic/loa giữa cuộc gọi, ghi hình phía client cho cuộc gọi 1-1.
+
+**Những gì đã xây dựng:**
+
+- **Chia sẻ màn hình:** `getDisplayMedia` + `RTCRtpSender.replaceTrack()` (không renegotiation). Dừng từ nút trong app hoặc từ thanh công cụ trình duyệt đều tự động khôi phục camera, kể cả khi đang tắt cam.
+- **Ghi hình phía client (1-1 only):** `MediaRecorder` ghi bản compositing canvas (remote làm nền, self-view PiP overlay) + mixer audio hai chiều. Tải file `.webm` theo tên `call-{callId}-{timestamp}.webm`. Không đụng đến media trên server (đúng nguyên tắc P2P).
+- **Chuyển thiết bị giữa cuộc gọi:** Camera/microphone dùng `replaceTrack`, giữ nguyên trạng thái mute/tắt cam sau khi đổi. Chọn loa qua `setSinkId` (ẩn khi trình duyệt không hỗ trợ, ví dụ Firefox/Safari).
+- **Áp dụng cho cả 1-1 và group mesh:** Đổi thiết bị, chia sẻ màn hình hoạt động đồng nhất ở cả hai luồng; ghi hình chỉ có ở 1-1.
+- Kiểm thử 5 wave (RED scaffolding → foundation → recording engine → polish → full verification); validation checklist thủ công 100% PASS trên Chrome (`.planning/phases/08-screen-share-recording-device-control/08-VALIDATION.md`).
+
+### Phase 9 — Monitoring, CI/CD & Full Delivery *(đang thực hiện, 4/5 plan)*
+
+**Mục tiêu:** Quan sát được hệ thống qua từng instance, tự động hóa kiểm thử/build qua CI, và khởi động toàn bộ stack bằng một lệnh Docker Compose.
+
+**Những gì đã xây dựng (4 plan đầu, đã commit):**
+
+- **Metrics Micrometer thật (thay AtomicLong cũ):** `CallMetrics` dùng `Counter`/`Gauge` đăng ký vào `MeterRegistry`, gắn tag `instance` (theo backend replica) và `call_type`/`end_reason`. Expose tại `/actuator/prometheus`. Mọi kết cục cuộc gọi (completed/rejected/cancelled/missed/busy/dropped, cả 1-1 lẫn group) đều được đếm — không sót.
+- **Prometheus + Grafana trong Docker Compose:** `prometheus.yml` scrape trực tiếp `backend-1:8080` và `backend-2:8080` (không qua nginx). Grafana auto-provision datasource + dashboard `VDT WebRTC Overview` — không cần thao tác tay. `docker-compose up --build` giờ khởi động đủ 9 service: postgres, backend-1, backend-2, nginx (serve frontend build + proxy `/api`/`/ws`), redis, rabbitmq, coturn, prometheus, grafana.
+- **GitHub Actions CI (`.github/workflows/ci.yml`):** 3 job song song chạy trên mọi push/PR vào `main` — `backend` (`mvn verify`, gồm cả Testcontainers integration test), `frontend` (lint + vitest + build), `docker-build` (build cả 2 image, không push).
+- **Playwright E2E (job thứ 4 trong CI):** Đặt một cuộc gọi 1-1 thật giữa hai Chromium context độc lập dùng fake media device, assert `<video>` phía remote thực sự nhận frame (`videoWidth/videoHeight > 0`). Chạy trực tiếp trên backend+frontend process trong CI (không cần coturn/nginx vì hai context cùng host negotiate ICE không cần TURN).
+
+**Còn lại (Plan 09-05 — full suite gate, đang tạm dừng):**
+
+- ✅ Task 1: chạy toàn bộ suite (`mvnw verify`, `npm run lint/test/build`, `npm run e2e`) — xanh.
+- ✅ Task 2: cập nhật `docs/setup.md` mô tả đủ 9 service + URL Prometheus/Grafana.
+- ⏸ Task 2b (checkpoint thủ công, chờ người thực hiện): `docker compose up --build` toàn bộ 9 service healthy, đặt cuộc gọi 1-1 thật kiểm tra không hồi quy, mở Grafana xem panel WS-sessions-per-instance và active-calls chuyển động khi gọi thật.
 
 ---
 
@@ -433,10 +465,11 @@ cp .env.example .env
 #   TURN_SECRET=<chuỗi ngẫu nhiên>
 #   HOST_IP=<IP máy host, dùng cho coturn external-ip>
 
-# 2. Khởi động toàn bộ stack (postgres, backend-1, backend-2, nginx, redis, rabbitmq, coturn)
+# 2. Khởi động toàn bộ stack (9 service: postgres, backend-1, backend-2, nginx+frontend,
+#    redis, rabbitmq, coturn, prometheus, grafana)
 docker compose up --build
 
-# 3. Chạy frontend dev server
+# 3. (Tùy chọn) Chạy frontend dev server hot-reload thay vì dùng bản build trong nginx
 cd frontend
 npm install
 npm run dev
@@ -444,9 +477,12 @@ npm run dev
 
 | Service | URL |
 |---------|-----|
-| Frontend (dev) | http://localhost:5173 |
+| App (qua nginx, đủ tính năng) | http://localhost:8080 |
+| Frontend (dev hot-reload) | http://localhost:5173 |
 | Backend API (qua nginx) | http://localhost:8080/api |
 | RabbitMQ Management UI | http://localhost:15672 (guest / guest) |
+| Prometheus | http://localhost:9090 |
+| Grafana (`admin` / `GRAFANA_ADMIN_PASSWORD`) | http://localhost:3000 |
 | Redis | localhost:6379 |
 
 **Tài khoản demo:** `admin` / `Admin@123` — đổi trước khi triển khai thật.
@@ -463,6 +499,9 @@ cd backend && ./mvnw verify
 
 # Frontend: Vitest
 cd frontend && npm run test
+
+# Frontend: Playwright E2E (đặt cuộc gọi 1-1 thật giữa 2 Chromium context, fake media)
+cd frontend && npm run e2e
 ```
 
 **Phạm vi kiểm thử hiện tại:**
@@ -480,6 +519,8 @@ cd frontend && npm run test
 | MeshManager (frontend) | Join/leave mesh, multiple peer cleanup |
 | media.ts (frontend) | getUserMedia, constraints, fallback |
 | stats.ts (frontend) | getStats parsing, quality metrics |
+| recording.ts (frontend) | Canvas compositor, audio mixer, download naming |
+| E2E (Playwright, CI) | Cuộc gọi 1-1 thật giữa 2 browser context, assert remote `<video>` nhận frame |
 
 ---
 
