@@ -36,7 +36,7 @@ public class GoogleTokenVerifier {
 
     public GoogleIdentity verify(String credential) {
         if (!isConfigured()) {
-            throw new IllegalArgumentException("Google login is not configured");
+            throw new IllegalArgumentException("Đăng nhập Google chưa được cấu hình");
         }
 
         String encoded = URLEncoder.encode(credential, StandardCharsets.UTF_8);
@@ -49,7 +49,7 @@ public class GoogleTokenVerifier {
         try {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                throw new IllegalArgumentException("Invalid Google credential");
+                throw new IllegalArgumentException("Thông tin đăng nhập Google không hợp lệ");
             }
 
             JsonNode body = objectMapper.readTree(response.body());
@@ -61,7 +61,7 @@ public class GoogleTokenVerifier {
 
             if (!clientId.equals(audience) || subject.isBlank() || email.isBlank()
                     || !"true".equalsIgnoreCase(verified)) {
-                throw new IllegalArgumentException("Invalid Google credential");
+                throw new IllegalArgumentException("Thông tin đăng nhập Google không hợp lệ");
             }
 
             return new GoogleIdentity(subject, email, name);

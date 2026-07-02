@@ -27,18 +27,18 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull(message = "Username cannot be null")
+    @NotNull(message = "Tên đăng nhập không được để trống")
     @Column(unique = true)
     private String username;
 
-    @NotNull(message = "Password cannot be null")
+    @NotNull(message = "Mật khẩu không được để trống")
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
     private Role role;
 
     @Column(unique = true)
-    @NotNull(message = "Email cannot be null")
+    @NotNull(message = "Email không được để trống")
     private String email;
 
     @Column(unique = true)

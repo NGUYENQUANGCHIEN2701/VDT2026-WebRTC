@@ -6,20 +6,20 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record RegisterRequest(
-        @NotBlank(message = "Username cannot be blank")
-        @Size(min = 3, max = 50, message = "Username must be 3-50 characters")
-        @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "Username can only contain letters, numbers, dots, underscores, or hyphens")
+        @NotBlank(message = "Tên đăng nhập không được để trống")
+        @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3-50 ký tự")
+        @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "Tên đăng nhập chỉ được chứa chữ cái, số, dấu chấm, gạch dưới hoặc gạch nối")
         String username,
 
-        @NotBlank(message = "Password cannot be blank")
-        @Size(min = 8, message = "Password must be at least 8 characters")
-        @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "Password must contain at least one letter and one number")
+        @NotBlank(message = "Mật khẩu không được để trống")
+        @Size(min = 8, message = "Mật khẩu phải có ít nhất 8 ký tự")
+        @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "Mật khẩu phải chứa ít nhất một chữ cái và một chữ số")
         String password,
 
-        @NotBlank(message = "Password confirmation cannot be blank")
+        @NotBlank(message = "Xác nhận mật khẩu không được để trống")
         String confirmPassword,
 
-        @NotBlank(message = "Email cannot be blank")
-        @Email(message = "Email must be valid")
+        @NotBlank(message = "Email không được để trống")
+        @Email(message = "Email không hợp lệ")
         String email) {
 }

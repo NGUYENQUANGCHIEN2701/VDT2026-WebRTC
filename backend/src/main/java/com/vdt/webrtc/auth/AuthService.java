@@ -77,7 +77,7 @@ public class AuthService {
         String username = request.username();
         ensurePasswordMatches(request.password(), request.confirmPassword());
         if (userRepository.existsByEmail(email) || userRepository.existsByUsername(username)) {
-            throw new DuplicateResourceException("Email or username already exists");
+            throw new DuplicateResourceException("Email hoặc tên đăng nhập đã được sử dụng");
         }
         String passwordHash = passwordEncoder.encode(request.password());
         Role role = Role.USER;
@@ -119,23 +119,23 @@ public class AuthService {
 
         Optional<RefreshToken> tokenOpt = refreshTokenRepository.findByTokenHashAndRevokedFalse(tokenHash);
         if (tokenOpt.isEmpty()) {
-            throw new InvalidRefreshTokenException("Invalid refresh token");
+            throw new InvalidRefreshTokenException("Mã làm mới phiên đăng nhập không hợp lệ");
         }
 
         RefreshToken token = tokenOpt.get();
         if (token.getExpiresAt().isBefore(Instant.now())) {
-            throw new InvalidRefreshTokenException("Refresh token is expired or revoked");
+            throw new InvalidRefreshTokenException("Phiên đăng nhập đã hết hạn hoặc đã bị thu hồi");
         }
 
         // Check if the associated user account is locked
         User user = token.getUser();
         if (user.isLocked()) {
-            throw new InvalidRefreshTokenException("User account is locked");
+            throw new InvalidRefreshTokenException("Tài khoản đã bị khóa");
         }
 
         int revokedCount = refreshTokenRepository.revokeActiveByHash(tokenHash);
         if (revokedCount == 0) {
-            throw new InvalidRefreshTokenException("Refresh token is already revoked");
+            throw new InvalidRefreshTokenException("Phiên đăng nhập đã bị thu hồi");
         }
 
         return issueLoginResult(user);
@@ -198,7 +198,7 @@ public class AuthService {
 
         User user = token.getUser();
         if (user.isLocked()) {
-            throw new LockedException("User account is locked");
+            throw new LockedException("Tài khoản đã bị khóa");
         }
 
         user.setPasswordHash(passwordEncoder.encode(request.password()));
@@ -224,7 +224,7 @@ public class AuthService {
                 .orElseGet(() -> createGoogleUser(identity));
 
         if (user.isLocked()) {
-            throw new LockedException("User account is locked");
+            throw new LockedException("Tài khoản đã bị khóa");
         }
 
         return issueLoginResult(user);
@@ -284,7 +284,7 @@ public class AuthService {
 
     private void ensurePasswordMatches(String password, String confirmPassword) {
         if (!password.equals(confirmPassword)) {
-            throw new IllegalArgumentException("Password confirmation does not match");
+            throw new IllegalArgumentException("Mật khẩu xác nhận không khớp");
         }
     }
 
