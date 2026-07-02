@@ -40,8 +40,8 @@ export default function CallPage() {
   const [debugOpen, setDebugOpen] = useState(false)
   const [morePanelOpen, setMorePanelOpen] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
-  const [recordingNow, setRecordingNow] = useState(Date.now())
-  const [recordingPreview, setRecordingPreview] = useState<{ url: string; mimeType: string; durationMs: number } | null>(null)
+  const [recordingNow, setRecordingNow] = useState(() => Date.now())
+  const [recordingPreview, setRecordingPreview] = useState<{ url: string; mimeType: string; durationMs: number; downloadName: string } | null>(null)
   const [stats, setStats] = useState<StatsSample | null>(null)
   const remoteRef = useRef<HTMLVideoElement>(null)
   const selfRef = useRef<HTMLVideoElement>(null)
@@ -121,10 +121,7 @@ export default function CallPage() {
   }, [])
 
   useEffect(() => {
-    if (!debugOpen) {
-      setStats(null)
-      return
-    }
+    if (!debugOpen) return
     const peer = getActivePeer()
     if (!peer) return
     return startStatsPolling(peer, setStats, 1000)
@@ -184,7 +181,10 @@ export default function CallPage() {
     sendRecordingState(false)
     if (result) {
       if (recordingPreview?.url) URL.revokeObjectURL(recordingPreview.url)
-      setRecordingPreview({ url: result.previewUrl, mimeType: result.mimeType, durationMs: result.durationMs })
+      // Tên file tính một lần tại thời điểm dừng ghi (trong event handler),
+      // không gọi Date.now() lúc render (react-hooks/purity).
+      const downloadName = `call-${remoteUserId ?? "recording"}-${Date.now()}.webm`
+      setRecordingPreview({ url: result.previewUrl, mimeType: result.mimeType, durationMs: result.durationMs, downloadName })
       call.setHasRecordingPreview(true)
     } else {
       // Task 3: empty chunks — no modal, toast only
@@ -251,7 +251,10 @@ export default function CallPage() {
           {duration || "00:00"}
         </span>
         <ShieldCheck size={18} color="#22c55e" />
-        <MoreVertical size={18} color="#94a3b8" style={{ cursor: 'pointer' }} onClick={() => setDebugOpen((v) => !v)} />
+        <MoreVertical size={18} color="#94a3b8" style={{ cursor: 'pointer' }} onClick={() => setDebugOpen((v) => {
+          if (v) setStats(null) // đóng debug panel: xoá stats cũ ngay trong cùng handler (không dùng effect)
+          return !v
+        })} />
       </div>
 
       {/* Top Right HUD: Expand/Size */}
@@ -338,7 +341,7 @@ export default function CallPage() {
         previewUrl={recordingPreview?.url ?? null}
         mimeType={recordingPreview?.mimeType ?? "video/webm"}
         durationMs={recordingPreview?.durationMs ?? 0}
-        downloadName={`call-${remoteUserId ?? "recording"}-${Date.now()}.webm`}
+        downloadName={recordingPreview?.downloadName ?? `call-${remoteUserId ?? "recording"}.webm`}
         onClose={closeRecordingPreview}
       />
 

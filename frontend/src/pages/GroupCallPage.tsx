@@ -52,9 +52,9 @@ export default function GroupCallPage() {
   const [debugOpen, setDebugOpen] = useState(false)
   const [morePanelOpen, setMorePanelOpen] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
-  const [now, setNow] = useState(Date.now())
-  const [recordingNow, setRecordingNow] = useState(Date.now())
-  const [recordingPreview, setRecordingPreview] = useState<{ url: string; mimeType: string; durationMs: number } | null>(null)
+  const [now, setNow] = useState(() => Date.now())
+  const [recordingNow, setRecordingNow] = useState(() => Date.now())
+  const [recordingPreview, setRecordingPreview] = useState<{ url: string; mimeType: string; durationMs: number; downloadName: string } | null>(null)
   const recordingControllerRef = useRef<RecordingController | null>(null)
   const recordingPreviewUrlRef = useRef<string | null>(null)
 
@@ -62,7 +62,6 @@ export default function GroupCallPage() {
   const recordingStartedAt = useRoomStore((s) => s.recordingStartedAt)
   const hasRecordingPreview = useRoomStore((s) => s.hasRecordingPreview)
   const [statsByPeer, setStatsByPeer] = useState<Record<string, StatsSample | null>>({})
-  const selfVideoVersion = useRef(0)
 
   const roster = useMemo(() => Object.values(members), [members])
   const remoteMembers = roster.filter((m) => m.username !== selfId)
@@ -119,11 +118,9 @@ export default function GroupCallPage() {
     return () => clearTimeout(timer)
   }, [alone, navigate])
 
+  const remoteMemberUsernames = remoteMembers.map((m) => m.username).join("|")
   useEffect(() => {
-    if (!debugOpen) {
-      setStatsByPeer({})
-      return
-    }
+    if (!debugOpen) return
     const mesh = getActiveMesh()
     if (!mesh) return
     const stops = remoteMembers
@@ -136,7 +133,8 @@ export default function GroupCallPage() {
       })
       .filter((stop): stop is () => void => Boolean(stop))
     return () => stops.forEach((stop) => stop())
-  }, [debugOpen, remoteMembers.map((m) => m.username).join("|")])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- remoteMemberUsernames là chuỗi ổn định đại diện cho danh sách remoteMembers, tránh re-run mỗi render do remoteMembers là mảng mới mỗi lần
+  }, [debugOpen, remoteMemberUsernames])
 
   const peerDebug: PeerDebugStats[] = remoteMembers.map((member) => ({
     peerId: member.username,
@@ -192,7 +190,10 @@ export default function GroupCallPage() {
     room.setRecordingStartedAt(null)
     if (result) {
       if (recordingPreview?.url) URL.revokeObjectURL(recordingPreview.url)
-      setRecordingPreview({ url: result.previewUrl, mimeType: result.mimeType, durationMs: result.durationMs })
+      // Tên file tính một lần tại thời điểm dừng ghi (trong event handler),
+      // không gọi Date.now() lúc render (react-hooks/purity).
+      const downloadName = `group-call-${roomId ?? "recording"}-${Date.now()}.webm`
+      setRecordingPreview({ url: result.previewUrl, mimeType: result.mimeType, durationMs: result.durationMs, downloadName })
       room.setHasRecordingPreview(true)
     } else {
       useToastStore.getState().show('No recording data was captured.', 'warning')
@@ -221,7 +222,7 @@ export default function GroupCallPage() {
           username={member.username}
           isSelf={isSelf}
           stream={isSelf ? getRoomLocalStream() : getRoomRemoteStream(member.username)}
-          streamVersion={isSelf ? localStreamVersion + selfVideoVersion.current : member.streamVersion}
+          streamVersion={isSelf ? localStreamVersion : member.streamVersion}
           micMuted={isSelf ? micMuted : member.micMuted}
           camOff={isSelf ? camOff : member.camOff}
           connectionState={isSelf ? 'connected' : member.connectionState}
@@ -253,7 +254,10 @@ export default function GroupCallPage() {
         </span>
         <ShieldCheck size={18} color="#22c55e" />
         <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.2)' }} />
-        <Settings size={18} color="#94a3b8" style={{ cursor: 'pointer' }} onClick={() => setDebugOpen(!debugOpen)} />
+        <Settings size={18} color="#94a3b8" style={{ cursor: 'pointer' }} onClick={() => {
+          if (debugOpen) setStatsByPeer({}) // đóng debug panel: xoá stats cũ ngay trong handler (không dùng effect)
+          setDebugOpen(!debugOpen)
+        }} />
       </div>
 
       {/* Top Right HUD: Grid and More */}
@@ -289,7 +293,7 @@ export default function GroupCallPage() {
                   username={selfId ?? ""}
                   isSelf={true}
                   stream={getRoomLocalStream()}
-                  streamVersion={localStreamVersion + selfVideoVersion.current}
+                  streamVersion={localStreamVersion}
                   micMuted={micMuted}
                   camOff={camOff}
                   connectionState={'connected'}
@@ -302,7 +306,7 @@ export default function GroupCallPage() {
                     username={selfId ?? ""}
                     isSelf={true}
                     stream={getRoomLocalStream()}
-                    streamVersion={localStreamVersion + selfVideoVersion.current}
+                    streamVersion={localStreamVersion}
                     micMuted={micMuted}
                     camOff={true}
                     connectionState={'connected'}
@@ -415,7 +419,7 @@ export default function GroupCallPage() {
         previewUrl={recordingPreview?.url ?? null}
         mimeType={recordingPreview?.mimeType ?? "video/webm"}
         durationMs={recordingPreview?.durationMs ?? 0}
-        downloadName={`group-call-${roomId ?? "recording"}-${Date.now()}.webm`}
+        downloadName={recordingPreview?.downloadName ?? `group-call-${roomId ?? "recording"}.webm`}
         onClose={closeRecordingPreview}
       />
 

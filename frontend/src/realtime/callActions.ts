@@ -122,7 +122,7 @@ export async function startScreenShare(): Promise<void> {
         call.setCamOff(false)
         call.bumpLocalStream()
         sendCurrentMediaState()
-    } catch (err) {
+    } catch {
         stopTrack(screenTrack)
         camOffBeforeShare = null
         reportMediaControlError('Screen sharing failed.')
@@ -161,7 +161,7 @@ export async function stopScreenShare(): Promise<void> {
         call.bumpLocalStream()
         // Task 2: relay restored media state to remote party
         sendCurrentMediaState()
-    } catch (err) {
+    } catch {
         reportMediaControlError('Could not restore camera after screen share stopped.')
     } finally {
         isRestoringCamera = false

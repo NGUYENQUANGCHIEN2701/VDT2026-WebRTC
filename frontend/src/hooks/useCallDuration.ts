@@ -16,15 +16,19 @@ export function formatDuration(ms: number): string {
 // Trả null khi chưa kết nối (chưa có gì để hiển thị).
 export function useCallDuration(): string | null {
     const connectedAt = useCallStore((s) => s.connectedAt)
+    // Khởi tạo "now" ngay từ lần render đầu (không cần setState trong effect
+    // để có giá trị tức thời) — tick định kỳ chỉ để ép re-render sau đó.
     const [now, setNow] = useState(() => Date.now())
 
     useEffect(() => {
         if (connectedAt == null) return
-        setNow(Date.now())   // cập nhật ngay, không chờ 1s đầu
         const id = setInterval(() => setNow(Date.now()), 1000)
         return () => clearInterval(id)
     }, [connectedAt])
 
     if (connectedAt == null) return null
-    return formatDuration(now - connectedAt)
+    // Nếu "now" cũ hơn mốc kết nối (chưa kịp tick sau lần connectedAt đổi),
+    // dùng connectedAt làm mốc hiện tại để duration hiển thị đúng ngay lập tức.
+    const effectiveNow = Math.max(now, connectedAt)
+    return formatDuration(effectiveNow - connectedAt)
 }

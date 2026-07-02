@@ -118,7 +118,7 @@ export async function startRoomScreenShare(): Promise<void> {
         room.setCamOff(false)
         room.bumpLocalStream()
         sendRoomMediaState()
-    } catch (err) {
+    } catch {
         stopTrack(screenTrack)
         roomCamOffBeforeShare = null
         reportRoomMediaControlError('Screen sharing failed.')
@@ -157,7 +157,7 @@ export async function stopRoomScreenShare(): Promise<void> {
         room.bumpLocalStream()
         // Task 2: relay restored media state to all remote participants
         sendRoomMediaState()
-    } catch (err) {
+    } catch {
         reportRoomMediaControlError('Could not restore camera after screen share stopped.')
     } finally {
         isRestoringRoomCamera = false

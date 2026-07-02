@@ -41,7 +41,7 @@ class MockRTCPeerConnection {
     restartIce = vi.fn()
     close = vi.fn()
 
-    constructor(_config?: unknown) {
+    constructor() {
         MockRTCPeerConnection.instances.push(this)
     }
 }

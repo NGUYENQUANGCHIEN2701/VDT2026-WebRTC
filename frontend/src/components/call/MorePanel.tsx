@@ -112,7 +112,7 @@ export default function MorePanel({
   }
 
   const handleTestSound = () => {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     const osc = ctx.createOscillator();
     osc.type = "sine";
     osc.frequency.setValueAtTime(440, ctx.currentTime);

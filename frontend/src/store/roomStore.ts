@@ -119,7 +119,8 @@ export const useRoomStore = create<RoomStoreState>((set) => ({
         })),
     removeMember: (username) =>
         set((s) => {
-            const { [username]: _removed, ...members } = s.members
+            const members = { ...s.members }
+            delete members[username]
             return { members }
         }),
     setPeerConnectionState: (username, connectionState) =>

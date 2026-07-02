@@ -39,7 +39,10 @@ export default function AdminPage() {
       .catch(() => setError('Không thể tải danh sách người dùng'))
       .finally(() => setLoading(false))
   }
-  useEffect(() => { reload() }, [])
+  // Effect chỉ subscribe/kích hoạt fetch lần đầu; setState đồng bộ (setLoading)
+  // được đẩy vào microtask kế tiếp (Promise.resolve().then) để tuân thủ quy tắc
+  // react-hooks/set-state-in-effect (tránh cascading render ngay trong effect body).
+  useEffect(() => { void Promise.resolve().then(reload) }, [])
 
   const runPending = async () => {
     if (!pending) return
@@ -78,15 +81,21 @@ export default function AdminPage() {
 
   // Pagination
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1
-  const paginatedUsers = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return filteredUsers.slice(start, start + itemsPerPage)
-  }, [filteredUsers, currentPage, itemsPerPage])
-
-  // Reset page when filters change
-  useEffect(() => {
+  // Ghi nhớ bộ lọc lúc render trước để phát hiện thay đổi ngay trong render
+  // (thay vì dùng effect + setState), theo khuyến nghị "Adjusting state
+  // based on props" của React — tránh setState đồng bộ trong effect.
+  const filterKey = `${searchTerm}|${roleFilter}|${statusFilter}`
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey)
+  let effectiveCurrentPage = currentPage
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey)
     setCurrentPage(1)
-  }, [searchTerm, roleFilter, statusFilter])
+    effectiveCurrentPage = 1
+  }
+  const paginatedUsers = useMemo(() => {
+    const start = (effectiveCurrentPage - 1) * itemsPerPage
+    return filteredUsers.slice(start, start + itemsPerPage)
+  }, [filteredUsers, effectiveCurrentPage, itemsPerPage])
 
   const kpis = useMemo(() => ({
     total: users.length,
@@ -147,20 +156,20 @@ export default function AdminPage() {
                   ) : (
                     <div className="admin-pagination">
                       <span className="pagination-info">
-                        Hiển thị {((currentPage - 1) * itemsPerPage) + 1} đến {Math.min(currentPage * itemsPerPage, filteredUsers.length)} của {filteredUsers.length} người dùng
+                        Hiển thị {((effectiveCurrentPage - 1) * itemsPerPage) + 1} đến {Math.min(effectiveCurrentPage * itemsPerPage, filteredUsers.length)} của {filteredUsers.length} người dùng
                       </span>
                       <div className="pagination-controls">
-                        <button 
-                          className="page-btn" 
-                          disabled={currentPage === 1}
+                        <button
+                          className="page-btn"
+                          disabled={effectiveCurrentPage === 1}
                           onClick={() => setCurrentPage(p => p - 1)}
                         >
                           <ChevronLeft size={16} />
                         </button>
-                        <button className="page-btn active">{currentPage}</button>
-                        <button 
-                          className="page-btn" 
-                          disabled={currentPage === totalPages}
+                        <button className="page-btn active">{effectiveCurrentPage}</button>
+                        <button
+                          className="page-btn"
+                          disabled={effectiveCurrentPage === totalPages}
                           onClick={() => setCurrentPage(p => p + 1)}
                         >
                           <ChevronRight size={16} />
