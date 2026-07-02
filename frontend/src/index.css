@@ -2734,6 +2734,94 @@ code {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .call-1v1-top-left {
+    top: 10px;
+    left: 10px;
+    max-width: calc(100vw - 20px);
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .call-1v1-logo-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    flex: 0 0 32px;
+  }
+
+  .call-1v1-info {
+    min-width: 0;
+  }
+
+  .call-1v1-info h2,
+  .call-1v1-info p {
+    max-width: 46vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .call-1v1-info h2 {
+    font-size: 12px;
+  }
+
+  .call-1v1-info p {
+    font-size: 11px;
+  }
+
+  .call-1v1-top-center {
+    top: 56px;
+    max-width: calc(100vw - 20px);
+    padding: 5px 10px;
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .call-1v1-top-right {
+    display: none;
+  }
+
+  .call-1v1-bottom-bar {
+    bottom: 16px;
+    max-width: calc(100vw - 16px);
+    padding: 8px 10px;
+    gap: 4px;
+    overflow-x: auto;
+  }
+
+  .call-labeled-btn {
+    min-width: 44px;
+    gap: 2px;
+  }
+
+  .call-labeled-btn-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .call-labeled-btn.danger .call-labeled-btn-icon {
+    width: 56px;
+  }
+
+  .call-labeled-btn-text {
+    display: none;
+  }
+
+  .self-video-box,
+  .call-video--pip {
+    right: 10px;
+    bottom: 100px;
+  }
+
+  .call-video--presenting,
+  .self-video-box--presenting {
+    top: 124px;
+    left: 10px;
+    width: calc(100% - 20px);
+    height: calc(100% - 304px);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2862,24 +2950,107 @@ code {
     padding: 28px 20px !important;
     border-radius: 16px !important;
   }
+
+  .call-1v1-top-left {
+    top: 10px;
+    left: 10px;
+    max-width: calc(100vw - 20px);
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .call-1v1-info h2,
+  .call-1v1-info p {
+    max-width: 46vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .call-1v1-info h2 {
+    font-size: 12px;
+  }
+
+  .call-1v1-info p {
+    font-size: 11px;
+  }
+
+  .call-1v1-top-center {
+    display: flex;
+    top: 56px;
+    max-width: calc(100vw - 20px);
+    padding: 5px 10px;
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .call-1v1-top-right {
+    display: none;
+  }
+
+  .call-1v1-bottom-bar {
+    bottom: 16px;
+    max-width: calc(100vw - 16px);
+    padding: 8px 10px;
+    gap: 4px;
+    overflow-x: auto;
+  }
+
+  .call-labeled-btn {
+    min-width: 44px;
+    gap: 2px;
+  }
+
+  .call-labeled-btn-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .call-labeled-btn.danger .call-labeled-btn-icon {
+    width: 56px;
+    border-radius: 12px;
+  }
+
+  .call-labeled-btn-text {
+    display: none;
+  }
+
+  .self-video-box,
+  .call-video--pip {
+    right: 10px;
+    bottom: 100px;
+  }
+
+  .call-video--presenting,
+  .self-video-box--presenting {
+    top: 124px;
+    left: 10px;
+    width: calc(100% - 20px);
+    height: calc(100% - 304px);
+  }
+
+  .call-hud-stack {
+    top: 92px;
+  }
 }
 
 /* ── GroupCallPage presentation layout mobile ── */
 @media (max-width: 640px) {
   .presentation-layout {
-    inset: 60px 8px 130px;
+    inset: 124px 10px 100px;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .presentation-sidebar {
-    min-width: unset;
-    flex-direction: row;
-    flex: 0 0 120px;
+    min-width: 0;
+    gap: 8px;
   }
 
   .presentation-thumbnails {
-    height: 120px;
+    height: 84px;
+    gap: 8px;
   }
 
   .presentation-thumbnail-wrapper {

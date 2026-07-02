@@ -70,6 +70,14 @@ export default function GroupCallPage() {
   // not just this client's own local isScreenSharing flag — drives presentation
   // mode for every participant in the room, not only the sharer's own tab.
   const activeSharer = getActiveSharer(members, selfId, isScreenSharing)
+  // Bugfix (participant-bar-screen-share): screen share replaces a peer's single
+  // video track in place (see startRoomScreenShare/replaceVideoTrack in
+  // roomActions.ts) — there is no separate camera track for a sharing remote
+  // peer. Keeping them in the thumbnail strip duplicates the exact stream
+  // already shown in presentation-main instead of a distinct camera feed, so
+  // they must be excluded here (they're already represented large in the main
+  // presentation tile).
+  const thumbnailMembers = remoteMembers.filter((m) => m.username !== activeSharer)
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000)
@@ -158,7 +166,7 @@ export default function GroupCallPage() {
     const remoteStreams = remoteMembers.map(m => getRoomRemoteStream(m.username)).filter(Boolean) as MediaStream[]
     
     if (!localStream || !room.roomId || typeof MediaRecorder === "undefined") {
-      useToastStore.getState().show('Recording is not ready yet.', 'warning')
+      useToastStore.getState().show('Chưa thể bắt đầu ghi hình lúc này.', 'warning')
       return
     }
     const controller = new RecordingController({
@@ -196,7 +204,7 @@ export default function GroupCallPage() {
       setRecordingPreview({ url: result.previewUrl, mimeType: result.mimeType, durationMs: result.durationMs, downloadName })
       room.setHasRecordingPreview(true)
     } else {
-      useToastStore.getState().show('No recording data was captured.', 'warning')
+      useToastStore.getState().show('Không ghi được dữ liệu nào.', 'warning')
     }
   }
 
@@ -241,7 +249,7 @@ export default function GroupCallPage() {
           <Video size={20} fill="white" />
         </div>
         <div className="call-1v1-info">
-          <h2>Video Call</h2>
+          <h2>Cuộc gọi video</h2>
           <p>Cuộc họp nhóm • {roster.length} người</p>
         </div>
       </div>
@@ -271,13 +279,13 @@ export default function GroupCallPage() {
           {activeSharer !== null && (
             <div className="hud-pill hud-pill--share">
               <MonitorUp size={16} />
-              {activeSharer === selfId ? 'Sharing screen' : `${activeSharer} is sharing`}
+              {activeSharer === selfId ? 'Đang chia sẻ màn hình' : `${activeSharer} đang chia sẻ`}
             </div>
           )}
           {isRecording && (
             <div className="hud-pill hud-pill--recording" role="status">
               <Radio size={15} />
-              Recording {formatDuration(recordingStartedAt || recordingNow)}
+              Đang ghi {formatDuration(recordingStartedAt || recordingNow)}
             </div>
           )}
         </div>
@@ -314,7 +322,7 @@ export default function GroupCallPage() {
                   <div className="speaker-badge">Người đang nói</div>
                 </div>
                 <div className="presentation-thumbnails">
-                  {remoteMembers.map((member) => (
+                  {thumbnailMembers.map((member) => (
                     <div key={member.username} className="presentation-thumbnail-wrapper">
                       <ParticipantTile
                         username={member.username}
@@ -361,7 +369,7 @@ export default function GroupCallPage() {
                   <div className="speaker-badge">Người đang nói</div>
                 </div>
                 <div className="presentation-thumbnails">
-                  {remoteMembers.map((member) => (
+                  {thumbnailMembers.map((member) => (
                     <div key={member.username} className="presentation-thumbnail-wrapper">
                       <ParticipantTile
                         username={member.username}
@@ -381,7 +389,7 @@ export default function GroupCallPage() {
           )}
         </section>
       ) : (
-        <section style={{ position: 'absolute', inset: '80px 24px 140px', display: 'grid', gap: 16, padding: 0, ...gridStyle(roster.length), transition: 'grid-template-columns 0.2s ease' }}>
+        <section className="call-tile-grid" style={gridStyle(roster.length)}>
           {tiles}
         </section>
       )}
@@ -401,7 +409,7 @@ export default function GroupCallPage() {
           active={isScreenSharing}
           loading={shareLoading}
           disabled={!canRoomScreenShare()}
-          title={!canRoomScreenShare() ? 'Screen sharing is unavailable in this browser.' : undefined}
+          title={!canRoomScreenShare() ? 'Trình duyệt này không hỗ trợ chia sẻ màn hình.' : undefined}
         />
         <LabeledRecordButton onClick={() => isRecording ? void stopRecording() : startRecording()} active={isRecording} />
         <LabeledMoreButton onClick={() => setMorePanelOpen((open) => !open)} active={morePanelOpen} />

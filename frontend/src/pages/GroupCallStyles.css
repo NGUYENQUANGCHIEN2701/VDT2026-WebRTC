@@ -7,6 +7,15 @@
   transition: all 0.3s ease;
 }
 
+.call-tile-grid {
+  position: absolute;
+  inset: 80px 24px 140px;
+  display: grid;
+  gap: 16px;
+  padding: 0;
+  transition: grid-template-columns 0.2s ease;
+}
+
 .presentation-main {
   flex: 6.5;
   position: relative;
@@ -90,4 +99,27 @@
 .presentation-thumbnails::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 4px;
+}
+
+@media (max-width: 760px) {
+  .presentation-layout {
+    inset: 124px 10px 100px;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .presentation-sidebar {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .presentation-thumbnails {
+    height: 84px;
+    gap: 8px;
+  }
+
+  .call-tile-grid {
+    inset: 124px 10px 100px;
+    gap: 10px;
+  }
 }
