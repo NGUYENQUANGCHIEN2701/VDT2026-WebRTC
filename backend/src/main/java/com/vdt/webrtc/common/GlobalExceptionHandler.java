@@ -80,6 +80,13 @@ public class GlobalExceptionHandler {
                                 .body(build(HttpStatus.FORBIDDEN, "Email is not verified", details, request));
         }
 
+        @ExceptionHandler(RateLimitExceededException.class)
+        public ResponseEntity<ApiError> handleRateLimitExceeded(
+                        RateLimitExceededException ex, HttpServletRequest request) {
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                                .body(build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), null, request));
+        }
+
         @ExceptionHandler(Exception.class)
         public ResponseEntity<ApiError> handleGeneralException(Exception ex, HttpServletRequest request) {
                 // Log full details server-side; client only sees a generic message.
