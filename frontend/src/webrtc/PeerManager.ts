@@ -182,6 +182,15 @@ export class PeerManager {
 
     private async handleNegotiationNeeded() {
         if (this.callbacks?.canInitiateOffer === false) return
+        // Bên "polite" KHÔNG tự phát offer cho lần đàm phán ĐẦU TIÊN (chưa từng nhận
+        // remoteDescription nào) — chờ offer thật từ bên "impolite" rồi trả lời bằng
+        // answer (local track đã addLocalStream() từ trước nên answer vẫn mang đủ track
+        // của mình, không cần tự tạo offer). Tránh glare kép (cả 2 bên tự gửi offer cùng
+        // lúc): khi CHÍNH offer tự phát của bên polite bị rollback ngầm lúc nhận offer
+        // thật, ICE candidate đã/đang gom cho offer bị rollback đó (ufrag cũ) có thể vẫn
+        // bị gửi đi và làm hỏng candidate pool phía nhận — khiến ICE kẹt ở 'new'/'checking'
+        // vĩnh viễn dù SDP đã áp dụng xong (xem debug session remote-video-black-on-connect).
+        if (this.polite && !this.pc.currentRemoteDescription) return
         try {
             this.makingOffer = true
             await this.pc.setLocalDescription() // tự tạo offer

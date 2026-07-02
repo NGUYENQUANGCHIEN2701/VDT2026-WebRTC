@@ -66,7 +66,7 @@ export const canScreenShare = (): boolean =>
 
 export async function startScreenShare(): Promise<void> {
     if (!canScreenShare()) {
-        reportMediaControlError('Screen sharing is unavailable in this browser.')
+        reportMediaControlError('Trình duyệt này không hỗ trợ chia sẻ màn hình.')
         return
     }
 
@@ -74,7 +74,7 @@ export async function startScreenShare(): Promise<void> {
     const stream = localStream
     const cameraTrack = stream ? getCurrentTrack(stream, 'video') : null
     if (!activePeer || !stream || !cameraTrack) {
-        reportMediaControlError('Screen sharing is unavailable — call not connected.')
+        reportMediaControlError('Không thể chia sẻ màn hình — cuộc gọi chưa kết nối.')
         return
     }
 
@@ -86,24 +86,24 @@ export async function startScreenShare(): Promise<void> {
         if (err instanceof Error) {
             if (err.name === 'NotAllowedError') {
                 reportMediaControlError(
-                    'Screen sharing was not allowed. Try Share screen again and choose a window or screen.'
+                    'Bạn chưa cho phép chia sẻ màn hình. Hãy bấm Chia sẻ màn hình lại và chọn một cửa sổ hoặc màn hình.'
                 )
             } else if (err.name === 'NotReadableError' || err.name === 'AbortError') {
                 reportMediaControlError(
-                    'Could not start screen sharing. Try another window or screen.'
+                    'Không thể bắt đầu chia sẻ màn hình. Hãy thử một cửa sổ hoặc màn hình khác.'
                 )
             } else {
-                reportMediaControlError('Screen sharing failed.')
+                reportMediaControlError('Chia sẻ màn hình thất bại.')
             }
         } else {
-            reportMediaControlError('Screen sharing failed.')
+            reportMediaControlError('Chia sẻ màn hình thất bại.')
         }
         return
     }
 
     const screenTrack = displayStream.getVideoTracks()[0]
     if (!screenTrack) {
-        reportMediaControlError('Screen sharing failed.')
+        reportMediaControlError('Chia sẻ màn hình thất bại.')
         return
     }
 
@@ -125,7 +125,7 @@ export async function startScreenShare(): Promise<void> {
     } catch {
         stopTrack(screenTrack)
         camOffBeforeShare = null
-        reportMediaControlError('Screen sharing failed.')
+        reportMediaControlError('Chia sẻ màn hình thất bại.')
     }
 }
 
@@ -162,7 +162,7 @@ export async function stopScreenShare(): Promise<void> {
         // Task 2: relay restored media state to remote party
         sendCurrentMediaState()
     } catch {
-        reportMediaControlError('Could not restore camera after screen share stopped.')
+        reportMediaControlError('Không thể khôi phục camera sau khi dừng chia sẻ màn hình.')
     } finally {
         isRestoringCamera = false
     }
@@ -195,16 +195,16 @@ export async function switchCamera(deviceId: string): Promise<void> {
         stopTrack(newTrack)
         if (err instanceof Error) {
             if (err.name === 'OverconstrainedError') {
-                reportMediaControlError('Selected device is unavailable. Your current device is still active.')
+                reportMediaControlError('Thiết bị bạn chọn hiện không khả dụng. Thiết bị hiện tại vẫn đang hoạt động.')
             } else if (err.name === 'NotReadableError') {
-                reportMediaControlError('That device is busy. Your current device is still active.')
+                reportMediaControlError('Thiết bị đó đang bận. Thiết bị hiện tại vẫn đang hoạt động.')
             } else if (err.name === 'NotAllowedError') {
-                reportMediaControlError('Permission denied for the selected device.')
+                reportMediaControlError('Quyền truy cập thiết bị bạn chọn đã bị từ chối.')
             } else {
-                reportMediaControlError('Could not switch camera. Your current device is still active.')
+                reportMediaControlError('Không thể chuyển camera. Camera hiện tại vẫn đang hoạt động.')
             }
         } else {
-            reportMediaControlError('Could not switch camera. Your current device is still active.')
+            reportMediaControlError('Không thể chuyển camera. Camera hiện tại vẫn đang hoạt động.')
         }
     }
 }
@@ -230,16 +230,16 @@ export async function switchMicrophone(deviceId: string): Promise<void> {
         stopTrack(newTrack)
         if (err instanceof Error) {
             if (err.name === 'OverconstrainedError') {
-                reportMediaControlError('Selected device is unavailable. Your current device is still active.')
+                reportMediaControlError('Thiết bị bạn chọn hiện không khả dụng. Thiết bị hiện tại vẫn đang hoạt động.')
             } else if (err.name === 'NotReadableError') {
-                reportMediaControlError('That device is busy. Your current device is still active.')
+                reportMediaControlError('Thiết bị đó đang bận. Thiết bị hiện tại vẫn đang hoạt động.')
             } else if (err.name === 'NotAllowedError') {
-                reportMediaControlError('Permission denied for the selected device.')
+                reportMediaControlError('Quyền truy cập thiết bị bạn chọn đã bị từ chối.')
             } else {
-                reportMediaControlError('Could not switch microphone. Your current device is still active.')
+                reportMediaControlError('Không thể chuyển micrô. Micrô hiện tại vẫn đang hoạt động.')
             }
         } else {
-            reportMediaControlError('Could not switch microphone. Your current device is still active.')
+            reportMediaControlError('Không thể chuyển micrô. Micrô hiện tại vẫn đang hoạt động.')
         }
     }
 }
@@ -526,3 +526,13 @@ function handleCallState(msg: CallStateChanged) {
 
 // Đăng ký 1 lần khi module load
 setCallSignalHandler(handleServerSignal)
+
+// Bugfix (i18n sweep): recordingError trước đây được set khi MediaRecorder.onerror
+// bắn (xem RecordingController trong recording.ts) nhưng chưa từng được hiển thị ở
+// đâu — user không biết vì sao ghi hình dừng đột ngột. Hiện toast rồi tự clear ngay.
+useCallStore.subscribe((state, prevState) => {
+    if (state.recordingError && state.recordingError !== prevState.recordingError) {
+        useToastStore.getState().show(state.recordingError, 'warning')
+        useCallStore.getState().setRecordingError(null)
+    }
+})

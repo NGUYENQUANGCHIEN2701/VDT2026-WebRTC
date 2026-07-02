@@ -426,6 +426,52 @@ describe('RecordingController — sharer-aware draw path', () => {
         ctrl.stop()
     })
 
+    // Regression test (bug: participant-bar-screen-share) — a sharing remote
+    // peer's video track is REPLACED in place (no separate camera track), so
+    // their remoteVideos entry carries the same screen content already drawn
+    // into main/speaker. The thumbnail strip must exclude them, mirroring the
+    // on-screen GroupCallPage.tsx thumbnailMembers filter.
+    it("getActiveSharer: () => 'bob' excludes bob from the thumbnail strip — only non-sharing remotes (carol) appear there", () => {
+        const { ctx } = stubCanvasContext()
+        const ctrl = new mod.RecordingController({ getActiveSharer: () => 'bob' })
+        ctrl.start(
+            fakeStream(['audio', 'video']),
+            [fakeStream(['video']), fakeStream(['video'])],
+            'call-4',
+            ['bob', 'carol'],
+        )
+
+        expect(ctx.drawImage).toHaveBeenCalled()
+        const targets = ctx.drawImage.mock.calls.map((call) => call[0])
+        // main + speaker draw bob's video (both equal), plus exactly ONE
+        // thumbnail draw call for carol — bob must not appear a second time.
+        expect(targets).toHaveLength(3)
+        expect(targets[0]).toBe(targets[1])
+        expect(targets[2]).not.toBe(targets[0])
+
+        ctrl.stop()
+    })
+
+    it("getActiveSharer: () => 'local' keeps both remotes (bob, carol) in the thumbnail strip — neither is the sharer", () => {
+        const { ctx } = stubCanvasContext()
+        const ctrl = new mod.RecordingController({ getActiveSharer: () => 'local' })
+        ctrl.start(
+            fakeStream(['audio', 'video']),
+            [fakeStream(['video']), fakeStream(['video'])],
+            'call-5',
+            ['bob', 'carol'],
+        )
+
+        expect(ctx.drawImage).toHaveBeenCalled()
+        const targets = ctx.drawImage.mock.calls.map((call) => call[0])
+        // main + speaker draw the local video (both equal), plus 2 thumbnail
+        // draw calls (bob, carol) — 4 total.
+        expect(targets).toHaveLength(4)
+        expect(targets[0]).toBe(targets[1])
+
+        ctrl.stop()
+    })
+
     it('getActiveSharer: () => null falls back to grid mode (not presentation layout) — treated the same as sharing=false', () => {
         const { ctx } = stubCanvasContext()
         const ctrl = new mod.RecordingController({ getActiveSharer: () => null })

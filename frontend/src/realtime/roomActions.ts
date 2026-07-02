@@ -3,7 +3,7 @@ import { useAuthStore } from '../store/authStore'
 import { getActiveSharer, useRoomStore } from '../store/roomStore'
 import { useToastStore } from '../store/toastStore'
 import { MeshManager, remoteStreams } from '../webrtc/MeshManager'
-import { acquireLocalMedia, MediaAcquisitionError } from '../webrtc/media'
+import { acquireLocalMedia, MediaAcquisitionError, mediaErrorToastMessage } from '../webrtc/media'
 import {
     acquireAudioTrack,
     acquireVideoTrack,
@@ -52,7 +52,7 @@ export const canRoomScreenShare = (): boolean =>
 
 export async function startRoomScreenShare(): Promise<void> {
     if (!canRoomScreenShare()) {
-        reportRoomMediaControlError('Screen sharing is unavailable in this browser.')
+        reportRoomMediaControlError('Trình duyệt này không hỗ trợ chia sẻ màn hình.')
         return
     }
 
@@ -62,7 +62,7 @@ export async function startRoomScreenShare(): Promise<void> {
     const { members, selfId, isScreenSharing } = useRoomStore.getState()
     const existingSharer = getActiveSharer(members, selfId, isScreenSharing)
     if (existingSharer !== null && existingSharer !== selfId) {
-        reportRoomMediaControlError('Someone else is already sharing their screen.')
+        reportRoomMediaControlError('Đã có người khác đang chia sẻ màn hình.')
         return
     }
 
@@ -70,7 +70,7 @@ export async function startRoomScreenShare(): Promise<void> {
     const stream = localStream
     const cameraTrack = stream ? getCurrentTrack(stream, 'video') : null
     if (!activeMesh || !stream || !cameraTrack) {
-        reportRoomMediaControlError('Screen sharing is unavailable — call not connected.')
+        reportRoomMediaControlError('Không thể chia sẻ màn hình — cuộc gọi chưa kết nối.')
         return
     }
 
@@ -82,24 +82,24 @@ export async function startRoomScreenShare(): Promise<void> {
         if (err instanceof Error) {
             if (err.name === 'NotAllowedError') {
                 reportRoomMediaControlError(
-                    'Screen sharing was not allowed. Try Share screen again and choose a window or screen.'
+                    'Bạn chưa cho phép chia sẻ màn hình. Hãy bấm Chia sẻ màn hình lại và chọn một cửa sổ hoặc màn hình.'
                 )
             } else if (err.name === 'NotReadableError' || err.name === 'AbortError') {
                 reportRoomMediaControlError(
-                    'Could not start screen sharing. Try another window or screen.'
+                    'Không thể bắt đầu chia sẻ màn hình. Hãy thử một cửa sổ hoặc màn hình khác.'
                 )
             } else {
-                reportRoomMediaControlError('Screen sharing failed.')
+                reportRoomMediaControlError('Chia sẻ màn hình thất bại.')
             }
         } else {
-            reportRoomMediaControlError('Screen sharing failed.')
+            reportRoomMediaControlError('Chia sẻ màn hình thất bại.')
         }
         return
     }
 
     const screenTrack = displayStream.getVideoTracks()[0]
     if (!screenTrack) {
-        reportRoomMediaControlError('Screen sharing failed.')
+        reportRoomMediaControlError('Chia sẻ màn hình thất bại.')
         return
     }
 
@@ -121,7 +121,7 @@ export async function startRoomScreenShare(): Promise<void> {
     } catch {
         stopTrack(screenTrack)
         roomCamOffBeforeShare = null
-        reportRoomMediaControlError('Screen sharing failed.')
+        reportRoomMediaControlError('Chia sẻ màn hình thất bại.')
     }
 }
 
@@ -158,7 +158,7 @@ export async function stopRoomScreenShare(): Promise<void> {
         // Task 2: relay restored media state to all remote participants
         sendRoomMediaState()
     } catch {
-        reportRoomMediaControlError('Could not restore camera after screen share stopped.')
+        reportRoomMediaControlError('Không thể khôi phục camera sau khi dừng chia sẻ màn hình.')
     } finally {
         isRestoringRoomCamera = false
     }
@@ -191,16 +191,16 @@ export async function switchRoomCamera(deviceId: string): Promise<void> {
         stopTrack(newTrack)
         if (err instanceof Error) {
             if (err.name === 'OverconstrainedError') {
-                reportRoomMediaControlError('Selected device is unavailable. Your current device is still active.')
+                reportRoomMediaControlError('Thiết bị bạn chọn hiện không khả dụng. Thiết bị hiện tại vẫn đang hoạt động.')
             } else if (err.name === 'NotReadableError') {
-                reportRoomMediaControlError('That device is busy. Your current device is still active.')
+                reportRoomMediaControlError('Thiết bị đó đang bận. Thiết bị hiện tại vẫn đang hoạt động.')
             } else if (err.name === 'NotAllowedError') {
-                reportRoomMediaControlError('Permission denied for the selected device.')
+                reportRoomMediaControlError('Quyền truy cập thiết bị bạn chọn đã bị từ chối.')
             } else {
-                reportRoomMediaControlError('Could not switch camera. Your current device is still active.')
+                reportRoomMediaControlError('Không thể chuyển camera. Camera hiện tại vẫn đang hoạt động.')
             }
         } else {
-            reportRoomMediaControlError('Could not switch camera. Your current device is still active.')
+            reportRoomMediaControlError('Không thể chuyển camera. Camera hiện tại vẫn đang hoạt động.')
         }
     }
 }
@@ -226,16 +226,16 @@ export async function switchRoomMicrophone(deviceId: string): Promise<void> {
         stopTrack(newTrack)
         if (err instanceof Error) {
             if (err.name === 'OverconstrainedError') {
-                reportRoomMediaControlError('Selected device is unavailable. Your current device is still active.')
+                reportRoomMediaControlError('Thiết bị bạn chọn hiện không khả dụng. Thiết bị hiện tại vẫn đang hoạt động.')
             } else if (err.name === 'NotReadableError') {
-                reportRoomMediaControlError('That device is busy. Your current device is still active.')
+                reportRoomMediaControlError('Thiết bị đó đang bận. Thiết bị hiện tại vẫn đang hoạt động.')
             } else if (err.name === 'NotAllowedError') {
-                reportRoomMediaControlError('Permission denied for the selected device.')
+                reportRoomMediaControlError('Quyền truy cập thiết bị bạn chọn đã bị từ chối.')
             } else {
-                reportRoomMediaControlError('Could not switch microphone. Your current device is still active.')
+                reportRoomMediaControlError('Không thể chuyển micrô. Micrô hiện tại vẫn đang hoạt động.')
             }
         } else {
-            reportRoomMediaControlError('Could not switch microphone. Your current device is still active.')
+            reportRoomMediaControlError('Không thể chuyển micrô. Micrô hiện tại vẫn đang hoạt động.')
         }
     }
 }
@@ -307,7 +307,9 @@ async function ensureLocalMedia(): Promise<boolean> {
         return true
     } catch (e) {
         const type = e instanceof MediaAcquisitionError ? e.type : 'unknown'
-        useToastStore.getState().show(`Không mở được camera/mic (${type})`, 'warning')
+        // Bugfix (cancel-call-permission-denied): dùng chung copy tiếng Việt với
+        // MediaErrorNotice (mediaErrorToastMessage) thay vì lộ raw type key ra toast.
+        useToastStore.getState().show(mediaErrorToastMessage(type), 'warning')
         return false
     }
 }
@@ -339,7 +341,19 @@ function createMesh(roomId: string, members: string[], canInitiateInitialMembers
 
 async function doCreateMesh(roomId: string): Promise<void> {
     const selfId = useAuthStore.getState().user?.username
-    if (!selfId || !(await ensureLocalMedia()) || !localStream) return
+    if (!selfId) return
+    if (!(await ensureLocalMedia()) || !localStream) {
+        // Bugfix (cancel-call-permission-denied): trước đây return trần ở đây — server ĐÃ
+        // gửi 'room-joined' (room/membership đã tồn tại phía server) nhưng initRoom() (chỗ
+        // DUY NHẤT clear incomingInvite/outgoingInvitees) không bao giờ chạy, nên
+        // GroupInviteModal / OutgoingGroupInviteCard (App.tsx) treo vĩnh viễn, và server
+        // không hề biết client này đã rớt khỏi phòng. Dùng đúng `roomId` tham số (không
+        // phải store.roomId — nó vẫn null vì initRoom chưa chạy) để gửi leave-room, rồi tái
+        // dùng teardownRoom() (giống hệt leaveRoom()) để dọn sạch mọi state đang treo.
+        sendSignal({ type: 'leave-room', roomId })
+        teardownRoom()
+        return
+    }
 
     mesh?.close()
     const { iceServers, iceTransportPolicy } = await fetchIceConfig(forceRelayEnabled())
@@ -489,3 +503,12 @@ function handleRoomSignal(msg: RoomServerSignal | CallServerSignal): void {
 }
 
 setRoomSignalHandler(handleRoomSignal)
+
+// Bugfix (i18n sweep): recordingError trước đây được set khi MediaRecorder.onerror
+// bắn nhưng chưa từng được hiển thị ở đâu — hiện toast rồi tự clear ngay.
+useRoomStore.subscribe((state, prevState) => {
+    if (state.recordingError && state.recordingError !== prevState.recordingError) {
+        useToastStore.getState().show(state.recordingError, 'warning')
+        useRoomStore.getState().setRecordingError(null)
+    }
+})

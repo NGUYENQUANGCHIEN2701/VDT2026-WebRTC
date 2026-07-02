@@ -283,7 +283,7 @@ export class RecordingController {
             }
             this.closeAudioContext()
             this.stopCanvasTracks()
-            this.onError?.('Recording stopped due to an error.')
+            this.onError?.('Đã dừng ghi hình do gặp lỗi.')
         }
 
         this._isRecording = true
@@ -370,7 +370,15 @@ export class RecordingController {
             const sharer = this.getActiveSharer?.() ?? null
             const sharing = sharer !== null
             if (sharing) {
-                const layout = computePresentationLayout(this.remoteVideos.length, WIDTH, HEIGHT)
+                // Bugfix (participant-bar-screen-share): a sharing remote peer's video
+                // track is REPLACED in place (single-track architecture, no separate
+                // camera track survives alongside the screen track), so their remoteVideos
+                // entry now carries the same screen content already drawn into main/speaker.
+                // Excluding them here keeps the recording's thumbnail strip in parity with
+                // the on-screen GroupCallPage.tsx thumbnailMembers filtering (established
+                // live/recording layout-parity invariant from quick-task 260701-tkz).
+                const thumbnailVideos = this.remoteVideos.filter((r) => r.label !== sharer)
+                const layout = computePresentationLayout(thumbnailVideos.length, WIDTH, HEIGHT)
                 // Draw whichever participant (local or a specific remote) is the
                 // actual current sharer — not unconditionally the local stream.
                 const sharerVideo = selectSharerVideo(sharer, this.localVideo, this.remoteVideos)
@@ -380,13 +388,10 @@ export class RecordingController {
                 this.drawVideoOrPlaceholder(ctx, sharerVideo, layout.main.x, layout.main.y, layout.main.width, layout.main.height, sharerLabel)
                 this.drawVideoOrPlaceholder(ctx, sharerVideo, layout.speaker.x, layout.speaker.y, layout.speaker.width, layout.speaker.height, sharerLabel)
 
-                // Thumbnail strip still includes the sharer's own thumbnail if they
-                // are a remote participant (matches Meet/Zoom showing the presenter's
-                // camera thumbnail in the strip) — do not filter remoteVideos.
-                const thumbCount = Math.min(this.remoteVideos.length, layout.thumbnails.length)
+                const thumbCount = Math.min(thumbnailVideos.length, layout.thumbnails.length)
                 for (let i = 0; i < thumbCount; i++) {
                     const rect = layout.thumbnails[i]
-                    const remote = this.remoteVideos[i]
+                    const remote = thumbnailVideos[i]
                     this.drawVideoOrPlaceholder(ctx, remote.video, rect.x, rect.y, rect.width, rect.height, remote.label)
                 }
             } else {
