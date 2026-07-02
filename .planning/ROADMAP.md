@@ -22,6 +22,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 7: Group Mesh Calls** - Room-based P2P mesh calls up to 4 people with server-enforced cap and bitrate management *(planned; ready to execute)*
 - [x] **Phase 8: Screen Share, Recording & Device Control** - Screen sharing, client-side 1-1 recording, camera/mic/speaker selection mid-call
 - [ ] **Phase 9: Monitoring, CI/CD & Full Delivery** - Prometheus + Grafana per-instance metrics, Playwright E2E call test in CI, one-command full-stack startup
+- [ ] **Phase 10: Email Verification & Real Password-Reset Delivery** - OTP-gated registration (block login until email verified), real SMTP email sending (Gmail App Password) replacing the PASSWORD_RESET_EXPOSE_TOKEN demo hack for forgot-password
 
 ## Phase Details
 
@@ -337,7 +338,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -350,6 +351,26 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Group Mesh Calls | 5/5 | ✅ Complete | 2026-06-30 |
 | 8. Screen Share, Recording & Device Control | 5/5 | ✅ Complete | 2026-07-01 |
 | 9. Monitoring, CI/CD & Full Delivery | 4/5 | In Progress|  |
+| 10. Email Verification & Real Password-Reset Delivery | 0/TBD | Not started |  |
+
+### Phase 10: Email Verification & Real Password-Reset Delivery
+
+**Goal:** New accounts must verify their email via a 6-digit OTP before they can log in (unverified login attempts get 403 + resend-OTP option); the existing forgot-password flow stops exposing its reset token via API response (`PASSWORD_RESET_EXPOSE_TOKEN` demo hack) and instead delivers the real reset link by email. Both flows share one new backend email-sending capability (Spring Mail + SMTP via Gmail App Password, configured through `.env`).
+**Requirements**: TBD (see scope below — /gsd-plan-phase will formalize as AUTH-06+ requirements)
+**Depends on:** Phase 1 (auth/register/login), existing forgot-password flow (Phase 1)
+**Plans:** 0 plans
+
+**Scope (captured from user request, decisions confirmed via AskUserQuestion):**
+1. Registration requires OTP (6-digit code, emailed) before login is allowed — unverified accounts get 403 on login with a resend-OTP option.
+2. Forgot-password flow gets wired to send a real email with the reset link instead of the current `PASSWORD_RESET_EXPOSE_TOKEN` demo hack.
+3. New backend email-sending service: Spring Mail + SMTP via Gmail App Password, configured through `.env` (`EMAIL_USERNAME`/`EMAIL_APP_PASSWORD`).
+4. New OTP entity/table + Flyway migration; OTP generation/expiry/resend/rate-limit logic.
+5. New frontend verify-email page (enter OTP) wired into the registration flow, plus resend-OTP UX.
+6. Forgot-password frontend flow no longer needs to display the token directly since it now arrives by real email.
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 10 to break down)
 
 ---
 *Roadmap created: 2026-06-11*
