@@ -14,6 +14,8 @@ import com.vdt.webrtc.user.User;
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
     Optional<PasswordResetToken> findByTokenHashAndUsedFalse(String tokenHash);
 
+    Optional<PasswordResetToken> findTopByUserAndUsedFalseOrderByCreatedAtDesc(User user);
+
     @Modifying
     @Query("update PasswordResetToken t set t.used = true where t.user = :user and t.used = false")
     int markAllUnusedByUserAsUsed(@Param("user") User user);

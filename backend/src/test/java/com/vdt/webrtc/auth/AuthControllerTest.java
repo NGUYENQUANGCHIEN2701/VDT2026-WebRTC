@@ -172,6 +172,45 @@ class AuthControllerTest {
                 .andExpect(status().isOk());
     }
     @Test
+    void forgot_password_within_cooldown_doesNotIssueSecondToken() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                .contentType("application/json")
+                .content("""
+                        {
+                          "username": "cooldown_user",
+                          "password": "Password123",
+                          "confirmPassword": "Password123",
+                          "email": "cooldown_user@test.com"
+                        }
+                        """))
+                .andExpect(status().isCreated());
+        markEmailVerified("cooldown_user@test.com");
+
+        MvcResult first = mockMvc.perform(post("/api/auth/forgot-password")
+                .contentType("application/json")
+                .content("{\"email\":\"cooldown_user@test.com\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String firstMessage = objectMapper.readTree(first.getResponse().getContentAsString())
+                .get("message").asString();
+        String firstToken = objectMapper.readTree(first.getResponse().getContentAsString())
+                .get("resetToken").asString();
+        assertThat(firstToken).isNotBlank();
+
+        MvcResult second = mockMvc.perform(post("/api/auth/forgot-password")
+                .contentType("application/json")
+                .content("{\"email\":\"cooldown_user@test.com\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String secondMessage = objectMapper.readTree(second.getResponse().getContentAsString())
+                .get("message").asString();
+        assertThat(secondMessage).isEqualTo(firstMessage);
+        assertThat(second.getResponse().getContentAsString()).contains("\"resetToken\":null");
+    }
+
+    @Test
     void login_before_email_verification_returns_403_with_resend_hint() throws Exception {
         mockMvc.perform(post("/api/auth/register")
                 .contentType("application/json")

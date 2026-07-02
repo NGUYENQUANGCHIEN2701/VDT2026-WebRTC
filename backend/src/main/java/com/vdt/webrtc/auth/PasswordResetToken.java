@@ -42,5 +42,8 @@ public class PasswordResetToken {
     private Instant expiresAt;
 
     @Column(nullable = false)
+    private Instant createdAt;
+
+    @Column(nullable = false)
     private boolean used = false;
 }

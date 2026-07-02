@@ -48,6 +48,7 @@ public class AuthService {
     private final boolean exposePasswordResetToken;
     private final String frontendUrl;
     private static final SecureRandom RANDOM = new SecureRandom();
+    private static final Duration RESET_RESEND_COOLDOWN = Duration.ofSeconds(60);
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
             AuthenticationManager authenticationManager, RefreshTokenRepository refreshTokenRepository,
@@ -156,20 +157,27 @@ public class AuthService {
 
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            passwordResetTokenRepository.markAllUnusedByUserAsUsed(user);
-            rawResetToken = generateRawToken();
-            PasswordResetToken token = PasswordResetToken.builder()
-                    .user(user)
-                    .tokenHash(sha256Hex(rawResetToken))
-                    .expiresAt(Instant.now().plus(Duration.ofMinutes(15)))
-                    .build();
-            passwordResetTokenRepository.save(token);
-            String resetLink = UriComponentsBuilder.fromUriString(frontendUrl)
-                    .path("/reset-password")
-                    .queryParam("token", rawResetToken)
-                    .build()
-                    .toUriString();
-            emailDeliveryService.sendPasswordResetLink(user.getEmail(), resetLink);
+            boolean coolingDown = passwordResetTokenRepository
+                    .findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
+                    .filter(t -> t.getCreatedAt().plus(RESET_RESEND_COOLDOWN).isAfter(Instant.now()))
+                    .isPresent();
+            if (!coolingDown) {
+                passwordResetTokenRepository.markAllUnusedByUserAsUsed(user);
+                rawResetToken = generateRawToken();
+                PasswordResetToken token = PasswordResetToken.builder()
+                        .user(user)
+                        .tokenHash(sha256Hex(rawResetToken))
+                        .expiresAt(Instant.now().plus(Duration.ofMinutes(15)))
+                        .createdAt(Instant.now())
+                        .build();
+                passwordResetTokenRepository.save(token);
+                String resetLink = UriComponentsBuilder.fromUriString(frontendUrl)
+                        .path("/reset-password")
+                        .queryParam("token", rawResetToken)
+                        .build()
+                        .toUriString();
+                emailDeliveryService.sendPasswordResetLink(user.getEmail(), resetLink);
+            }
         }
 
         String message = "If this email exists, a password reset link has been created.";
