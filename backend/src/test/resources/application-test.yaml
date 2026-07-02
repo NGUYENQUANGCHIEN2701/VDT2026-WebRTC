@@ -1,0 +1,7 @@
+# Test profile overrides — loaded when spring.profiles.active=test (set by TestcontainersConfiguration).
+# Rate limits are set to a very high number so the full test suite can call register/resend-otp/forgot-password
+# freely without hitting the fixed-window Redis counter in the same Testcontainers run.
+app:
+  rate-limit:
+    otp-max-requests: 10000
+    otp-window-seconds: 1
