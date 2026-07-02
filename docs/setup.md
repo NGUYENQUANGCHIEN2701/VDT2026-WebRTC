@@ -25,6 +25,7 @@ Sửa `.env` (đặc biệt `POSTGRES_PASSWORD` và `JWT_SECRET` — secret nên
 | `JWT_SECRET` | Secret ký JWT (HS512) |
 | `JWT_ACCESS_TTL_MS` | TTL access token (mặc định 1h dev) |
 | `COOKIE_SECURE` | `false` ở dev (HTTP), đặt `true` ở prod (HTTPS) |
+| `GRAFANA_ADMIN_PASSWORD` | Mật khẩu tài khoản `admin` của Grafana (mặc định local là `admin` nếu để trống) |
 
 ## Cách 1 — Chạy full-stack bằng Docker Compose (nhanh nhất)
 
@@ -33,11 +34,25 @@ docker compose up --build
 ```
 Khởi động:
 - **postgres** (`postgres:17-alpine`) — host port `5433` → container `5432`
-- **backend** (Spring Boot) — http://localhost:8080
+- **backend-1** / **backend-2** (Spring Boot) — 2 instance signaling nội bộ sau nginx
+- **nginx** — phục vụ frontend đã build tại http://localhost:8080, đồng thời proxy `/api` và `/ws`
+- **redis** — presence, call state, pub/sub routing cross-instance
+- **rabbitmq** — pipeline ghi lịch sử cuộc gọi bất đồng bộ
+- **coturn** — STUN/TURN cho NAT traversal
+- **prometheus** — http://localhost:9090
+- **grafana** — http://localhost:3000
 
-Flyway tự chạy migration (`V1__create_tables`, `V2__seed_admin`) khi backend khởi động.
+Flyway tự chạy migration (`V1__create_tables`, `V2__seed_admin`, `V3__call_history`) khi backend khởi động.
 
-> Frontend chưa nằm trong Compose (sẽ thêm ở phase sau) — chạy riêng theo mục dưới.
+Sau khi các service healthy, mở http://localhost:8080 để dùng ứng dụng.
+
+### Monitoring local
+
+| Công cụ | URL | Ghi chú |
+|--------|-----|--------|
+| Prometheus | http://localhost:9090 | Vào `/targets` để kiểm tra job `vdt-backend` scrape `backend-1:8080` và `backend-2:8080` |
+| Grafana | http://localhost:3000 | Đăng nhập `admin` / `GRAFANA_ADMIN_PASSWORD` (hoặc `admin` nếu để trống local) |
+| Dashboard | `VDT WebRTC Overview` | Được provision tự động; không cần tạo datasource/dashboard thủ công |
 
 ## Cách 2 — Dev hot-reload
 
@@ -149,4 +164,3 @@ coturn xác thực bằng credential tạm từ `GET /api/turn-credentials` (HMA
 
 1. Đặt cuộc gọi bình thường → mở debug panel (nút ⚙) → ICE thường là `host`/`srflx` (cùng LAN).
 2. Mở app với `?relay=1` (vd `https://<IP>:5173/?relay=1`) → đặt cuộc gọi mới → ICE phải là **`relay`** = media đi qua coturn.
-
