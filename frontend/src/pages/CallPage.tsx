@@ -266,6 +266,7 @@ export default function CallPage() {
           ref={remoteRef}
           autoPlay
           playsInline
+          data-testid="remote-video"
           aria-label={`Camera của ${remoteUserId ?? ""}`}
           className={[
             "call-video",
@@ -290,6 +291,7 @@ export default function CallPage() {
           autoPlay
           muted
           playsInline
+          data-testid="local-video"
           aria-label="Camera của bạn"
           className={activeSharer === "local" ? "self-video self-video--presenting" : "self-video"}
           // Đang share màn hình thì KHÔNG mirror — scaleX(-1) sẽ lật ngược chữ trên màn hình chia sẻ
