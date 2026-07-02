@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 09
 current_phase_name: monitoring-ci-cd-full-delivery
 status: executing
-stopped_at: Completed 09-04-PLAN.md (Playwright E2E 1-1 call + CI e2e job)
-last_updated: "2026-07-02T04:37:24.829Z"
+stopped_at: Paused at 09-05 Task 2b checkpoint (docker compose + Grafana + CI manual verification) — Tasks 1-2 complete and committed, awaiting human approval
+last_updated: "2026-07-02T08:17:18.500Z"
 last_activity: 2026-07-02
-last_activity_desc: "Completed 09-04-PLAN.md (Playwright E2E 1-1 call + CI e2e job)"
+last_activity_desc: Completed 09-04-PLAN.md (Playwright E2E 1-1 call + CI e2e job)
 progress:
   total_phases: 9
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 42
-  completed_plans: 15
-  percent: 22
+  completed_plans: 16
+  percent: 33
 ---
 
 # Project State
@@ -87,6 +87,9 @@ Recent decisions affecting current work:
 - [Phase 09]: CI docker-build job builds frontend image from repo-root context (-f frontend/Dockerfile .) since the Dockerfile COPYs nginx/conf.d/vdt.conf from outside frontend/
 - [Phase ?]: Phase 09: E2E CI job seeds two fresh users per run via /api/auth/register HTTP calls (no pre-seeded fixtures) to avoid username collisions across repeated CI runs
 - [Phase ?]: Phase 09: e2e CI job has no needs: dependency on backend/frontend/docker-build, runs fully independently for fast feedback
+- [Phase ?]: Phase 09: 09-05 Task 1 fixed all 22 pre-existing frontend lint errors (react-hooks/purity, set-state-in-effect, refs, unused-vars) as in-scope work for the full-suite CI gate
+- [Phase ?]: Phase 09: vitest.config.ts excludes e2e/** so Vitest never picks up the Playwright spec added in Plan 09-04
+- [Phase ?]: Phase 09: 09-05 Playwright E2E run against a freshly rebuilt docker compose up --build stack (backend-1/backend-2/nginx) instead of bare local backend+vite-preview
 
 ### Pending Todos
 
@@ -121,6 +124,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-02T04:37:24.822Z
-Stopped at: Completed 09-04-PLAN.md (Playwright E2E 1-1 call + CI e2e job)
-Resume file: None
+Last session: 2026-07-02T08:17:18.492Z
+Stopped at: Paused at 09-05 Task 2b checkpoint (docker compose + Grafana + CI manual verification) — Tasks 1-2 complete and committed, awaiting human approval
+Resume file: .planning/phases/09-monitoring-ci-cd-full-delivery/09-05-PLAN.md
