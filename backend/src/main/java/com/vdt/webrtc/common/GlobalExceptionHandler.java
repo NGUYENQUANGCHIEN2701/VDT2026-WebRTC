@@ -12,6 +12,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.vdt.webrtc.auth.EmailNotVerifiedException;
+
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
@@ -66,6 +68,16 @@ public class GlobalExceptionHandler {
                         LockedException ex, HttpServletRequest request) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                                 .body(build(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa", null, request));
+        }
+
+        @ExceptionHandler(EmailNotVerifiedException.class)
+        public ResponseEntity<ApiError> handleEmailNotVerified(
+                        EmailNotVerifiedException ex, HttpServletRequest request) {
+                Map<String, String> details = new HashMap<>();
+                details.put("reason", "EMAIL_NOT_VERIFIED");
+                details.put("email", ex.getEmail());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(build(HttpStatus.FORBIDDEN, "Email is not verified", details, request));
         }
 
         @ExceptionHandler(Exception.class)

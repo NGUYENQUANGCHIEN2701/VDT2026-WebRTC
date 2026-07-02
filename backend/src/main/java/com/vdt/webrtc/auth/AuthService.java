@@ -17,6 +17,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.vdt.webrtc.auth.dto.ForgotPasswordResponse;
 import com.vdt.webrtc.auth.dto.GoogleLoginRequest;
@@ -42,13 +43,20 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final GoogleTokenVerifier googleTokenVerifier;
+    private final EmailDeliveryService emailDeliveryService;
+    private final EmailVerificationService emailVerificationService;
     private final boolean exposePasswordResetToken;
+    private final String frontendUrl;
     private static final SecureRandom RANDOM = new SecureRandom();
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
             AuthenticationManager authenticationManager, RefreshTokenRepository refreshTokenRepository,
-            PasswordResetTokenRepository passwordResetTokenRepository, GoogleTokenVerifier googleTokenVerifier,
-            @Value("${app.password-reset.expose-token:false}") boolean exposePasswordResetToken) {
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            GoogleTokenVerifier googleTokenVerifier,
+            EmailDeliveryService emailDeliveryService,
+            EmailVerificationService emailVerificationService,
+            @Value("${app.password-reset.expose-token:false}") boolean exposePasswordResetToken,
+            @Value("${app.frontend-url:http://localhost:5173}") String frontendUrl) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -56,9 +64,13 @@ public class AuthService {
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.googleTokenVerifier = googleTokenVerifier;
+        this.emailDeliveryService = emailDeliveryService;
+        this.emailVerificationService = emailVerificationService;
         this.exposePasswordResetToken = exposePasswordResetToken;
+        this.frontendUrl = frontendUrl;
     }
 
+    @Transactional
     public RegisterResponse register(RegisterRequest request) {
         String email = request.email();
         String username = request.username();
@@ -68,13 +80,18 @@ public class AuthService {
         }
         String passwordHash = passwordEncoder.encode(request.password());
         Role role = Role.USER;
+        boolean emailVerified = emailVerificationService.shouldAutoVerify(email);
         User user = User.builder()
                 .username(username)
                 .email(email)
                 .passwordHash(passwordHash)
                 .role(role)
+                .emailVerified(emailVerified)
                 .build();
         userRepository.save(user);
+        if (!emailVerified) {
+            emailVerificationService.issueCode(user, false);
+        }
         return new RegisterResponse(username, email, role.name());
     }
 
@@ -87,6 +104,10 @@ public class AuthService {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BadCredentialsException("Invalid username or password"));
+
+        if (!user.isEmailVerified()) {
+            throw new EmailNotVerifiedException(user.getEmail());
+        }
 
         return issueLoginResult(user);
     }
@@ -143,6 +164,12 @@ public class AuthService {
                     .expiresAt(Instant.now().plus(Duration.ofMinutes(15)))
                     .build();
             passwordResetTokenRepository.save(token);
+            String resetLink = UriComponentsBuilder.fromUriString(frontendUrl)
+                    .path("/reset-password")
+                    .queryParam("token", rawResetToken)
+                    .build()
+                    .toUriString();
+            emailDeliveryService.sendPasswordResetLink(user.getEmail(), resetLink);
         }
 
         String message = "If this email exists, a password reset link has been created.";
@@ -202,8 +229,19 @@ public class AuthService {
                 .googleSub(identity.subject())
                 .passwordHash(passwordEncoder.encode(generateRawToken()))
                 .role(Role.USER)
+                .emailVerified(true)
                 .build();
         return userRepository.save(user);
+    }
+
+    @Transactional
+    public void verifyEmail(String email, String otp) {
+        emailVerificationService.verify(email, otp);
+    }
+
+    @Transactional
+    public void resendEmailVerificationCode(String email) {
+        emailVerificationService.resend(email);
     }
 
     private String uniqueUsernameFromEmail(String email) {
@@ -263,4 +301,5 @@ public class AuthService {
         RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
+
 }

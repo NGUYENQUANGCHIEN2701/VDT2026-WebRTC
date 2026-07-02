@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import com.vdt.webrtc.TestcontainersConfiguration;
+import com.vdt.webrtc.user.UserRepository;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -31,6 +32,8 @@ class CallHistoryApiTest {
     ObjectMapper objectMapper;
     @Autowired
     CallHistoryRepository repo;
+    @Autowired
+    UserRepository userRepository;
 
     @BeforeEach
     void clean() {
@@ -45,6 +48,10 @@ class CallHistoryApiTest {
                 .content("{\"username\":\"" + username + "\",\"password\":\"Password123\","
                         + "\"confirmPassword\":\"Password123\","
                         + "\"email\":\"" + username + "@test.com\"}"));
+        userRepository.findByUsername(username).ifPresent(user -> {
+            user.setEmailVerified(true);
+            userRepository.save(user);
+        });
         MvcResult res = mockMvc.perform(post("/api/auth/login")
                 .contentType("application/json")
                 .content("{\"username\":\"" + username + "\",\"password\":\"Password123\"}"))

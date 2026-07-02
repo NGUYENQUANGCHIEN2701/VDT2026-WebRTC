@@ -44,7 +44,12 @@ public class User {
     @Column(unique = true)
     private String googleSub;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean locked = false;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean emailVerified = true;
 
 }

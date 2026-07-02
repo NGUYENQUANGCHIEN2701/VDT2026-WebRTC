@@ -46,7 +46,7 @@ export default function RegisterPage() {
         password,
         confirmPassword,
       })
-      navigate("/login")
+      navigate(`/verify-email?email=${encodeURIComponent(normalizedEmail)}`)
     } catch (err) {
       if (axios.isAxiosError(err) && err.response) {
         const data = err.response.data

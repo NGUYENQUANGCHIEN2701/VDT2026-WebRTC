@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import tools.jackson.databind.JsonNode; // chỉ ĐỌC response trong test
 import tools.jackson.databind.ObjectMapper; // Jackson 3 (Boot 4) — inject từ context
 import com.vdt.webrtc.TestcontainersConfiguration;
+import com.vdt.webrtc.user.UserRepository;
 
 /**
  * Khóa contract credential TURN ephemeral (RESEARCH Pattern 5):
@@ -42,6 +43,9 @@ class TurnControllerTest {
     @Autowired
     ObjectMapper objectMapper; // Jackson 3 — KHÔNG new com.fasterxml
 
+    @Autowired
+    UserRepository userRepository;
+
     private String loginAndGetToken(String username) throws Exception {
         mockMvc.perform(post("/api/auth/register")
                 .contentType("application/json")
@@ -49,6 +53,10 @@ class TurnControllerTest {
                         + "\"confirmPassword\":\"Password123\","
                         + "\"email\":\"" + username + "@test.com\"}"))
                 .andExpect(status().isCreated());
+        userRepository.findByUsername(username).ifPresent(user -> {
+            user.setEmailVerified(true);
+            userRepository.save(user);
+        });
 
         MvcResult res = mockMvc.perform(post("/api/auth/login")
                 .contentType("application/json")

@@ -26,6 +26,17 @@ spring:
           multiplier: 2.0
           max-retries: 3
           max-interval: 10s
+  mail:
+    host: ${EMAIL_HOST:smtp.gmail.com}
+    port: ${EMAIL_PORT:587}
+    username: ${EMAIL_USERNAME:}
+    password: ${EMAIL_APP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   jpa:
     hibernate:
       ddl-auto: validate
@@ -48,10 +59,13 @@ jwt:
   secret: ${JWT_SECRET:dev-only-secret-not-for-prod-change-me-min-32-chars-12345}
   access-token-ttl-ms: ${JWT_ACCESS_TTL_MS:3600000} # 1h for dev convenience; tighten (e.g. 900000) in prod
 app:
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
   cookie:
     secure: ${COOKIE_SECURE:false}
   password-reset:
     expose-token: ${PASSWORD_RESET_EXPOSE_TOKEN:false}
+  email-verification:
+    auto-verify-domains: ${EMAIL_AUTO_VERIFY_DOMAINS:}
   instance-id: ${INSTANCE_ID:${HOSTNAME:unknown}}
   # WS handshake origin whitelist — dùng CHUNG env ALLOWED_ORIGINS với CORS REST (CorsConfig).
   # Default gồm cả 8080 (nginx serve SPA cùng origin) lẫn 5173 (Vite dev).

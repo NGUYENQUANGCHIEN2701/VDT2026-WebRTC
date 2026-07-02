@@ -18,9 +18,12 @@ import com.vdt.webrtc.auth.dto.ForgotPasswordRequest;
 import com.vdt.webrtc.auth.dto.ForgotPasswordResponse;
 import com.vdt.webrtc.auth.dto.GoogleLoginRequest;
 import com.vdt.webrtc.auth.dto.LoginRequest;
+import com.vdt.webrtc.auth.dto.MessageResponse;
 import com.vdt.webrtc.auth.dto.RegisterRequest;
 import com.vdt.webrtc.auth.dto.RegisterResponse;
+import com.vdt.webrtc.auth.dto.ResendEmailOtpRequest;
 import com.vdt.webrtc.auth.dto.ResetPasswordRequest;
+import com.vdt.webrtc.auth.dto.VerifyEmailRequest;
 
 import jakarta.validation.Valid;
 
@@ -45,6 +48,18 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResult result = authService.login(request);
         return authResponse(result);
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<MessageResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        authService.verifyEmail(request.email(), request.otp());
+        return ResponseEntity.ok(new MessageResponse("Email verified successfully"));
+    }
+
+    @PostMapping("/resend-verification-otp")
+    public ResponseEntity<MessageResponse> resendVerificationOtp(@Valid @RequestBody ResendEmailOtpRequest request) {
+        authService.resendEmailVerificationCode(request.email());
+        return ResponseEntity.ok(new MessageResponse("If the email needs verification, a code has been sent"));
     }
 
     @PostMapping("/google")

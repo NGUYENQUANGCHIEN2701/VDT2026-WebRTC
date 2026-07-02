@@ -47,6 +47,10 @@ class AdminHistoryApiTest {
     private void register(String u) throws Exception {
         mockMvc.perform(post("/api/auth/register").contentType("application/json")
                 .content("{\"username\":\"" + u + "\",\"password\":\"Password123\",\"confirmPassword\":\"Password123\",\"email\":\"" + u + "@test.com\"}"));
+        userRepository.findByUsername(u).ifPresent(user -> {
+            user.setEmailVerified(true);
+            userRepository.save(user);
+        });
     }
 
     private String login(String u) throws Exception {

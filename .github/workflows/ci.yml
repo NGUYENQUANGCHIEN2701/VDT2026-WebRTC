@@ -105,6 +105,7 @@ jobs:
           RABBITMQ_HOST: localhost
           # CI-only dummy secret — never a reference to a real secret or .env file.
           JWT_SECRET: ci-only-test-secret-min-32-characters-long
+          EMAIL_AUTO_VERIFY_DOMAINS: e2e.test
         run: |
           java -jar target/*.jar &
           npx wait-on http://localhost:8080/actuator/health -t 60000

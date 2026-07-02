@@ -7,14 +7,12 @@ import { useAuthTheme } from "../hooks/useAuthTheme"
 
 type ForgotPasswordResponse = {
   message: string
-  resetToken: string | null
 }
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
-  const [resetToken, setResetToken] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { theme, toggleTheme } = useAuthTheme()
 
@@ -22,7 +20,6 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setError("")
     setMessage("")
-    setResetToken(null)
 
     const normalizedEmail = email.trim().toLowerCase()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
@@ -35,8 +32,7 @@ export default function ForgotPasswordPage() {
       const res = await api.post<ForgotPasswordResponse>("/api/auth/forgot-password", {
         email: normalizedEmail,
       })
-      setMessage("Nếu email tồn tại, hệ thống đã tạo liên kết đặt lại mật khẩu.")
-      setResetToken(res.data.resetToken)
+      setMessage(res.data.message)
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.message ?? "Không thể tạo yêu cầu đặt lại mật khẩu.")
@@ -47,8 +43,6 @@ export default function ForgotPasswordPage() {
       setIsSubmitting(false)
     }
   }
-
-  const resetLink = resetToken ? `/reset-password?token=${encodeURIComponent(resetToken)}` : null
 
   return (
     <main className={`auth-page auth-page--${theme}`}>
@@ -95,12 +89,6 @@ export default function ForgotPasswordPage() {
 
             {error && <p className="auth-error">{error}</p>}
             {message && <p className="auth-success">{message}</p>}
-            {resetLink && (
-              <p className="auth-help">
-                Demo token đã bật. <Link to={resetLink}>Đặt lại mật khẩu ngay</Link>
-              </p>
-            )}
-
             <button className="auth-submit" type="submit" disabled={isSubmitting}>
               <span>{isSubmitting ? "Đang gửi..." : "Tạo liên kết"}</span>
               <ArrowRightCircle size={20} strokeWidth={2} />

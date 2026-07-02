@@ -52,6 +52,12 @@ export default function LoginPage() {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 403) {
+          if (err.response.data?.fieldErrors?.reason === "EMAIL_NOT_VERIFIED") {
+            const email = err.response.data.fieldErrors.email as string | undefined
+            const suffix = email ? `?email=${encodeURIComponent(email)}` : ""
+            navigate(`/verify-email${suffix}`)
+            return
+          }
           setError("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.")
           return
         }

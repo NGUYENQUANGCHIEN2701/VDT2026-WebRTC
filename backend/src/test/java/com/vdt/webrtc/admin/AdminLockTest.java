@@ -36,6 +36,10 @@ class AdminLockTest {
                 .contentType("application/json")
                 .content("{\"username\":\"" + username + "\",\"password\":\"Password123\",\"confirmPassword\":\"Password123\",\"email\":\""
                         + username + "@test.com\"}"));
+        userRepository.findByUsername(username).ifPresent(user -> {
+            user.setEmailVerified(true);
+            userRepository.save(user);
+        });
     }
 
     private String login(String username) throws Exception {

@@ -6,6 +6,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.util.HexFormat;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,6 +20,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import com.vdt.webrtc.TestcontainersConfiguration;
+import com.vdt.webrtc.user.User;
+import com.vdt.webrtc.user.UserRepository;
 
 import jakarta.servlet.http.Cookie;
 import tools.jackson.databind.ObjectMapper;
@@ -28,6 +35,10 @@ class AuthControllerTest {
     MockMvc mockMvc;
     @Autowired
     ObjectMapper objectMapper;
+    @Autowired
+    UserRepository userRepository;
+    @Autowired
+    EmailVerificationTokenRepository emailVerificationTokenRepository;
 
     // Helper (Arrange dùng chung): đăng ký + login 1 user, trả về cookie refreshToken
     private Cookie loginAndGetCookie(String username) throws Exception {
@@ -36,6 +47,7 @@ class AuthControllerTest {
                 .contentType("application/json")
                 .content("{\"username\":\"" + username + "\",\"password\":\"Password123\",\"confirmPassword\":\"Password123\",\"email\":\"" + email + "\"}"))
                 .andExpect(status().isCreated());
+        markEmailVerified(email);
 
         MvcResult res = mockMvc.perform(post("/api/auth/login")
                 .contentType("application/json")
@@ -126,6 +138,7 @@ class AuthControllerTest {
                         }
                         """))
                 .andExpect(status().isCreated());
+        markEmailVerified("reset_user@test.com");
 
         MvcResult forgot = mockMvc.perform(post("/api/auth/forgot-password")
                 .contentType("application/json")
@@ -157,5 +170,72 @@ class AuthControllerTest {
                 .contentType("application/json")
                 .content("{\"username\":\"reset_user\",\"password\":\"NewPassword123\"}"))
                 .andExpect(status().isOk());
+    }
+    @Test
+    void login_before_email_verification_returns_403_with_resend_hint() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                .contentType("application/json")
+                .content("""
+                        {
+                          "username": "unverified_user",
+                          "password": "Password123",
+                          "confirmPassword": "Password123",
+                          "email": "unverified_user@test.com"
+                        }
+                        """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType("application/json")
+                .content("{\"username\":\"unverified_user\",\"password\":\"Password123\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.fieldErrors.reason").value("EMAIL_NOT_VERIFIED"))
+                .andExpect(jsonPath("$.fieldErrors.email").value("unverified_user@test.com"));
+    }
+
+    @Test
+    void verify_email_allows_login() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                .contentType("application/json")
+                .content("""
+                        {
+                          "username": "verify_user",
+                          "password": "Password123",
+                          "confirmPassword": "Password123",
+                          "email": "verify_user@test.com"
+                        }
+                        """))
+                .andExpect(status().isCreated());
+
+        User user = userRepository.findByEmail("verify_user@test.com").orElseThrow();
+        emailVerificationTokenRepository.save(EmailVerificationToken.builder()
+                .user(user)
+                .codeHash(sha256Hex("123456"))
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(600))
+                .used(false)
+                .build());
+
+        mockMvc.perform(post("/api/auth/verify-email")
+                .contentType("application/json")
+                .content("{\"email\":\"verify_user@test.com\",\"otp\":\"123456\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType("application/json")
+                .content("{\"username\":\"verify_user\",\"password\":\"Password123\"}"))
+                .andExpect(status().isOk());
+    }
+
+    private void markEmailVerified(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        user.setEmailVerified(true);
+        userRepository.save(user);
+    }
+
+    private String sha256Hex(String raw) throws Exception {
+        byte[] digest = MessageDigest.getInstance("SHA-256")
+                .digest(raw.getBytes(StandardCharsets.UTF_8));
+        return HexFormat.of().formatHex(digest);
     }
 }
