@@ -1,5 +1,6 @@
 # PROD override (AWS EC2) — chạy kèm file base:
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#   docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Copy .env.prod.example -> .env.prod (điền giá trị thật) trước khi chạy.
 #
 # Base compose giữ nguyên cho local dev (nginx HTTP-only trên 8080, không cert).
 # Override này: đè config nginx bằng bản TLS + mount cert Let's Encrypt + mở 80/443.

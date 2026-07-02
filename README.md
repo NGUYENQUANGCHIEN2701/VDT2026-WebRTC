@@ -445,9 +445,12 @@ VDT2026-WebRTC/
 │   └── conf.d/                     # Load balancer + WebSocket proxy config
 ├── docs/
 │   └── setup.md
-├── docker-compose.yml              # Full stack: 2 backends, nginx, postgres, redis, rabbitmq, coturn
-├── .env.example
-└── .planning/                      # Artifact quy trình: ROADMAP, plan/summary/review từng phase
+├── docker-compose.yml               # Full stack: 2 backends, nginx, postgres, redis, rabbitmq, coturn
+├── docker-compose.prod.yml          # Override PROD (AWS EC2): TLS 443, mount cert Let's Encrypt
+├── .env.local.example               # Template credentials cho local dev (copy -> .env.local)
+├── .env.prod.example                # Template credentials cho production (copy -> .env.prod)
+├── .env.example                      # Superseded bởi 2 file trên — giữ lại để tham khảo
+└── .planning/                       # Artifact quy trình: ROADMAP, plan/summary/review từng phase
 ```
 
 ---
@@ -456,18 +459,24 @@ VDT2026-WebRTC/
 
 **Yêu cầu:** Docker Desktop, Node.js 22.
 
+Từ bản này, credentials được tách riêng theo môi trường: `.env.local` (dev) và `.env.prod`
+(production, AWS EC2) — thay cho file `.env` dùng chung trước đây (`.env.example` vẫn còn
+trong repo để tham khảo nhưng đã superseded bởi 2 template mới).
+
+### Chạy local dev
+
 ```bash
 # 1. Cấu hình credentials
-cp .env.example .env
-# Điền vào .env:
+cp .env.local.example .env.local
+# Điền vào .env.local:
 #   POSTGRES_PASSWORD=<mật khẩu DB>
-#   JWT_SECRET=<chuỗi ngẫu nhiên >= 64 ký tự>
+#   JWT_SECRET=<chuỗi ngẫu nhiên >= 32 ký tự>
 #   TURN_SECRET=<chuỗi ngẫu nhiên>
 #   HOST_IP=<IP máy host, dùng cho coturn external-ip>
 
 # 2. Khởi động toàn bộ stack (9 service: postgres, backend-1, backend-2, nginx+frontend,
 #    redis, rabbitmq, coturn, prometheus, grafana)
-docker compose up --build
+docker compose --env-file .env.local up --build
 
 # 3. (Tùy chọn) Chạy frontend dev server hot-reload thay vì dùng bản build trong nginx
 cd frontend
@@ -486,6 +495,18 @@ npm run dev
 | Redis | localhost:6379 |
 
 **Tài khoản demo:** `admin` / `Admin@123` — đổi trước khi triển khai thật.
+
+### Chạy production
+
+```bash
+# 1. Cấu hình credentials thật (không commit file này)
+cp .env.prod.example .env.prod
+# Điền vào .env.prod: mật khẩu DB, JWT_SECRET, TURN_SECRET mạnh, HOST_IP (IP public EC2), ...
+# PASSWORD_RESET_EXPOSE_TOKEN phải là false (đã đặt sẵn trong template).
+
+# 2. Khởi động stack với override TLS/cert (nginx mở thêm 80/443, mount Let's Encrypt)
+docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
 
 Hướng dẫn chi tiết (HTTPS/WSS, TURN, hai thiết bị): [docs/setup.md](docs/setup.md)
 

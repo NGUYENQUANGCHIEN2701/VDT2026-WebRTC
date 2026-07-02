@@ -1,5 +1,6 @@
-# Full-stack run: `docker compose up --build`
-# Reads credentials from .env (copy from .env.example first).
+# Full-stack run: `docker compose --env-file .env.local up --build`
+# Reads credentials from .env.local (copy from .env.local.example first).
+# .env.example is superseded by .env.local.example (dev) / .env.prod.example (prod) — kept only for reference.
 
 services:
   postgres:

@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+!.env.local.example
+!.env.prod.example
 # Optional gitignored local Spring overrides (if you ever add one)
 application-local.yaml
 application-local.yml
