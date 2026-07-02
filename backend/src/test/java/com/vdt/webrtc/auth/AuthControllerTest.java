@@ -26,7 +26,10 @@ import com.vdt.webrtc.user.UserRepository;
 import jakarta.servlet.http.Cookie;
 import tools.jackson.databind.ObjectMapper;
 
-@SpringBootTest(properties = "app.password-reset.expose-token=true")
+@SpringBootTest(properties = {
+        "app.password-reset.expose-token=true",
+        "app.rate-limit.otp-max-requests=1000"
+})
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 class AuthControllerTest {

@@ -25,21 +25,27 @@ import com.vdt.webrtc.auth.dto.ResendEmailOtpRequest;
 import com.vdt.webrtc.auth.dto.ResetPasswordRequest;
 import com.vdt.webrtc.auth.dto.VerifyEmailRequest;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService authService;
+    private final RateLimitService rateLimitService;
     private final boolean cookieSecure;
 
-    public AuthController(AuthService authService, @Value("${app.cookie.secure}") boolean cookieSecure) {
+    public AuthController(AuthService authService, RateLimitService rateLimitService,
+            @Value("${app.cookie.secure}") boolean cookieSecure) {
         this.authService = authService;
+        this.rateLimitService = rateLimitService;
         this.cookieSecure = cookieSecure;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request,
+            HttpServletRequest httpRequest) {
+        rateLimitService.enforce("register", resolveClientIp(httpRequest));
         RegisterResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -57,7 +63,9 @@ public class AuthController {
     }
 
     @PostMapping("/resend-verification-otp")
-    public ResponseEntity<MessageResponse> resendVerificationOtp(@Valid @RequestBody ResendEmailOtpRequest request) {
+    public ResponseEntity<MessageResponse> resendVerificationOtp(@Valid @RequestBody ResendEmailOtpRequest request,
+            HttpServletRequest httpRequest) {
+        rateLimitService.enforce("resend-verification-otp", resolveClientIp(httpRequest));
         authService.resendEmailVerificationCode(request.email());
         return ResponseEntity.ok(new MessageResponse("If the email needs verification, a code has been sent"));
     }
@@ -69,7 +77,9 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<ForgotPasswordResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<ForgotPasswordResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
+            HttpServletRequest httpRequest) {
+        rateLimitService.enforce("forgot-password", resolveClientIp(httpRequest));
         return ResponseEntity.ok(authService.requestPasswordReset(request.email()));
     }
 
@@ -110,6 +120,16 @@ public class AuthController {
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .build();
+    }
+
+    // nginx là entry point external duy nhất (backend-1/backend-2 không expose host port),
+    // và nginx tự set header này qua $proxy_add_x_forwarded_for — nên header đáng tin cậy ở đây.
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",", 2)[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     private ResponseCookie buildRefreshCookie(String rawToken, Duration maxAge) {

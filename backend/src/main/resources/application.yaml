@@ -66,6 +66,9 @@ app:
     expose-token: ${PASSWORD_RESET_EXPOSE_TOKEN:false}
   email-verification:
     auto-verify-domains: ${EMAIL_AUTO_VERIFY_DOMAINS:}
+  rate-limit:
+    otp-window-seconds: ${RATE_LIMIT_OTP_WINDOW_SECONDS:900}
+    otp-max-requests: ${RATE_LIMIT_OTP_MAX_REQUESTS:5}
   instance-id: ${INSTANCE_ID:${HOSTNAME:unknown}}
   # WS handshake origin whitelist — dùng CHUNG env ALLOWED_ORIGINS với CORS REST (CorsConfig).
   # Default gồm cả 8080 (nginx serve SPA cùng origin) lẫn 5173 (Vite dev).
