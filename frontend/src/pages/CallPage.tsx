@@ -45,6 +45,10 @@ export default function CallPage() {
   const [stats, setStats] = useState<StatsSample | null>(null)
   const remoteRef = useRef<HTMLVideoElement>(null)
   const selfRef = useRef<HTMLVideoElement>(null)
+  // Số track đã gắn vào <video> tương ứng lần gần nhất — dùng để chỉ "force reload"
+  // khi track-count thực sự đổi, tránh reset phá hủy vô điều kiện (xem effect bên dưới)
+  const remoteAttachedTrackCountRef = useRef(0)
+  const localAttachedTrackCountRef = useRef(0)
   const recordingControllerRef = useRef<RecordingController | null>(null)
   const recordingPreviewUrlRef = useRef<string | null>(null)
   const micMuted = useCallStore((s) => s.micMuted)
@@ -66,26 +70,38 @@ export default function CallPage() {
   const activeSharer: 'local' | 'remote' | null =
     isScreenSharing ? 'local' : remoteIsScreenSharing ? 'remote' : null
 
-  // ── Gán srcObject và ép trình duyệt tải lại track (khắc phục lỗi đen màn hình "khi được khi không") ──
+  // ── Gán srcObject và ép trình duyệt tải lại track khi có track MỚI thật sự ──
+  // (khắc phục lỗi đen màn hình "khi được khi không"). QUAN TRỌNG: chỉ làm reset
+  // phá hủy (srcObject=null rồi gán lại) khi số track trong stream thực sự đổi kể
+  // từ lần gắn trước — KHÔNG làm vô điều kiện mỗi lần effect chạy lại. ontrack bắn
+  // 1 lần/track (audio, video tới riêng) nên effect này có thể chạy lại 2-3 lần liên
+  // tiếp cho CÙNG 1 lần kết nối; reset vô điều kiện ở mỗi lần chạy sẽ hủy play()
+  // promise của lần trước (AbortError "interrupted by a new load request") và khi
+  // dồn đủ nhanh, <video> kẹt vĩnh viễn ở readyState=0 dù track hoàn toàn "live".
   useEffect(() => {
     const remoteStream = getRemoteStream()
     if (remoteRef.current) {
+      const remoteTrackCount = remoteStream?.getTracks().length ?? 0
       if (remoteRef.current.srcObject !== remoteStream) {
         remoteRef.current.srcObject = remoteStream
-      } else if (remoteStream) {
-        // Ép trình duyệt nhận lại track (ví dụ track video đến sau track audio)
+        remoteAttachedTrackCountRef.current = remoteTrackCount
+      } else if (remoteStream && remoteTrackCount !== remoteAttachedTrackCountRef.current) {
         remoteRef.current.srcObject = null
         remoteRef.current.srcObject = remoteStream
+        remoteAttachedTrackCountRef.current = remoteTrackCount
       }
     }
 
     const localStream = getLocalStream()
     if (selfRef.current) {
+      const localTrackCount = localStream?.getTracks().length ?? 0
       if (selfRef.current.srcObject !== localStream) {
         selfRef.current.srcObject = localStream
-      } else if (localStream) {
+        localAttachedTrackCountRef.current = localTrackCount
+      } else if (localStream && localTrackCount !== localAttachedTrackCountRef.current) {
         selfRef.current.srcObject = null
         selfRef.current.srcObject = localStream
+        localAttachedTrackCountRef.current = localTrackCount
       }
     }
   }, [callState, remoteStreamVersion])
@@ -142,7 +158,7 @@ export default function CallPage() {
     const remoteStream = getRemoteStream()
     const call = useCallStore.getState()
     if (!localStream || !remoteStream || !call.callId || typeof MediaRecorder === "undefined") {
-      useToastStore.getState().show('Recording is not ready yet.', 'warning')
+      useToastStore.getState().show('Chưa thể bắt đầu ghi hình lúc này.', 'warning')
       return
     }
     // remoteLabel dùng cho CẢ prop remoteLabel LẪN getActiveSharer — selectSharerVideo match remote theo label,
@@ -188,7 +204,7 @@ export default function CallPage() {
       call.setHasRecordingPreview(true)
     } else {
       // Task 3: empty chunks — no modal, toast only
-      useToastStore.getState().show('No recording data was captured.', 'warning')
+      useToastStore.getState().show('Không ghi được dữ liệu nào.', 'warning')
     }
   }
 
@@ -224,19 +240,19 @@ export default function CallPage() {
         {(isScreenSharing || remoteIsScreenSharing) && (
           <div className="hud-pill hud-pill--share">
             <MonitorUp size={16} />
-            {isScreenSharing ? 'Sharing screen' : `${remoteUserId} is sharing`}
+            {isScreenSharing ? 'Đang chia sẻ màn hình' : `${remoteUserId} đang chia sẻ`}
           </div>
         )}
         {isRecording && (
           <div className="hud-pill hud-pill--recording" role="status">
             <Radio size={15} />
-            Recording {formatElapsed(recordingStartedAt || recordingNow)}
+            Đang ghi {formatElapsed(recordingStartedAt || recordingNow)}
           </div>
         )}
         {remoteRecording && (
           <div className="hud-pill hud-pill--recording">
             <Radio size={15} />
-            {remoteUserId} is recording
+            {remoteUserId} đang ghi hình
           </div>
         )}
       </div>
@@ -325,7 +341,7 @@ export default function CallPage() {
           active={isScreenSharing}
           loading={shareLoading}
           disabled={!canScreenShare()}
-          title={!canScreenShare() ? 'Screen sharing is unavailable in this browser.' : undefined}
+          title={!canScreenShare() ? 'Trình duyệt này không hỗ trợ chia sẻ màn hình.' : undefined}
         />
         <LabeledRecordButton onClick={() => isRecording ? void stopRecording() : startRecording()} active={isRecording} />
         <LabeledMoreButton onClick={() => setMorePanelOpen((open) => !open)} active={morePanelOpen} />

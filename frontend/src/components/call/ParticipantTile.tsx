@@ -90,9 +90,9 @@ export default function ParticipantTile({
       )}
 
       {isScreenSharing && (
-        <div className="screen-share-badge" aria-label={`${username} is sharing screen`}>
+        <div className="screen-share-badge" aria-label={`${username} đang chia sẻ màn hình`}>
           <MonitorUp size={14} />
-          Screen
+          Màn hình
         </div>
       )}
       

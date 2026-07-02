@@ -121,7 +121,7 @@ export function LabeledShareButton({ onClick, active = false, loading = false, d
       <div className="call-labeled-btn-icon">
         <MonitorUp size={22} />
       </div>
-      <span className="call-labeled-btn-text">{loading ? "Starting..." : "Chia sẻ"}</span>
+      <span className="call-labeled-btn-text">{loading ? "Đang bắt đầu..." : "Chia sẻ"}</span>
     </button>
   )
 }
@@ -141,7 +141,7 @@ export function LabeledMoreButton({ onClick, active = false, loading = false, di
         <MoreHorizontal size={22} />
       </div>
       <span className="call-labeled-btn-text" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        {loading ? "Starting..." : "Thêm"} <ChevronDown size={14} />
+        {loading ? "Đang mở..." : "Thêm"} <ChevronDown size={14} />
       </span>
     </button>
   )

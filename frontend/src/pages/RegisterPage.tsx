@@ -23,7 +23,7 @@ export default function RegisterPage() {
     const trimmedUsername = username.trim()
     const normalizedEmail = email.trim().toLowerCase()
     if (!/^[a-zA-Z0-9._-]{3,50}$/.test(trimmedUsername)) {
-      setError("Username phải dài 3-50 ký tự và chỉ gồm chữ, số, dấu chấm, gạch dưới hoặc gạch ngang.")
+      setError("Tên đăng nhập phải dài 3-50 ký tự và chỉ gồm chữ, số, dấu chấm, gạch dưới hoặc gạch ngang.")
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
@@ -89,7 +89,7 @@ export default function RegisterPage() {
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <label className="auth-field">
-              <span>Username</span>
+              <span>Tên đăng nhập</span>
               <span className="auth-input-wrap">
                 <User className="auth-input-icon" size={17} strokeWidth={1.8} />
                 <input
@@ -119,7 +119,7 @@ export default function RegisterPage() {
             </label>
 
             <label className="auth-field">
-              <span>Password</span>
+              <span>Mật khẩu</span>
               <span className="auth-input-wrap">
                 <LockKeyhole className="auth-input-icon" size={17} strokeWidth={1.8} />
                 <input

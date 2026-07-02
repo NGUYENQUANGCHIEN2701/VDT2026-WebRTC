@@ -9,7 +9,7 @@ export default function ProtectedRoute({ children, requiredRole }: { children: R
   const isLoading = useAuthStore((state) => state.isLoading)
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return <div>Đang tải...</div>
   }
   if (!token) {
     return <Navigate to="/login" replace />

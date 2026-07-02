@@ -20,9 +20,9 @@ export default function AdminUserTable({ users, me, onToggleLock, onChangeRole }
       <thead>
         <tr>
           <th>ID</th>
-          <th>Username</th>
+          <th>Tên đăng nhập</th>
           <th>Email</th>
-          <th>Role</th>
+          <th>Vai trò</th>
           <th>Trạng thái</th>
           <th>Hành động</th>
         </tr>
@@ -58,8 +58,8 @@ export default function AdminUserTable({ users, me, onToggleLock, onChangeRole }
                   onChange={(e) => onChangeRole(user, e.target.value)}
                   style={{ opacity: isSelf ? 0.5 : 1, cursor: isSelf ? 'not-allowed' : 'pointer' }}
                 >
-                  <option value="USER">USER</option>
-                  <option value="ADMIN">ADMIN</option>
+                  <option value="USER">Người dùng</option>
+                  <option value="ADMIN">Quản trị viên</option>
                 </select>
               </td>
               

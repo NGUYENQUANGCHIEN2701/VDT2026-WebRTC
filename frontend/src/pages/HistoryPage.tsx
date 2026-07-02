@@ -49,7 +49,7 @@ export default function HistoryPage() {
     <AppChrome>
       <section className="app-hero app-hero--compact">
         <div>
-          <span className="app-kicker" style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>Call records</span>
+          <span className="app-kicker" style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>Lịch sử cuộc gọi</span>
           <h1>Lịch sử cuộc gọi</h1>
           <p>Theo dõi kết quả, thời lượng và thời điểm kết thúc của các cuộc gọi gần đây.</p>
         </div>

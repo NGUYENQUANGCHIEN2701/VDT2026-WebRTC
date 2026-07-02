@@ -151,7 +151,7 @@ export default function LoginPage() {
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <label className="auth-field">
-              <span>Username</span>
+              <span>Tên đăng nhập</span>
               <span className="auth-input-wrap">
                 <User className="auth-input-icon" size={17} strokeWidth={1.8} />
                 <input
@@ -166,7 +166,7 @@ export default function LoginPage() {
             </label>
 
             <label className="auth-field">
-              <span>Password</span>
+              <span>Mật khẩu</span>
               <span className="auth-input-wrap">
                 <LockKeyhole className="auth-input-icon" size={17} strokeWidth={1.8} />
                 <input

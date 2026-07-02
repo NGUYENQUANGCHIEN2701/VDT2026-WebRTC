@@ -144,7 +144,7 @@ export default function MorePanel({
             onChange={(event) => { void onCameraChange(event.target.value) }}
             aria-busy={switchingCamera}
           >
-            <option value="">Default camera</option>
+            <option value="">Camera mặc định</option>
             {cameras.map((device, index) => (
               <option key={device.deviceId || index} value={device.deviceId}>
                 {labelFor(device, "Camera", index)}
@@ -159,7 +159,7 @@ export default function MorePanel({
         </section>
 
         <section className="mp-section">
-          <h3><Mic size={16} /> Microphone</h3>
+          <h3><Mic size={16} /> Micrô</h3>
           <select
             className="mp-select"
             value={selectedMicrophone}
@@ -167,10 +167,10 @@ export default function MorePanel({
             onChange={(event) => { void onMicrophoneChange(event.target.value) }}
             aria-busy={switchingMicrophone}
           >
-            <option value="">Default microphone</option>
+            <option value="">Micrô mặc định</option>
             {microphones.map((device, index) => (
               <option key={device.deviceId || index} value={device.deviceId}>
-                {labelFor(device, "Microphone", index)}
+                {labelFor(device, "Micrô", index)}
               </option>
             ))}
           </select>
@@ -179,18 +179,18 @@ export default function MorePanel({
                  <div key={i} className="mp-audio-bar" style={{ animationDelay: `${i * 0.05}s` }}></div>
              ))}
           </div>
-          {state.micMuted && <p className="mp-note">Microphone sẽ giữ trạng thái tắt.</p>}
-          {switchingMicrophone && <p className="mp-note">Đang chuyển microphone…</p>}
+          {state.micMuted && <p className="mp-note">Micrô sẽ giữ trạng thái tắt.</p>}
+          {switchingMicrophone && <p className="mp-note">Đang chuyển micrô…</p>}
         </section>
 
         {supportsSinkId && (
           <section className="mp-section">
-            <h3><MonitorSpeaker size={16} /> Speaker</h3>
+            <h3><MonitorSpeaker size={16} /> Loa</h3>
             <select className="mp-select" value={selectedSpeaker} onChange={(event) => onSpeakerChange(event.target.value)}>
-              <option value="">Default speaker</option>
+              <option value="">Loa mặc định</option>
               {speakers.map((device, index) => (
                 <option key={device.deviceId || index} value={device.deviceId}>
-                  {labelFor(device, "Speaker", index)}
+                  {labelFor(device, "Loa", index)}
                 </option>
               ))}
             </select>
