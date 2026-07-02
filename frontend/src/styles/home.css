@@ -158,6 +158,21 @@
 .status-dot-busy   { background: #d97706; }
 .status-dot-offline{ background: #94a3b8; }
 
+/* Filter chips scrollable row */
+.filter-chips-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+
+.filter-chips-row::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
 /* Filter chip buttons */
 .filter-chip {
   display: inline-flex;
@@ -389,6 +404,47 @@
   line-height: 1;
 }
 
+/* ── Users panel header ── */
+.users-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.users-panel-title {
+  font-size: 17px;
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-h);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.users-panel-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 99px;
+  padding: 2px 10px;
+}
+
+:root[data-theme="dark"] .users-panel-count {
+  background: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+.users-search {
+  max-width: 220px;
+  flex: 0 1 220px;
+}
+
 .home-search-wrapper {
   position: relative;
   display: flex;
@@ -491,4 +547,210 @@
   font-size: 14px;
   color: var(--text);
   line-height: 1.6;
+}
+
+/* ── Group Call Card ── */
+.group-call-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+
+:root[data-theme="dark"] .group-call-card {
+  background: rgba(22, 163, 74, 0.08);
+  border-color: rgba(34, 197, 94, 0.22);
+}
+
+.group-call-card-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.group-call-card-icon {
+  background: #22c55e;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.group-call-card-title {
+  font-size: 17px;
+  margin: 0 0 4px;
+  color: #0f172a;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+:root[data-theme="dark"] .group-call-card-title {
+  color: #e2f0ff;
+}
+
+.group-call-card-desc {
+  margin: 0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+:root[data-theme="dark"] .group-call-card-desc {
+  color: #94a3b8;
+}
+
+.group-call-card-btn {
+  border-radius: 10px !important;
+  background-color: #16a34a !important;
+  border-color: #16a34a !important;
+  padding: 11px 18px !important;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── Mobile responsive ── */
+@media (max-width: 640px) {
+  .home-page {
+    padding: 16px;
+  }
+
+  .home-header {
+    margin-bottom: 20px;
+  }
+
+  .home-header h1 {
+    font-size: 22px;
+  }
+
+  .home-action-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .home-action-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .home-action-card-content {
+    width: 100%;
+  }
+
+  .home-action-btn {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Group call card on mobile: stack vertically */
+  .group-call-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    gap: 14px;
+    border-radius: 14px;
+  }
+
+  .group-call-card-btn {
+    width: 100% !important;
+    justify-content: center;
+    padding: 12px !important;
+  }
+
+  .group-call-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  /* User row actions on mobile */
+  .home-user-row {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .home-user-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .home-user-name {
+    font-size: 14px;
+  }
+
+  .home-user-info {
+    gap: 10px;
+  }
+
+  .home-call-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .filter-chip {
+    font-size: 12px;
+    padding: 5px 11px;
+  }
+
+  .home-search-wrapper {
+    min-width: 100px;
+  }
+
+  /* Users panel header on mobile: search full width */
+  .users-panel-header {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  .users-search {
+    max-width: 100%;
+    flex: 1 1 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-panel-header {
+    padding: 14px 16px;
+  }
+
+  .home-panel-title {
+    font-size: 15px;
+  }
+
+  .home-empty-state {
+    padding: 32px 16px;
+  }
+
+  /* Users panel title smaller */
+  .users-panel-title {
+    font-size: 15px;
+  }
+
+  .users-panel-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .users-search {
+    max-width: 100%;
+    flex: 1 1 100%;
+  }
 }

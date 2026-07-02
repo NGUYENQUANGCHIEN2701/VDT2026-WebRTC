@@ -76,25 +76,20 @@ export default function OnlineUsersList() {
   return (
     <>
       {/* Group Call Card */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: '#f0fdf4', border: '1px solid #bbf7d0',
-        borderRadius: 16, padding: '20px 24px', marginBottom: 24,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ background: '#22c55e', width: 56, height: 56, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+      <div className="group-call-card">
+        <div className="group-call-card-content">
+          <div className="group-call-card-icon">
             <Users size={28} />
           </div>
           <div>
-            <h2 style={{ fontSize: 18, margin: '0 0 4px', color: '#0f172a', fontWeight: 700 }}>Gọi nhóm</h2>
-            <p style={{ margin: 0, color: '#475569', fontSize: 14 }}>Tạo cuộc gọi nhóm và trò chuyện với nhiều người cùng lúc.</p>
+            <h2 className="group-call-card-title">Gọi nhóm</h2>
+            <p className="group-call-card-desc">Tạo cuộc gọi nhóm và trò chuyện với nhiều người cùng lúc.</p>
           </div>
         </div>
         <button
-          className="app-button"
+          className="app-button group-call-card-btn"
           onClick={() => setShowGroupModal(true)}
           disabled={!canStartGroup}
-          style={{ borderRadius: 10, backgroundColor: '#16a34a', borderColor: '#16a34a', padding: '11px 22px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}
         >
           <Users size={17} />
           Gọi nhóm ngay
@@ -103,13 +98,13 @@ export default function OnlineUsersList() {
 
       {/* User list panel */}
       <div className="app-panel" style={{ opacity: dim ? 0.7 : 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid var(--border)' }}>
-          <h2 style={{ fontSize: 17, margin: 0, fontWeight: 700, color: 'var(--text-h)' }}>
+        <div className="users-panel-header">
+          <h2 className="users-panel-title">
             Danh sách người dùng
-            <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 500, color: '#64748b', background: '#f1f5f9', borderRadius: 99, padding: '2px 10px' }}>{mergedUsers.length}</span>
+            <span className="users-panel-count">{mergedUsers.length}</span>
           </h2>
 
-          <div className="home-search-wrapper" style={{ maxWidth: 220 }}>
+          <div className="home-search-wrapper users-search">
             <Search size={15} className="home-search-icon" />
             <input
               ref={searchInputRef}
@@ -131,7 +126,7 @@ export default function OnlineUsersList() {
         </div>
 
         {/* Filter chips */}
-        <div style={{ display: 'flex', gap: 8, padding: '14px 24px', borderBottom: '1px solid var(--border)', overflowX: 'auto' }}>
+        <div className="filter-chips-row">
           {[
             { key: 'all' as const, label: 'Tất cả', dotClass: '' },
             { key: 'online' as const, label: 'Trực tuyến', dotClass: 'status-dot-online' },

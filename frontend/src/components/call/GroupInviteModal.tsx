@@ -26,7 +26,7 @@ export default function GroupInviteModal({ initiatorUsername, memberCount, onAcc
         backdropFilter: 'blur(4px)'
       }}
     >
-      <div className="modal-content-animate" style={{ 
+      <div className="modal-content-animate group-invite-card" style={{ 
         background: 'var(--surface-solid)', borderRadius: 20, padding: '40px 32px', 
         maxWidth: 440, width: '90%', boxShadow: '0 24px 60px rgba(0,0,0,0.12)', 
         textAlign: 'center', position: 'relative'

@@ -1,24 +1,64 @@
 import type { ReactNode } from "react"
 import { NavLink } from "react-router-dom"
-import { History, Home, LogOut, Moon, Shield, Sun, Video } from "lucide-react"
+import { History, Home, LogOut, Menu, Moon, Shield, Sun, Video, X } from "lucide-react"
 import { useAuthTheme } from "../hooks/useAuthTheme"
 import { useLogout } from "../hooks/useLogout"
 import { useAuthStore } from "../store/authStore"
+import { useState, useEffect } from "react"
+import { useLocation } from "react-router-dom"
 
 export default function AppChrome({ children }: { children: ReactNode }) {
   const { theme, toggleTheme } = useAuthTheme()
   const user = useAuthStore((state) => state.user)
   const logout = useLogout()
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const location = useLocation()
+
+  // Đóng drawer khi chuyển trang
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [location.pathname])
+
+  // Ngăn scroll body khi drawer mở
+  useEffect(() => {
+    if (drawerOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => { document.body.style.overflow = "" }
+  }, [drawerOpen])
 
   return (
     <main className={`app-shell app-theme--${theme}`}>
-      <aside className="app-sidebar">
-        <NavLink className="sidebar-brand" to="/" aria-label="Video Call">
-          <span className="sidebar-logo">
-            <Video size={21} strokeWidth={2.4} />
-          </span>
-          <span>Video <strong>Call</strong></span>
-        </NavLink>
+      {/* Overlay backdrop cho mobile drawer */}
+      {drawerOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setDrawerOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside className={`app-sidebar${drawerOpen ? " sidebar--open" : ""}`}>
+        <div className="sidebar-top">
+          <NavLink className="sidebar-brand" to="/" aria-label="Video Call">
+            <span className="sidebar-logo">
+              <Video size={21} strokeWidth={2.4} />
+            </span>
+            <span>Video <strong>Call</strong></span>
+          </NavLink>
+
+          {/* Nút đóng drawer – chỉ hiện trên mobile */}
+          <button
+            className="sidebar-close-btn"
+            onClick={() => setDrawerOpen(false)}
+            type="button"
+            aria-label="Đóng menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
         <nav className="sidebar-nav" aria-label="Điều hướng chính">
           <NavLink to="/" end>
@@ -50,6 +90,24 @@ export default function AppChrome({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="app-content">
+        {/* Mobile top bar */}
+        <div className="mobile-topbar">
+          <NavLink className="sidebar-brand mobile-topbar-brand" to="/" aria-label="Video Call">
+            <span className="sidebar-logo">
+              <Video size={18} strokeWidth={2.4} />
+            </span>
+            <span>Video <strong>Call</strong></span>
+          </NavLink>
+          <button
+            className="mobile-menu-btn"
+            onClick={() => setDrawerOpen(true)}
+            type="button"
+            aria-label="Mở menu"
+          >
+            <Menu size={22} />
+          </button>
+        </div>
+
         {children}
       </div>
     </main>

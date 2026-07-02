@@ -15,19 +15,18 @@ export default function HomePage() {
 
   return (
     <AppChrome>
-      <section className="app-hero app-hero--compact" style={{ display: 'block', width: '100%', marginBottom: 32 }}>
-        <div style={{ marginBottom: 24 }}>
-          <span className="app-kicker" style={{ textTransform: 'uppercase', letterSpacing: '1px', color: '#0f63ff', fontWeight: 600, fontSize: 13 }}>WELCOME</span>
-          <h1 style={{ margin: '8px 0', fontSize: 32, display: 'flex', alignItems: 'center' }}>
-            Xin chào, {user?.username}! <span style={{ fontSize: '32px', marginLeft: 8 }}>👋</span>
-          </h1>
-          <p style={{ color: 'var(--text)', fontSize: 15 }}>
-            Chúc bạn một ngày làm việc hiệu quả! Hãy chọn người liên hệ bên dưới để bắt đầu cuộc trò chuyện.
-          </p>
-        </div>
+      <section className="home-hero" style={{ marginBottom: 32, width: '100%' }}>
+        <span className="app-kicker" style={{ textTransform: 'uppercase', letterSpacing: '1px', color: '#0f63ff', fontWeight: 600, fontSize: 13 }}>WELCOME</span>
+        <h1 className="home-hero-title">
+          Xin chào, {user?.username}! <span style={{ fontSize: '1em', marginLeft: 6 }}>👋</span>
+        </h1>
+        <p className="home-hero-desc">
+          Chúc bạn một ngày làm việc hiệu quả! Hãy chọn người liên hệ bên dưới để bắt đầu cuộc trò chuyện.
+        </p>
       </section>
 
       <OnlineUsersList />
     </AppChrome>
   )
 }
+

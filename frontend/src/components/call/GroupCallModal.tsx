@@ -268,55 +268,57 @@ export default function GroupCallModal({ users, onClose }: Props) {
           </div>
 
           {/* Footer */}
-          <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-solid)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }}>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: 14, color: 'var(--text)' }}>
-                Đã chọn <strong style={{ color: 'var(--text-h)' }}>{selected.length}</strong> / 3 người
-              </span>
-              <span style={{ fontSize: 13, color: 'var(--text)', opacity: 0.8 }}>
-                Cần chọn từ 2 đến 3 người
-              </span>
-            </div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button 
-                onClick={onClose} 
-                type="button" 
-                style={{ 
-                  padding: '10px 20px', 
-                  borderRadius: 8, 
-                  border: '1px solid var(--border)', 
-                  background: 'var(--surface-solid)', 
-                  cursor: 'pointer', 
-                  fontSize: 14, 
-                  fontWeight: 600, 
-                  color: 'var(--text-h)',
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-soft)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--surface-solid)'}
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleCall}
-                type="button"
-                disabled={selected.length < 2}
-                style={{
-                  padding: '10px 20px', borderRadius: 8, border: 'none',
-                  background: selected.length >= 2 ? 'var(--accent)' : 'var(--border)',
-                  color: selected.length >= 2 ? '#fff' : 'var(--text)',
-                  cursor: selected.length >= 2 ? 'pointer' : 'not-allowed',
-                  fontSize: 14, fontWeight: 600,
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  transition: 'background 0.2s',
-                  opacity: selected.length >= 2 ? 1 : 0.6
-                }}
-                onMouseEnter={e => { if (selected.length >= 2) e.currentTarget.style.background = 'var(--accent-strong)' }}
-                onMouseLeave={e => { if (selected.length >= 2) e.currentTarget.style.background = 'var(--accent)' }}
-              >
-                <UserPlus size={18} />
-                Bắt đầu gọi nhóm
-              </button>
+          <div className="group-modal-footer" style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'var(--surface-solid)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 14, color: 'var(--text)' }}>
+                  Đã chọn <strong style={{ color: 'var(--text-h)' }}>{selected.length}</strong> / 3 người
+                </span>
+                <span style={{ fontSize: 13, color: 'var(--text)', opacity: 0.8 }}>
+                  Cần chọn từ 2 đến 3 người
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button 
+                  onClick={onClose} 
+                  type="button" 
+                  style={{ 
+                    padding: '10px 20px', 
+                    borderRadius: 8, 
+                    border: '1px solid var(--border)', 
+                    background: 'var(--surface-solid)', 
+                    cursor: 'pointer', 
+                    fontSize: 14, 
+                    fontWeight: 600, 
+                    color: 'var(--text-h)',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-soft)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--surface-solid)'}
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleCall}
+                  type="button"
+                  disabled={selected.length < 2}
+                  style={{
+                    padding: '10px 20px', borderRadius: 8, border: 'none',
+                    background: selected.length >= 2 ? 'var(--accent)' : 'var(--border)',
+                    color: selected.length >= 2 ? '#fff' : 'var(--text)',
+                    cursor: selected.length >= 2 ? 'pointer' : 'not-allowed',
+                    fontSize: 14, fontWeight: 600,
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    transition: 'background 0.2s',
+                    opacity: selected.length >= 2 ? 1 : 0.6
+                  }}
+                  onMouseEnter={e => { if (selected.length >= 2) e.currentTarget.style.background = 'var(--accent-strong)' }}
+                  onMouseLeave={e => { if (selected.length >= 2) e.currentTarget.style.background = 'var(--accent)' }}
+                >
+                  <UserPlus size={18} />
+                  Bắt đầu gọi nhóm
+                </button>
+              </div>
             </div>
           </div>
         </div>

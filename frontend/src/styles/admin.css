@@ -379,3 +379,91 @@
   color: #fff;
   border-color: var(--accent);
 }
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+  .admin-header h1 {
+    font-size: 22px;
+  }
+
+  /* Tabs: scroll ngang thay vì xuống dòng */
+  .admin-tabs {
+    gap: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .admin-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-tab {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  /* KPI grid: 2 cột trên tablet */
+  .admin-kpis {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .kpi-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .kpi-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .kpi-value {
+    font-size: 20px;
+  }
+
+  /* Filters: stack on mobile */
+  .admin-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-search {
+    min-width: 100%;
+  }
+
+  /* Table: horizontal scroll */
+  .admin-table-container {
+    overflow-x: auto;
+  }
+
+  .admin-table {
+    min-width: 600px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  /* Pagination: stack on mobile */
+  .admin-pagination {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .pagination-info {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-kpis {
+    grid-template-columns: 1fr;
+  }
+}

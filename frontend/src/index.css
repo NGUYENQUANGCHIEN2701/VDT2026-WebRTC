@@ -721,7 +721,8 @@ code {
 
 .app-panel {
   border-radius: 18px;
-  padding: clamp(18px, 3vw, 28px);
+  padding: 0; /* Padding controlled per-section inside the panel */
+  overflow: hidden;
 }
 
 .app-panel-header {
@@ -729,7 +730,9 @@ code {
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  margin-bottom: 18px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
 }
 
 .app-panel-header h2,
@@ -850,7 +853,7 @@ code {
   background: var(--surface-solid);
   border-radius: 20px;
   padding: 32px;
-  width: 100%;
+  width: calc(100% - 32px);
   max-width: 400px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12);
   text-align: center;
@@ -1112,6 +1115,30 @@ code {
 .presence-dot--muted {
   background: #94a3b8;
   box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.12);
+}
+
+/* ── Home hero section ── */
+.home-hero {
+  padding-top: 24px;
+}
+
+.home-hero-title {
+  margin: 8px 0 10px;
+  font-size: clamp(22px, 5vw, 32px);
+  font-weight: 800;
+  color: var(--text-h);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  letter-spacing: 0;
+}
+
+.home-hero-desc {
+  color: var(--text);
+  font-size: clamp(13px, 2.5vw, 15px);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .history-panel {
@@ -1835,6 +1862,37 @@ code {
     transform: none;
     justify-content: center;
   }
+
+  /* History panel on mobile */
+  .history-panel {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .history-row {
+    padding: 12px 14px;
+  }
+
+  /* Home hero on mobile */
+  .home-hero {
+    padding-top: 16px;
+  }
+
+  /* App hero responsive for HistoryPage */
+  .app-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .app-hero h1 {
+    font-size: clamp(22px, 6vw, 32px);
+  }
+
+  .app-hero p {
+    font-size: 14px;
+  }
 }
 
 .app-sidebar {
@@ -1948,36 +2006,152 @@ code {
   .app-shell {
     flex-direction: column;
   }
-  
-  .app-sidebar {
-    width: 100%;
-    height: auto;
-    flex-direction: row;
+
+  /* ── Mobile top bar ── */
+  .mobile-topbar {
+    display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
-    border-right: none;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border);
+    background: var(--surface-solid);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    flex-shrink: 0;
   }
 
-  .sidebar-brand {
+  .mobile-topbar-brand {
+    text-decoration: none;
+    color: var(--text-h);
+    font-size: 17px;
+    font-weight: 800;
     margin-bottom: 0;
     padding: 0;
   }
 
-  .sidebar-nav {
-    display: none; /* In a real app, this would be a hamburger menu */
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-soft);
+    color: var(--text-h);
+    cursor: pointer;
+    transition: background 0.18s;
   }
 
-  .sidebar-actions {
-    display: none;
+  .mobile-menu-btn:hover {
+    background: var(--accent-bg);
+    color: var(--accent);
+    border-color: var(--accent-border);
   }
-  
+
+  /* ── Sidebar on mobile: hidden off-screen left, slide in when .sidebar--open ── */
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    width: 280px;
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    border-right: 1px solid var(--border);
+    flex-direction: column;
+    padding: 20px 16px;
+    overflow-y: auto;
+  }
+
+  .app-sidebar.sidebar--open {
+    transform: translateX(0);
+  }
+
+  /* ── Overlay behind drawer ── */
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(7, 17, 31, 0.46);
+    backdrop-filter: blur(2px);
+    animation: fadeInOverlay 0.22s ease;
+  }
+
+  @keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ── sidebar-top: brand + close button ── */
+  .sidebar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .sidebar-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.18s;
+  }
+
+  .sidebar-close-btn:hover {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+
+  /* ── sidebar brand trong drawer: không có margin-bottom ── */
+  .app-sidebar .sidebar-brand {
+    margin-bottom: 0;
+    padding: 0;
+  }
+
+  /* ── Show sidebar-nav & actions inside drawer ── */
+  .app-sidebar .sidebar-nav,
+  .app-sidebar .sidebar-actions {
+    display: flex;
+  }
+
+  /* ── app-content: full width, no height limit ── */
   .app-content {
     height: auto;
     overflow-y: visible;
+    padding: clamp(16px, 4vw, 32px);
+    padding-top: 0;
   }
 }
+
+/* Desktop: ẩn mobile elements */
+@media (min-width: 769px) {
+  .mobile-topbar {
+    display: none;
+  }
+
+  .sidebar-close-btn {
+    display: none;
+  }
+
+  .sidebar-overlay {
+    display: none;
+  }
+
+  .sidebar-top {
+    display: contents;
+  }
+}
+
 
 .app-list {
   list-style: none;
@@ -2559,6 +2733,191 @@ code {
   .modal-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — CALL PAGE (1-1) & POPUPS
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* ── CallPage top HUD: stack left + center ── */
+  .call-1v1-top-left {
+    top: 12px;
+    left: 12px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    gap: 8px;
+  }
+
+  .call-1v1-logo-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
+  .call-1v1-info h2 {
+    font-size: 13px;
+  }
+
+  .call-1v1-info p {
+    font-size: 11px;
+  }
+
+  /* Top center: ẩn trên màn nhỏ (info ở top-left đã đủ) */
+  .call-1v1-top-center {
+    display: none;
+  }
+
+  /* Top right: thu nhỏ */
+  .call-1v1-top-right {
+    top: 12px;
+    right: 12px;
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  /* Bottom bar 1-1: giảm padding, các nút nhỏ lại */
+  .call-1v1-bottom-bar {
+    bottom: 16px;
+    padding: 10px 16px;
+    gap: 8px;
+    border-radius: 20px;
+  }
+
+  .call-labeled-btn-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
+  .call-labeled-btn.danger .call-labeled-btn-icon {
+    width: 60px;
+    border-radius: 16px;
+  }
+
+  .call-labeled-btn-text {
+    font-size: 11px;
+  }
+
+  /* Self video PiP: nhỏ hơn */
+  .self-video-box {
+    width: min(120px, 30vw);
+    bottom: 120px;
+    right: 10px;
+  }
+
+  .call-video--pip {
+    width: min(120px, 30vw);
+    bottom: 120px;
+    right: 10px;
+  }
+
+  /* HUD stack pills: ẩn trên rất nhỏ, gộp vào top area */
+  .call-hud-stack {
+    top: 60px;
+  }
+
+  /* ── Popup cards: giảm padding ── */
+  .popup-card {
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+
+  .popup-avatar-ripple {
+    width: 96px;
+    height: 96px;
+    margin-bottom: 16px;
+  }
+
+  .popup-avatar {
+    width: 70px;
+    height: 70px;
+    font-size: 28px;
+  }
+
+  .popup-title {
+    font-size: 20px;
+  }
+
+  .popup-subtitle {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  /* Summary screen */
+  .summary-icon-container {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 16px;
+  }
+
+  /* ── GroupCallModal footer: stack buttons vertically ── */
+  .group-modal-footer {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  /* ── GroupInviteModal: reduce padding ── */
+  .group-invite-card {
+    padding: 28px 20px !important;
+    border-radius: 16px !important;
+  }
+}
+
+/* ── GroupCallPage presentation layout mobile ── */
+@media (max-width: 640px) {
+  .presentation-layout {
+    inset: 60px 8px 130px;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .presentation-sidebar {
+    min-width: unset;
+    flex-direction: row;
+    flex: 0 0 120px;
+  }
+
+  .presentation-thumbnails {
+    height: 120px;
+  }
+
+  .presentation-thumbnail-wrapper {
+    min-width: 100px;
+  }
+}
+
+/* ── OnlineUserRow: truncate long usernames ── */
+.home-user-details {
+  min-width: 0;
+}
+
+.home-user-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+@media (max-width: 480px) {
+  .home-user-name {
+    max-width: 120px;
+  }
+}
+
+/* ── GroupCallModal: full screen on tiny screens ── */
+@media (max-width: 480px) {
+  /* Popup card padding even smaller */
+  .popup-card {
+    padding: 20px 16px;
+  }
+}
+
+/* ── HistoryPage: app-hero button full-width on mobile ── */
+@media (max-width: 640px) {
+  .app-hero .app-button {
+    width: 100%;
+    justify-content: center;
   }
 }
 
