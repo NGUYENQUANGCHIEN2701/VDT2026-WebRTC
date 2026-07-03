@@ -10,10 +10,11 @@ from diagrams.programming.framework import Spring
 graph_attr = {
     "dpi": "300",
     "fontsize": "22",
-    "splines": "spline",
-    "nodesep": "0.6",
-    "ranksep": "0.9",
+    "splines": "polyline",
+    "nodesep": "0.7",
+    "ranksep": "1.0",
     "pad": "0.4",
+    "ordering": "out",
 }
 node_attr = {
     "fontsize": "13",
@@ -28,8 +29,9 @@ with Diagram(
     graph_attr=graph_attr,
     node_attr=node_attr,
 ):
-    userA = Users("User A\n(browser)")
-    userB = Users("User B\n(browser)")
+    with Cluster("Clients"):
+        userA = Users("User A\n(browser)")
+        userB = Users("User B\n(browser)")
 
     with Cluster("TURN fallback (chi dung khi P2P truc tiep that bai)"):
         turn = Internet("coturn\n(STUN/TURN)")
@@ -51,7 +53,7 @@ with Diagram(
     userA >> Edge(label="WSS signaling + HTTPS REST") >> lb
     userB >> Edge(label="WSS signaling + HTTPS REST") >> lb
     lb >> backends
-    userA >> Edge(label="P2P media (SRTP)", style="bold", color="green") >> userB
+    userA >> Edge(label="P2P media (SRTP)", style="bold", color="green", constraint="false") >> userB
     userA >> Edge(label="TURN relay (fallback)", style="dashed") >> turn
     userB >> Edge(label="TURN relay (fallback)", style="dashed") >> turn
 
