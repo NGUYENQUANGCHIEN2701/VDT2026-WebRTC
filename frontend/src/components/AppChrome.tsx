@@ -14,10 +14,13 @@ export default function AppChrome({ children }: { children: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const location = useLocation()
 
-  // Đóng drawer khi chuyển trang
-  useEffect(() => {
+  // Đóng drawer khi chuyển trang — adjust state during render (React docs),
+  // tránh setState trong Effect gây cascading render.
+  const [prevPathname, setPrevPathname] = useState(location.pathname)
+  if (location.pathname !== prevPathname) {
+    setPrevPathname(location.pathname)
     setDrawerOpen(false)
-  }, [location.pathname])
+  }
 
   // Ngăn scroll body khi drawer mở
   useEffect(() => {
