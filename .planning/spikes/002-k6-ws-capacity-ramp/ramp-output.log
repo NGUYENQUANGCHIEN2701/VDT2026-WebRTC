@@ -1,0 +1,269 @@
+
+==================================================================
+ STEP: 100 concurrent connections (50 pairs)
+==================================================================
+--- Prometheus snapshot (before) ---
+vdt_ws_sessions_active{backend-1}: "value":[1783044330.693,"1"]
+vdt_calls_active{1-1,backend-1}:   "value":[1783044330.734,"0"]
+process_cpu_usage{backend-1}:      "value":[1783044330.774,"0.0013297319758986078"]
+jvm_heap_used{backend-1}:          "value":[1783044330.816,"4194304"]
+"value":[1783044330.816,"77326912"]
+"value":[1783044330.816,"2957528"]
+calls_ended_busy_total{backend-1}: "value":[1783044330.856,"45"]
+
+    ✓ login 200
+
+    CUSTOM
+    call_setup_rtt_ms..............: avg=74.26ms  min=1ms     med=33ms     max=387ms    p(90)=205.1ms  p(95)=260.54ms
+    calls_completed................: 250    68.806197/s
+
+    HTTP
+    http_req_duration..............: avg=455.36ms min=78.22ms med=418.07ms max=929.21ms p(90)=863.76ms p(95)=887.33ms
+      { expected_response:true }...: avg=455.36ms min=78.22ms med=418.07ms max=929.21ms p(90)=863.76ms p(95)=887.33ms
+    http_req_failed................: 0.00%  0 out of 100
+    http_reqs......................: 100    27.522479/s
+
+    EXECUTION
+    iteration_duration.............: avg=3s       min=2.33s   med=3.04s    max=3.63s    p(90)=3.41s    p(95)=3.55s   
+    iterations.....................: 100    27.522479/s
+    vus............................: 54     min=54        max=100
+    vus_max........................: 100    min=100       max=100
+
+    NETWORK
+    data_received..................: 112 MB 31 MB/s
+    data_sent......................: 110 kB 30 kB/s
+
+    WEBSOCKET
+    ws_connecting..................: avg=11ms     min=1.72ms  med=4.27ms   max=108.3ms  p(90)=34.62ms  p(95)=49.83ms 
+    ws_msgs_received...............: 32860  9043.886488/s
+    ws_msgs_sent...................: 750    206.41859/s
+    ws_session_duration............: avg=2.52s    min=1.49s   med=2.52s    max=3.49s    p(90)=2.87s    p(95)=3.01s   
+    ws_sessions....................: 100    27.522479/s
+
+
+
+
+running (0m03.6s), 000/100 VUs, 100 complete and 0 interrupted iterations
+calls ✓ [ 100% ] 100 VUs  0m03.6s/5m0s  100/100 iters, 1 per VU
+--- Prometheus snapshot (after) ---
+vdt_ws_sessions_active{backend-1}: "value":[1783044335.476,"1"]
+vdt_calls_active{1-1,backend-1}:   "value":[1783044335.517,"0"]
+process_cpu_usage{backend-1}:      "value":[1783044335.560,"0.0013297319758986078"]
+jvm_heap_used{backend-1}:          "value":[1783044335.601,"4194304"]
+"value":[1783044335.601,"77326912"]
+"value":[1783044335.601,"2957528"]
+calls_ended_busy_total{backend-1}: "value":[1783044335.644,"45"]
+
+==================================================================
+ STEP: 500 concurrent connections (250 pairs)
+==================================================================
+--- Prometheus snapshot (before) ---
+vdt_ws_sessions_active{backend-1}: "value":[1783044335.685,"1"]
+vdt_calls_active{1-1,backend-1}:   "value":[1783044335.728,"0"]
+process_cpu_usage{backend-1}:      "value":[1783044335.773,"0.0013297319758986078"]
+jvm_heap_used{backend-1}:          "value":[1783044335.815,"4194304"]
+"value":[1783044335.815,"77326912"]
+"value":[1783044335.815,"2957528"]
+calls_ended_busy_total{backend-1}: "value":[1783044335.855,"45"]
+    ✓ login 200
+
+    CUSTOM
+    call_setup_rtt_ms..............: avg=2.37s  min=0s      med=2s     max=7.93s  p(90)=5.14s  p(95)=6.11s 
+    calls_completed................: 503    11.850437/s
+    calls_failed...................: 1072   25.255803/s
+
+    HTTP
+    http_req_duration..............: avg=2.11s  min=85.71ms med=1.77s  max=5.91s  p(90)=4.26s  p(95)=4.73s 
+      { expected_response:true }...: avg=2.11s  min=85.71ms med=1.77s  max=5.91s  p(90)=4.26s  p(95)=4.73s 
+    http_req_failed................: 0.00%  0 out of 500
+    http_reqs......................: 500    11.779759/s
+
+    EXECUTION
+    iteration_duration.............: avg=21.24s min=10.04s  med=19.93s max=42.33s p(90)=29.18s p(95)=38.15s
+    iterations.....................: 500    11.779759/s
+    vus............................: 1      min=1         max=500
+    vus_max........................: 500    min=500       max=500
+
+    NETWORK
+    data_received..................: 2.2 GB 51 MB/s
+    data_sent......................: 446 kB 11 kB/s
+
+    WEBSOCKET
+    ws_connecting..................: avg=1.39s  min=83.37ms med=1.46s  max=2.44s  p(90)=1.89s  p(95)=1.97s 
+    ws_msgs_received...............: 178747 4211.193096/s
+    ws_msgs_sent...................: 2672   62.951031/s
+    ws_session_duration............: avg=18.81s min=9.9s    med=18.02s max=36.84s p(90)=26.42s p(95)=34.86s
+    ws_sessions....................: 500    11.779759/s
+
+
+
+
+running (0m42.4s), 000/500 VUs, 500 complete and 0 interrupted iterations
+calls ✓ [ 100% ] 500 VUs  0m42.4s/5m0s  500/500 iters, 1 per VU
+--- Prometheus snapshot (after) ---
+vdt_ws_sessions_active{backend-1}: "value":[1783044379.279,"35"]
+vdt_calls_active{1-1,backend-1}:   "value":[1783044379.327,"65"]
+process_cpu_usage{backend-1}:      "value":[1783044379.372,"0.05055176519071386"]
+jvm_heap_used{backend-1}:          "value":[1783044379.436,"77594624"]
+"value":[1783044379.436,"158467520"]
+"value":[1783044379.436,"14002320"]
+calls_ended_busy_total{backend-1}: "value":[1783044379.498,"583"]
+
+==================================================================
+ STEP: 1000 concurrent connections (500 pairs)
+==================================================================
+--- Prometheus snapshot (before) ---
+vdt_ws_sessions_active{backend-1}: "value":[1783044379.538,"35"]
+vdt_calls_active{1-1,backend-1}:   "value":[1783044379.578,"65"]
+process_cpu_usage{backend-1}:      "value":[1783044379.620,"0.05055176519071386"]
+jvm_heap_used{backend-1}:          "value":[1783044379.659,"77594624"]
+"value":[1783044379.659,"158467520"]
+"value":[1783044379.659,"14002320"]
+calls_ended_busy_total{backend-1}: "value":[1783044379.701,"583"]
+    ✓ login 200
+
+    CUSTOM
+    call_setup_rtt_ms..............: avg=3.08s  min=5ms      med=2.45s  max=8.06s  p(90)=6.19s  p(95)=7.11s 
+    calls_completed................: 527    7.77098/s
+    calls_failed...................: 2889   42.600304/s
+
+    HTTP
+    http_req_duration..............: avg=4.09s  min=154.88ms med=4.04s  max=8.75s  p(90)=7.39s  p(95)=7.7s  
+      { expected_response:true }...: avg=4.09s  min=154.88ms med=4.04s  max=8.75s  p(90)=7.39s  p(95)=7.7s  
+    http_req_failed................: 0.00%  0 out of 1000
+    http_reqs......................: 1000   14.745692/s
+
+    EXECUTION
+    iteration_duration.............: avg=37.63s min=19.28s   med=35.62s max=1m7s   p(90)=52.78s p(95)=58.16s
+    iterations.....................: 1000   14.745692/s
+    vus............................: 4      min=4         max=1000
+    vus_max........................: 1000   min=1000      max=1000
+
+    NETWORK
+    data_received..................: 3.1 GB 45 MB/s
+    data_sent......................: 810 kB 12 kB/s
+
+    WEBSOCKET
+    ws_connecting..................: avg=8.34s  min=5.13s    med=6.74s  max=16.62s p(90)=14.38s p(95)=15.41s
+    ws_msgs_received...............: 164942 2432.183908/s
+    ws_msgs_sent...................: 4654   68.62645/s
+    ws_session_duration............: avg=33.37s min=16.45s   med=31.26s max=59.57s p(90)=46.94s p(95)=49.86s
+    ws_sessions....................: 1000   14.745692/s
+
+
+
+
+running (1m07.8s), 0000/1000 VUs, 1000 complete and 0 interrupted iterations
+calls ✓ [ 100% ] 1000 VUs  1m07.8s/5m0s  1000/1000 iters, 1 per VU
+--- Prometheus snapshot (after) ---
+vdt_ws_sessions_active{backend-1}: "value":[1783044448.544,"7"]
+vdt_calls_active{1-1,backend-1}:   "value":[1783044448.589,"34"]
+process_cpu_usage{backend-1}:      "value":[1783044448.630,"0.061744386873920545"]
+jvm_heap_used{backend-1}:          "value":[1783044448.675,"148897784"]
+"value":[1783044448.675,"267256560"]
+"value":[1783044448.675,"23460944"]
+calls_ended_busy_total{backend-1}: "value":[1783044448.717,"2063"]
+
+==================================================================
+ STEP: 2000 concurrent connections (1000 pairs)
+==================================================================
+--- Prometheus snapshot (before) ---
+vdt_ws_sessions_active{backend-1}: "value":[1783044448.756,"7"]
+vdt_calls_active{1-1,backend-1}:   "value":[1783044448.797,"34"]
+process_cpu_usage{backend-1}:      "value":[1783044448.835,"0.061744386873920545"]
+jvm_heap_used{backend-1}:          "value":[1783044448.871,"148897784"]
+"value":[1783044448.871,"267256560"]
+"value":[1783044448.871,"23460944"]
+calls_ended_busy_total{backend-1}: "value":[1783044448.909,"2063"]
+    ✓ login 200
+
+    CUSTOM
+    call_setup_rtt_ms..............: avg=3.73s  min=117ms    med=3.6s   max=7.28s  p(90)=6.16s  p(95)=6.73s 
+    calls_completed................: 82     0.742355/s
+    calls_failed...................: 6525   59.071578/s
+
+    HTTP
+    http_req_duration..............: avg=7.27s  min=177.53ms med=7.23s  max=15.49s p(90)=12.85s p(95)=14.03s
+      { expected_response:true }...: avg=7.27s  min=177.53ms med=7.23s  max=15.49s p(90)=12.85s p(95)=14.03s
+    http_req_failed................: 0.00%  0 out of 2000
+    http_reqs......................: 2000   18.106231/s
+
+    EXECUTION
+    iteration_duration.............: avg=1m6s   min=26.61s   med=1m8s   max=1m50s  p(90)=1m23s  p(95)=1m30s 
+    iterations.....................: 2000   18.106231/s
+    vus............................: 3      min=3         max=2000
+    vus_max........................: 2000   min=2000      max=2000
+
+    NETWORK
+    data_received..................: 872 MB 7.9 MB/s
+    data_sent......................: 1.4 MB 13 kB/s
+
+    WEBSOCKET
+    ws_connecting..................: avg=33.11s min=11.7s    med=27.22s max=1m0s   p(90)=1m0s   p(95)=1m0s  
+    ws_msgs_received...............: 64452  583.491395/s
+    ws_msgs_sent...................: 6553   59.325065/s
+    ws_session_duration............: avg=59.59s min=24.03s   med=1m0s   max=1m39s  p(90)=1m14s  p(95)=1m21s 
+    ws_sessions....................: 2000   18.106231/s
+
+
+
+
+running (1m50.5s), 0000/2000 VUs, 2000 complete and 0 interrupted iterations
+calls ✓ [ 100% ] 2000 VUs  1m50.5s/5m0s  2000/2000 iters, 1 per VU
+--- Prometheus snapshot (after) ---
+vdt_ws_sessions_active{backend-1}: 
+vdt_calls_active{1-1,backend-1}:   
+process_cpu_usage{backend-1}:      
+jvm_heap_used{backend-1}:          
+calls_ended_busy_total{backend-1}: 
+
+==================================================================
+ STEP: 4000 concurrent connections (2000 pairs)
+==================================================================
+--- Prometheus snapshot (before) ---
+vdt_ws_sessions_active{backend-1}: 
+vdt_calls_active{1-1,backend-1}:   
+process_cpu_usage{backend-1}:      
+jvm_heap_used{backend-1}:          
+calls_ended_busy_total{backend-1}: 
+    ✓ login 200
+
+    CUSTOM
+    call_setup_rtt_ms..............: avg=4.1s   min=16ms     med=3.89s  max=7.96s p(90)=7.37s  p(95)=7.61s 
+    calls_completed................: 58     0.522345/s
+    calls_failed...................: 6279   56.548373/s
+
+    HTTP
+    http_req_duration..............: avg=14.01s min=142.14ms med=14.06s max=28.1s p(90)=24.89s p(95)=26.23s
+      { expected_response:true }...: avg=14.01s min=142.14ms med=14.06s max=28.1s p(90)=24.89s p(95)=26.23s
+    http_req_failed................: 0.00%  0 out of 4000
+    http_reqs......................: 4000   36.023808/s
+
+    EXECUTION
+    iteration_duration.............: avg=1m17s  min=42.29s   med=1m17s  max=1m50s p(90)=1m27s  p(95)=1m28s 
+    iterations.....................: 4000   36.023808/s
+    vus............................: 3      min=3         max=4000
+    vus_max........................: 4000   min=4000      max=4000
+
+    NETWORK
+    data_received..................: 613 MB 5.5 MB/s
+    data_sent......................: 2.6 MB 23 kB/s
+
+    WEBSOCKET
+    ws_connecting..................: avg=50.79s min=19.98s   med=1m0s   max=1m0s  p(90)=1m0s   p(95)=1m0s  
+    ws_msgs_received...............: 35182  316.847406/s
+    ws_msgs_sent...................: 6349   57.17879/s
+    ws_session_duration............: avg=1m3s   min=41.61s   med=1m0s   max=1m40s p(90)=1m12s  p(95)=1m19s 
+    ws_sessions....................: 4000   36.023808/s
+
+
+
+
+running (1m51.0s), 0000/4000 VUs, 4000 complete and 0 interrupted iterations
+calls ✓ [ 100% ] 4000 VUs  1m51.0s/5m0s  4000/4000 iters, 1 per VU
+--- Prometheus snapshot (after) ---
+vdt_ws_sessions_active{backend-1}: 
+vdt_calls_active{1-1,backend-1}:   
+process_cpu_usage{backend-1}:      
+jvm_heap_used{backend-1}:          
+calls_ended_busy_total{backend-1}: 
