@@ -59,6 +59,12 @@ Browser A                nginx (LB)           Redis
 - **Server-authoritative state machine:** Client gửi ý định (intent), server quyết định và broadcast kết quả. Client chỉ render trạng thái nhận được — không client nào tự thay đổi trạng thái cuộc gọi.
 - **Scale-seam architecture:** `PresenceService` và `MessageRouter` là interface. Phase 2 dùng in-memory; Phase 6 swap sang Redis pub/sub mà không sửa caller code.
 
+<p align="center">
+  <a href="docs/architecture/vdt_webrtc_architecture.svg"><img src="docs/architecture/vdt_webrtc_architecture.svg" alt="Kiến trúc tổng quan" width="640"></a>
+</p>
+
+4 sơ đồ chi tiết khác (luồng signaling 1 cuộc gọi, vòng đời kết nối WebRTC/perfect negotiation, Redis cross-instance routing, deployment dev vs prod): [docs/architecture/README.md](docs/architecture/README.md)
+
 ---
 
 ## 3. Tiến độ tổng quan
@@ -549,6 +555,7 @@ cd frontend && npm run e2e
 
 | Tài liệu | Mô tả |
 |----------|-------|
+| [docs/architecture/README.md](docs/architecture/README.md) | Sơ đồ kiến trúc (tổng quan hạ tầng, luồng signaling, WebRTC lifecycle, Redis routing, deployment dev/prod) |
 | [.planning/ROADMAP.md](.planning/ROADMAP.md) | Roadmap 9 phase đầy đủ với success criteria từng phase |
 | [.planning/STATE.md](.planning/STATE.md) | Trạng thái hiện tại, velocity, accumulated decisions |
 | [.planning/REQUIREMENTS.md](.planning/REQUIREMENTS.md) | Yêu cầu chi tiết toàn dự án |
