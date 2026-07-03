@@ -114,6 +114,7 @@ Recent decisions affecting current work:
 | 260702-3sd | Fix presence status not updating in realtime after a call ends (transition_call.lua/CallService missing presence-events publish) | 2026-07-01 | 2f4b33e | [260702-3sd-fix-presence-status-not-updating-in-real](./quick/260702-3sd-fix-presence-status-not-updating-in-real/) |
 | 260702-677 | 1-1 call presentation-mode layout sync (remoteIsScreenSharing in callStore, symmetric sharer/viewer layout, recording sharer wiring) | 2026-07-01 | fee9e66 | [260702-677-add-presentation-mode-layout-sync-for-1-](./quick/260702-677-add-presentation-mode-layout-sync-for-1-/) |
 | 260702-r84 | UX for getUserMedia permission-denied: retry button, delayed callee reject, audio-only continue | 2026-07-02 | 99616d6 | [260702-r84-toi-uu-ux-loi-getusermedia-bi-tu-choi-qu](./quick/260702-r84-toi-uu-ux-loi-getusermedia-bi-tu-choi-qu/) |
+| 260703-ejk | Enable virtual threads and increase HikariCP pool size in backend config, per benchmark evidence from .planning/spikes/002 and 002b | 2026-07-03 | d2ada5b | [260703-ejk-enable-virtual-threads-and-increase-hika](./quick/260703-ejk-enable-virtual-threads-and-increase-hika/) |
 
 ## Deferred Items
 
