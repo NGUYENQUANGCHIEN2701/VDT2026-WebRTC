@@ -122,3 +122,5 @@ PATH="/c/Program Files/Graphviz/bin:$PATH" python docs/architecture/deployment.p
 ```
 
 Mỗi script xuất cả `.png` (xem nhanh) và `.svg` (nét ở mọi độ zoom, dùng trong README này vì GitHub render SVG trực tiếp). Sơ đồ luồng gọi (mục 2) và vòng đời kết nối (mục 3) là Mermaid nhúng thẳng trong markdown — không cần generate file, GitHub render native, sửa trực tiếp trong file `.md` này.
+
+**Gotcha quan trọng — icon vỡ khi xem trên máy khác/điện thoại:** graphviz nhúng icon của mỗi node vào SVG bằng **đường dẫn tuyệt đối trên máy vừa generate** (vd `C:\Users\...\site-packages\resources\...png`), không nhúng thẳng dữ liệu ảnh. SVG mở được ở máy đó nhưng push lên GitHub/xem máy khác sẽ mất icon (chỉ còn khung + chữ). Cả 3 script ở trên đã tự động gọi `inline_svg_icons.py` ở cuối để nhúng icon thành base64 ngay sau khi generate — **không cần chạy thêm bước nào**, nhưng nếu tự viết script diagram mới thì nhớ gọi hàm `inline_svg_images()` trong `inline_svg_icons.py` trước khi commit `.svg`.

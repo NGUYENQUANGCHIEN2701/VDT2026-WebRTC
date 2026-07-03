@@ -12,6 +12,8 @@ Phia nhan la RoutingMessageListener - no lay thang WebSocketSession tu
 SessionRegistry va goi session.sendMessage() TRUC TIEP, khong di qua
 PresenceWebSocketHandler.
 """
+import pathlib
+
 from diagrams import Diagram, Cluster, Edge
 from diagrams.onprem.client import Users
 from diagrams.onprem.compute import Server
@@ -72,3 +74,7 @@ with Diagram(
     redis >> Edge(label="7. onMessage (subscribed)", color="blue") >> listener2
     listener2 >> Edge(label="8. sessionRegistry.get(userB) -> HIT", color="blue") >> reg2
     listener2 >> Edge(label="9. session.sendMessage(payload)\n(truc tiep, KHONG qua PresenceWebSocketHandler)", color="blue") >> userB
+
+# Inline icon (xem "Luu y" trong system_diagram.py) de SVG portable.
+import inline_svg_icons  # noqa: E402
+inline_svg_icons.inline_svg_images(str(pathlib.Path(__file__).parent / "redis_routing.svg"))

@@ -1,3 +1,5 @@
+import pathlib
+
 from diagrams import Diagram, Cluster, Edge
 from diagrams.onprem.client import Users
 from diagrams.onprem.network import Nginx, Internet
@@ -64,3 +66,8 @@ with Diagram(
     redis >> Edge(label="cross-instance route", style="dashed") >> redis
 
     backends >> Edge(style="dotted") >> prom >> graf
+
+# Graphviz nhung icon vao SVG bang duong dan tuyet doi tren may nay -- inline
+# thanh base64 de SVG xem duoc o may khac / GitHub / dien thoai.
+import inline_svg_icons  # noqa: E402
+inline_svg_icons.inline_svg_images(str(pathlib.Path(__file__).parent / "vdt_webrtc_architecture.svg"))

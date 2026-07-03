@@ -18,6 +18,10 @@ backend/src/main/resources/certs/
 # --- OS / editor ---
 .DS_Store
 Thumbs.db
+
+# --- Python (docs/architecture diagram scripts) ---
+__pycache__/
+*.pyc
 .planning/research/.cache
 
 # --- GSD local config (per-machine, not shared) ---

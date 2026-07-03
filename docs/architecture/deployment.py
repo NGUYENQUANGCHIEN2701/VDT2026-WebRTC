@@ -3,6 +3,8 @@ Deployment topology: dev (docker-compose.yml, mot may local) vs prod
 (docker-compose.yml + docker-compose.prod.yml override, AWS EC2).
 Nguon: docker-compose.yml, docker-compose.prod.yml.
 """
+import pathlib
+
 from diagrams import Diagram, Cluster, Edge
 from diagrams.onprem.network import Nginx
 from diagrams.onprem.database import PostgreSQL
@@ -68,3 +70,7 @@ with Diagram(
         certbot >> Edge(label="renew") >> cert_vol
         cert_vol >> Edge(label="mount :ro") >> nginx_prod
         nginx_prod >> backends_prod
+
+# Inline icon (xem "Luu y" trong system_diagram.py) de SVG portable.
+import inline_svg_icons  # noqa: E402
+inline_svg_icons.inline_svg_images(str(pathlib.Path(__file__).parent / "deployment.svg"))
