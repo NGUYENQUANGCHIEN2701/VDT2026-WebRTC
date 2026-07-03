@@ -21,8 +21,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Horizontal Scaling** - 2+ signaling instances behind nginx, Redis pub/sub cross-instance routing, all shared state in Redis ✅
 - [ ] **Phase 7: Group Mesh Calls** - Room-based P2P mesh calls up to 4 people with server-enforced cap and bitrate management *(planned; ready to execute)*
 - [x] **Phase 8: Screen Share, Recording & Device Control** - Screen sharing, client-side 1-1 recording, camera/mic/speaker selection mid-call
-- [ ] **Phase 9: Monitoring, CI/CD & Full Delivery** - Prometheus + Grafana per-instance metrics, Playwright E2E call test in CI, one-command full-stack startup
-- [ ] **Phase 10: Email Verification & Real Password-Reset Delivery** - OTP-gated registration (block login until email verified), real SMTP email sending (Gmail App Password) replacing the PASSWORD_RESET_EXPOSE_TOKEN demo hack for forgot-password
+- [x] **Phase 9: Monitoring, CI/CD & Full Delivery** - Prometheus + Grafana per-instance metrics, Playwright E2E call test in CI, one-command full-stack startup ✅
+- [x] **Phase 10: Email Verification & Real Password-Reset Delivery** - OTP-gated registration (block login until email verified), real SMTP email sending (Gmail App Password) replacing the PASSWORD_RESET_EXPOSE_TOKEN demo hack for forgot-password ✅
 
 ## Phase Details
 
@@ -317,7 +317,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. GitHub Actions CI builds, runs backend + frontend tests, and packages Docker images on every push
   4. A Playwright E2E test places a real call between two browser contexts (fake media devices) and passes in CI
 
-**Plans:** 4/5 plans executed
+**Plans:** 5 plans
 
 **Wave 1** *(parallel — no file overlap)*
 
@@ -331,7 +331,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 3** *(blocked on Waves 1-2 completion)*
 
-- [ ] 09-05-PLAN.md — Full suite gate + manual checkpoint: automated suites green, docker compose up walkthrough, docs/setup.md update, 09-VALIDATION.md + ROADMAP closure
+- [x] 09-05-PLAN.md — Full suite gate + manual checkpoint: automated suites green, docker compose up walkthrough, docs/setup.md update, 09-VALIDATION.md + ROADMAP closure
 
 **UI hint**: no (containerizes existing frontend; adds a data-testid selector; no new screens)
 
@@ -350,8 +350,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Horizontal Scaling | 4/4 | ✅ Complete | 2026-06-29 |
 | 7. Group Mesh Calls | 5/5 | ✅ Complete | 2026-06-30 |
 | 8. Screen Share, Recording & Device Control | 5/5 | ✅ Complete | 2026-07-01 |
-| 9. Monitoring, CI/CD & Full Delivery | 4/5 | In Progress|  |
-| 10. Email Verification & Real Password-Reset Delivery | 0/TBD | Not started |  |
+| 9. Monitoring, CI/CD & Full Delivery | 5/5 | ✅ Complete | 2026-07-03 |
+| 10. Email Verification & Real Password-Reset Delivery | 5/5 scope items | ✅ Complete (built ad-hoc, no formal PLAN/SUMMARY trail — see phase note) | 2026-07-03 |
 
 ### Phase 10: Email Verification & Real Password-Reset Delivery
 
@@ -368,9 +368,16 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 5. New frontend verify-email page (enter OTP) wired into the registration flow, plus resend-OTP UX.
 6. Forgot-password frontend flow no longer needs to display the token directly since it now arrives by real email.
 
+**Status: ✅ Complete (2026-07-03).** Built without going through `/gsd-plan-phase` — no PLAN.md/SUMMARY.md trail exists for this phase (`.planning/phases/10-.../` only has a `.gitkeep`). Verified directly against the codebase before marking complete, not just taken on report:
+- `backend/src/main/java/com/vdt/webrtc/auth/EmailVerificationService.java`, `EmailVerificationToken.java`, `EmailVerificationTokenRepository.java`, `VerifyEmailRequest.java`, `EmailNotVerifiedException.java` — OTP entity + gate; `AuthService.login()` throws `EmailNotVerifiedException` when `!user.isEmailVerified()`
+- `backend/src/main/resources/db/migration/V5__email_verification_otp.sql`, `V6__email_verification_attempts.sql` — Flyway migrations
+- `backend/src/main/java/com/vdt/webrtc/auth/EmailDeliveryService.java` — real `JavaMailSender`-backed `sendVerificationCode()` + `sendPasswordResetLink()`, wired into `AuthService` (line ~191: `emailDeliveryService.sendPasswordResetLink(...)`)
+- `frontend/src/pages/VerifyEmailPage.tsx` — verify-email page, calls `POST /api/auth/resend-verification-otp` for resend
+- `app.password-reset.expose-token` (env `PASSWORD_RESET_EXPOSE_TOKEN`) — now a gated dev-only flag (default `false`), not the hardcoded-on demo hack
+
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 10 to break down)
+- No formal plans — implemented directly (predates or bypassed this project's `/gsd-plan-phase` convention for this phase)
 
 ---
 *Roadmap created: 2026-06-11*
@@ -383,3 +390,4 @@ Plans:
 *Phase 6 planned: 2026-06-29 — 4 plans in 4 waves*
 *Phase 7 completed: 2026-06-30 — Wave 5 full verification passed; Phase 7 CLOSED*
 *Phase 8 completed: 2026-07-01 — Wave 5 full verification passed; Phase 8 CLOSED*
+*Phase 9 completed: 2026-07-03 — Wave 3 (09-05) full suite gate + Task 2b manual checkpoint approved; Phase 9 CLOSED*

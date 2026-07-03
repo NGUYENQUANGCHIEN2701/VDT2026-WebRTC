@@ -84,23 +84,23 @@ coverage:
     requirement: "INFR-02, INFR-04, INFR-06"
     verification: []
     human_judgment: true
-    rationale: "Explicitly a blocking human-verify checkpoint per the plan (gate=\"blocking\") — requires a human to open Grafana/Prometheus/the app in a browser and place a real call, and to push/observe a real GitHub Actions run. Not yet approved as of this SUMMARY; plan execution is paused here pending human response."
+    rationale: "Explicitly a blocking human-verify checkpoint per the plan (gate=\"blocking\") — requires a human to open Grafana/Prometheus/the app in a browser and place a real call, and to push/observe a real GitHub Actions run. Approved 2026-07-03 by the user; all 5 steps confirmed passing."
 
 # Metrics
-duration: (in progress — paused at Task 2b checkpoint)
-completed: pending
-status: in_progress
+duration: (spans multiple sessions — paused at Task 2b, resumed and closed 2026-07-03)
+completed: 2026-07-03
+status: complete
 ---
 
-# Phase 09 Plan 05: Full suite gate + docs closure (paused at Task 2b checkpoint) Summary
+# Phase 09 Plan 05: Full suite gate + docs closure Summary
 
-**Fixed all 22 pre-existing frontend lint errors blocking the CI gate, got backend (91/91) + frontend (lint/test/build) + Playwright E2E all green, and closed out docs/setup.md for the full 9-service stack — paused at the mandatory Task 2b human-verify checkpoint before touching 09-VALIDATION.md/ROADMAP.md.**
+**Fixed all 22 pre-existing frontend lint errors blocking the CI gate, got backend (91/91) + frontend (lint/test/build) + Playwright E2E all green, closed out docs/setup.md for the full 9-service stack, and — after the user approved the Task 2b manual checkpoint — closed 09-VALIDATION.md and marked Phase 9 complete in ROADMAP.md.**
 
 ## Performance
 
-- **Tasks completed:** 2 of 3 (Task 1: full suite gate, Task 2: docs/setup.md update)
-- **Task 2b:** BLOCKING human-verify checkpoint reached — plan execution paused here, awaiting human approval
-- **Task 3:** Not started (blocked on Task 2b approval)
+- **Tasks completed:** 3 of 3 (Task 1: full suite gate, Task 2: docs/setup.md update, Task 3: 09-VALIDATION.md + ROADMAP.md closure)
+- **Task 2b:** BLOCKING human-verify checkpoint — approved 2026-07-03 by the user (all 5 steps passing)
+- **Task 3:** Complete — 09-VALIDATION.md's 4 TBD rows filled with real Plan/Wave/Task IDs (all ✅ green), frontmatter set to `status: verified`/`nyquist_compliant: true`; ROADMAP.md Phase 9 marked `[x]` complete, 5/5 plans, Progress table updated
 
 ## Accomplishments
 - Fixed all 22 pre-existing `npm run lint` errors flagged as a known issue in Plan 09-04's SUMMARY — mostly `react-hooks/purity` (impure `Date.now()` calls during render), `react-hooks/set-state-in-effect` (synchronous `setState` inside effect bodies), `react-hooks/refs` (reading a ref's `.current` during render), and `@typescript-eslint/no-unused-vars` findings
@@ -175,14 +175,12 @@ See `key-decisions` in frontmatter above.
 
 ## User Setup Required
 
-None for Task 1/2's own scope. **Task 2b (below) requires human action** — see checkpoint details.
+None. Task 2b's human-verify checkpoint was approved 2026-07-03.
 
 ## Next Phase Readiness
 
-Not applicable yet — Task 3 (closing out `09-VALIDATION.md` and marking Phase 9 complete in `ROADMAP.md`) is blocked on Task 2b's human approval. Once approved:
-- `09-VALIDATION.md`'s 4 `TBD-*` rows need real Plan/Wave/Task IDs and `✅ green` status
-- `ROADMAP.md`'s Phase 9 section needs `**Plans:** 5 plans`, the phase checkbox `[x]`, and the Progress table row updated to `5/5 | ✅ Complete`
+Phase 9 is CLOSED. Next up: Phase 10 (Email Verification & Real Password-Reset Delivery) — feature code already exists in the codebase (`EmailVerificationService`, `EmailVerificationToken`, OTP-gated login, forgot-password email flow), confirmed present ahead of any formal GSD plan/summary trail for that phase; see STATE.md for how that phase's retroactive closure was handled.
 
 ---
 *Phase: 09-monitoring-ci-cd-full-delivery*
-*Status: paused at Task 2b checkpoint — not yet complete*
+*Status: CLOSED — Task 3 complete 2026-07-03*

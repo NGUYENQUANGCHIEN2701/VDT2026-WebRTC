@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 09
-current_phase_name: monitoring-ci-cd-full-delivery
-status: executing
-stopped_at: Paused at 09-05 Task 2b checkpoint (docker compose + Grafana + CI manual verification) — Tasks 1-2 complete and committed, awaiting human approval
-last_updated: "2026-07-02T08:17:18.500Z"
-last_activity: 2026-07-02
-last_activity_desc: Completed 09-04-PLAN.md (Playwright E2E 1-1 call + CI e2e job)
+current_phase: 10
+current_phase_name: email-verification-real-password-reset-delivery
+status: all_phases_complete
+stopped_at: "Phase 9 Task 2b checkpoint approved by user 2026-07-03; Task 3 closure completed (09-VALIDATION.md + ROADMAP.md). Phase 10 retroactively verified complete against the codebase (no formal PLAN/SUMMARY trail existed) and marked done in ROADMAP.md. All 10 v1.0 phases now show complete in ROADMAP.md — milestone completion (/gsd-complete-milestone) not yet run, pending user decision."
+last_updated: "2026-07-03T04:00:00.000Z"
+last_activity: 2026-07-03
+last_activity_desc: Closed Phase 9 (09-05 Task 3 — validation + ROADMAP closure) and retroactively verified + closed Phase 10 (email verification / real password-reset delivery)
 progress:
-  total_phases: 9
-  completed_phases: 3
+  total_phases: 10
+  completed_phases: 10
   total_plans: 42
-  completed_plans: 16
-  percent: 33
+  completed_plans: 42
+  percent: 100
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-11)
 
 **Core value:** Two users can make a stable realtime 1-1 peer-to-peer WebRTC video call. If everything else breaks, the 1-1 call must still work.
-**Current focus:** Phase 09 — monitoring-ci-cd-full-delivery
+**Current focus:** All 10 v1.0 phases complete — milestone closure decision pending
 
 ## Current Position
 
-Phase: 09 (monitoring-ci-cd-full-delivery) — EXECUTING
-Status: Executing Phase 09
-Next: Continue Phase 9 (Plan 09-05)
-Last activity: 2026-07-02 — Completed 09-04-PLAN.md (Playwright E2E 1-1 call + CI e2e job)
+Phase: 10 (email-verification-real-password-reset-delivery) — COMPLETE
+Status: All phases in ROADMAP.md now show complete (1-10)
+Next: Consider `/gsd-complete-milestone` to close out v1.0, or continue with new scope
+Last activity: 2026-07-03 — Closed Phase 9 (09-05 Task 3) and retroactively verified/closed Phase 10
 
-Progress: [###░░░░░░░] 36% (15/42 plans; Phase 9 in progress — 4 plans done)
+Progress: [##########] 100% (all 10 phases complete per ROADMAP.md)
 
 ## Performance Metrics
 
@@ -55,12 +55,13 @@ Progress: [###░░░░░░░] 36% (15/42 plans; Phase 9 in progress — 4
 | 6. Horizontal Scaling | 4/4 | Complete |
 | 7. Group Mesh Calls | 5/5 | Complete |
 | 8. Screen Share, Recording & Device Control | 5/5 | Complete ✅ |
-| 9. Monitoring, CI/CD & Full Delivery | 4/TBD | In progress |
+| 9. Monitoring, CI/CD & Full Delivery | 5/5 | Complete ✅ |
+| 10. Email Verification & Real Password-Reset Delivery | 5/5 scope items | Complete ✅ (retroactive — no formal plans) |
 
 **Recent Trend:**
 
-- Last completed plan: 09-04 -- Playwright E2E 1-1 call + CI e2e job
-- Next plan: 09-05
+- Last completed: Phase 9 Task 3 closure (09-VALIDATION.md + ROADMAP.md) and Phase 10 retroactive verification/closure
+- Next: milestone-level decision — `/gsd-complete-milestone` or new scope
 
 | Phase 09 P01 | 26min | 3 tasks | 9 files |
 | Phase 09 P09-02 | 5min | 3 tasks | 8 files |
@@ -90,6 +91,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 09: 09-05 Task 1 fixed all 22 pre-existing frontend lint errors (react-hooks/purity, set-state-in-effect, refs, unused-vars) as in-scope work for the full-suite CI gate
 - [Phase ?]: Phase 09: vitest.config.ts excludes e2e/** so Vitest never picks up the Playwright spec added in Plan 09-04
 - [Phase ?]: Phase 09: 09-05 Playwright E2E run against a freshly rebuilt docker compose up --build stack (backend-1/backend-2/nginx) instead of bare local backend+vite-preview
+- [Phase 09]: 2026-07-03 — Task 2b manual checkpoint approved by user; Task 3 closed 09-VALIDATION.md (real Plan/Wave/Task IDs, all green) and marked Phase 9 complete in ROADMAP.md (5/5 plans)
+- [Phase 10]: 2026-07-03 — Feature code found already built with no formal PLAN/SUMMARY trail (`.planning/phases/10-.../` only had `.gitkeep`); verified all 5 scope items directly against the codebase (EmailVerificationService/Token, V5/V6 Flyway migrations, EmailDeliveryService with real JavaMailSender, VerifyEmailPage.tsx, resend-OTP endpoint) before marking ROADMAP.md complete — did not take completion on report alone
 
 ### Pending Todos
 
