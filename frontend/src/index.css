@@ -724,6 +724,7 @@ code {
   border-radius: 18px;
   padding: 0; /* Padding controlled per-section inside the panel */
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .app-panel-header {
