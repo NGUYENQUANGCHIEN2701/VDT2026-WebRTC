@@ -1,0 +1,13 @@
+# Same host port mapping as spike 001, plus SPRING_THREADS_VIRTUAL_ENABLED=true
+# to test whether Java 21 virtual threads change the breaking point found in
+# spike 002 (JVM thread explosion under 500-1000+ concurrent connections).
+# Usage (from repo root):
+#   docker compose --env-file .env.local -f docker-compose.yml \
+#     -f .planning/spikes/002b-virtual-threads-ramp/docker-compose.override.yml \
+#     up -d --force-recreate --no-deps backend-1
+services:
+  backend-1:
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_THREADS_VIRTUAL_ENABLED: "true"
