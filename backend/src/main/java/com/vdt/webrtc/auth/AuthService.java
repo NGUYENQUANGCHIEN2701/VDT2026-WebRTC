@@ -6,9 +6,12 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -47,6 +50,7 @@ public class AuthService {
     private final EmailVerificationService emailVerificationService;
     private final boolean exposePasswordResetToken;
     private final String frontendUrl;
+    private final Set<String> allowedOrigins;
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final Duration RESET_RESEND_COOLDOWN = Duration.ofSeconds(60);
 
@@ -57,7 +61,8 @@ public class AuthService {
             EmailDeliveryService emailDeliveryService,
             EmailVerificationService emailVerificationService,
             @Value("${app.password-reset.expose-token:false}") boolean exposePasswordResetToken,
-            @Value("${app.frontend-url:http://localhost:5173}") String frontendUrl) {
+            @Value("${app.frontend-url:http://localhost:5173}") String frontendUrl,
+            @Value("${ALLOWED_ORIGINS:http://localhost:5173}") String allowedOriginsRaw) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -69,6 +74,10 @@ public class AuthService {
         this.emailVerificationService = emailVerificationService;
         this.exposePasswordResetToken = exposePasswordResetToken;
         this.frontendUrl = frontendUrl;
+        this.allowedOrigins = Arrays.stream(allowedOriginsRaw.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
     }
 
     @Transactional
@@ -151,7 +160,10 @@ public class AuthService {
     }
 
     @Transactional
-    public ForgotPasswordResponse requestPasswordReset(String email) {
+    public ForgotPasswordResponse requestPasswordReset(String email, String requestOrigin) {
+        String resetBaseUrl = requestOrigin != null && allowedOrigins.contains(requestOrigin)
+                ? requestOrigin
+                : frontendUrl;
         Optional<User> userOpt = userRepository.findByEmail(email);
         String rawResetToken = null;
 
@@ -171,7 +183,7 @@ public class AuthService {
                         .createdAt(Instant.now())
                         .build();
                 passwordResetTokenRepository.save(token);
-                String resetLink = UriComponentsBuilder.fromUriString(frontendUrl)
+                String resetLink = UriComponentsBuilder.fromUriString(resetBaseUrl)
                         .path("/reset-password")
                         .queryParam("token", rawResetToken)
                         .build()

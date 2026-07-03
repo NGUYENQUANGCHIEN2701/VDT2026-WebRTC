@@ -80,7 +80,8 @@ public class AuthController {
     public ResponseEntity<ForgotPasswordResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
             HttpServletRequest httpRequest) {
         rateLimitService.enforce("forgot-password", resolveClientIp(httpRequest));
-        return ResponseEntity.ok(authService.requestPasswordReset(request.email()));
+        String origin = httpRequest.getHeader(HttpHeaders.ORIGIN);
+        return ResponseEntity.ok(authService.requestPasswordReset(request.email(), origin));
     }
 
     @PostMapping("/reset-password")
