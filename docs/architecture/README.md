@@ -1,6 +1,6 @@
 # Architecture — VDT WebRTC
 
-Sơ đồ kiến trúc hệ thống, ở 4 góc nhìn khác nhau: tổng quan hạ tầng, luồng nghiệp vụ 1 cuộc gọi, vòng đời kết nối WebRTC phía client, và chi tiết cơ chế định tuyến cross-instance qua Redis.
+Sơ đồ kiến trúc hệ thống, ở 5 góc nhìn khác nhau: tổng quan hạ tầng, luồng nghiệp vụ 1 cuộc gọi, vòng đời kết nối WebRTC phía client, chi tiết cơ chế định tuyến cross-instance qua Redis, và deployment dev vs prod.
 
 ## 1. Tổng quan hạ tầng
 
