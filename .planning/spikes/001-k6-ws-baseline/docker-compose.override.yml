@@ -1,0 +1,9 @@
+# Spike-only override: expose backend-1 directly on the host so k6 can hit a
+# single instance without going through nginx/backend-2 (keeps this baseline
+# spike isolated from the LB/cross-instance question, which is spike 003).
+# Usage (from repo root):
+#   docker compose --env-file .env.local -f docker-compose.yml -f .planning/spikes/001-k6-ws-baseline/docker-compose.override.yml up -d postgres redis rabbitmq backend-1
+services:
+  backend-1:
+    ports:
+      - "8081:8080"
