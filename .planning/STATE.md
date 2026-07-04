@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-06-11)
 Phase: 10 (email-verification-real-password-reset-delivery) — COMPLETE
 Status: All phases in ROADMAP.md now show complete (1-10)
 Next: Consider `/gsd-complete-milestone` to close out v1.0, or continue with new scope
-Last activity: 2026-07-03 — Closed Phase 9 (09-05 Task 3) and retroactively verified/closed Phase 10
+Last activity: 2026-07-04 — Completed quick task 260704-sns: script thuyết trình + kịch bản demo (docs/presentation/)
 
 Progress: [##########] 100% (all 10 phases complete per ROADMAP.md)
 
@@ -118,6 +118,7 @@ Recent decisions affecting current work:
 | 260702-677 | 1-1 call presentation-mode layout sync (remoteIsScreenSharing in callStore, symmetric sharer/viewer layout, recording sharer wiring) | 2026-07-01 | fee9e66 | [260702-677-add-presentation-mode-layout-sync-for-1-](./quick/260702-677-add-presentation-mode-layout-sync-for-1-/) |
 | 260702-r84 | UX for getUserMedia permission-denied: retry button, delayed callee reject, audio-only continue | 2026-07-02 | 99616d6 | [260702-r84-toi-uu-ux-loi-getusermedia-bi-tu-choi-qu](./quick/260702-r84-toi-uu-ux-loi-getusermedia-bi-tu-choi-qu/) |
 | 260703-ejk | Enable virtual threads and increase HikariCP pool size in backend config, per benchmark evidence from .planning/spikes/002 and 002b | 2026-07-03 | d2ada5b | [260703-ejk-enable-virtual-threads-and-increase-hika](./quick/260703-ejk-enable-virtual-threads-and-increase-hika/) |
+| 260704-sns | Script thuyết trình (docs/presentation/SCRIPT.md) + kịch bản demo (DEMO.md) — điểm cốt lõi, benchmark LiveKit/iroh để placeholder | 2026-07-04 | 20947c0 | [260704-sns-presentation-script](./quick/260704-sns-presentation-script/) |
 
 ## Deferred Items
 
