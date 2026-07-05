@@ -119,7 +119,7 @@ Recent decisions affecting current work:
 | 260702-r84 | UX for getUserMedia permission-denied: retry button, delayed callee reject, audio-only continue | 2026-07-02 | 99616d6 | [260702-r84-toi-uu-ux-loi-getusermedia-bi-tu-choi-qu](./quick/260702-r84-toi-uu-ux-loi-getusermedia-bi-tu-choi-qu/) |
 | 260703-ejk | Enable virtual threads and increase HikariCP pool size in backend config, per benchmark evidence from .planning/spikes/002 and 002b | 2026-07-03 | d2ada5b | [260703-ejk-enable-virtual-threads-and-increase-hika](./quick/260703-ejk-enable-virtual-threads-and-increase-hika/) |
 | 260704-sns | Script thuyết trình (docs/presentation/SCRIPT.md) + kịch bản demo (DEMO.md) — điểm cốt lõi, benchmark LiveKit/iroh để placeholder | 2026-07-04 | 20947c0 | [260704-sns-presentation-script](./quick/260704-sns-presentation-script/) |
-| 260705-presence-busy-realtime | Fix presence "IN_CALL" (busy) status not updating realtime on call start — handleInvite's OK branch was missing presence.publishChanged() (deferred gap from 260702-3sd, which fixed only the call-end side) | 2026-07-05 | PENDING | [260705-presence-busy-realtime](./quick/260705-presence-busy-realtime/) |
+| 260705-presence-busy-realtime | Fix presence "IN_CALL" (busy) status not updating realtime on call start — handleInvite's OK branch was missing presence.publishChanged() (deferred gap from 260702-3sd, which fixed only the call-end side) | 2026-07-05 | eef1672 | [260705-presence-busy-realtime](./quick/260705-presence-busy-realtime/) |
 
 ## Deferred Items
 
