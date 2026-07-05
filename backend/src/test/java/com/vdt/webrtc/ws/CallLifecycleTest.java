@@ -187,4 +187,33 @@ class CallLifecycleTest extends WsTestSupport {
                 .isNotNull();
         assertThat(carolFrame).contains("alice").contains("bob").contains("ONLINE");
     }
+
+    // carol KHÔNG tham gia cuộc gọi (observer) — ngay khi alice mời bob (mới
+    // "ringing", CHƯA accept), carol phải thấy cả 2 chuyển IN_CALL mà KHÔNG cần
+    // reconnect. Regression test cho bug: handleInvite's OK branch set
+    // user-call:{userId} trong Redis nhưng không publish lên kênh presence-events,
+    // nên observer bị "kẹt" thấy trạng thái ONLINE cũ tới khi có sự kiện khác ép
+    // snapshot mới (hoặc F5) (T-quick260705).
+    @Test
+    void invite_notifiesThirdPartyObserverPresenceGoesInCall() throws Exception {
+        CollectingHandler hAlice = new CollectingHandler();
+        CollectingHandler hBob = new CollectingHandler();
+        CollectingHandler hCarol = new CollectingHandler();
+        WebSocketSession alice = connect(mintToken("alice"), hAlice);
+        connect(mintToken("bob"), hBob);
+        connect(mintToken("carol"), hCarol);
+
+        // xả sạch mọi frame carol đã nhận trước đó (join/heartbeat snapshot) — chỉ
+        // quan tâm frame ĐẾN SAU invite
+        hCarol.drainMatching(f -> true);
+
+        alice.sendMessage(new TextMessage("{\"type\":\"call-invite\",\"to\":\"bob\"}"));
+        hBob.awaitMatching(f -> f.contains("\"state\":\"ringing\""), 3000);
+
+        String carolFrame = hCarol.awaitMatching(
+                f -> f.contains("presence") && f.contains("IN_CALL"), 3000);
+        assertThat(carolFrame).as("carol (observer, không reconnect) phải thấy IN_CALL ngay khi invite")
+                .isNotNull();
+        assertThat(carolFrame).contains("alice").contains("bob");
+    }
 }

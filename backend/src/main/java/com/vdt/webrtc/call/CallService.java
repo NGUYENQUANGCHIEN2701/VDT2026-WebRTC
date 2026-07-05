@@ -58,6 +58,7 @@ public class CallService {
             case OK -> {
                 broadcast(callId, "ringing", null, callerId, calleeId); // cả 2 thấy ringing
                 timers.scheduleRingTimeout(callId, ringTimeout, () -> onRingTimeout(callId));
+                presence.publishChanged(); // observer khác phải thấy IN_CALL ngay, không đợi F5
             }
             case BUSY -> {
                 router.sendToUser(callerId, // chỉ caller, callee KHÔNG reo

@@ -83,6 +83,18 @@ class CallServicePublishTest {
         verify(presence, never()).publishChanged();
     }
 
+    // invite thành công (OK) → phải publish presence change ngay khi bắt đầu ringing,
+    // không đợi tới lúc cuộc gọi kết thúc (T-quick260705)
+    @Test
+    void okBranch_publishesPresenceChange() {
+        when(stateMachine.createCall(anyString(), eq("alice"), eq("bob")))
+                .thenReturn(CreateResult.OK);
+
+        callService.handleInvite("alice", "bob");
+
+        verify(presence).publishChanged();
+    }
+
     // reject khi đang ringing → cũng phải publish presence change
     @Test
     void missedTimeout_publishesPresenceChange() {
