@@ -59,6 +59,9 @@ management:
     web:
       exposure:
         include: health,prometheus
+  health:
+    mail:
+      enabled: false # optional feature; a misconfigured/unset SMTP shouldn't fail the container healthcheck
 
 jwt:
   secret: ${JWT_SECRET:dev-only-secret-not-for-prod-change-me-min-32-chars-12345}
