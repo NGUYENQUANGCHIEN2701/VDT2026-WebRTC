@@ -213,12 +213,6 @@ Ghi chú về xác minh: Phase 1–8 đã hoàn thiện ở mức code, kiểm t
 - **GitHub Actions CI (`.github/workflows/ci.yml`):** 3 job song song chạy trên mọi push/PR vào `main` — `backend` (`mvn verify`, gồm cả Testcontainers integration test), `frontend` (lint + vitest + build), `docker-build` (build cả 2 image, không push).
 - **Playwright E2E (job thứ 4 trong CI):** Đặt một cuộc gọi 1-1 thật giữa hai Chromium context độc lập dùng fake media device, assert `<video>` phía remote thực sự nhận frame (`videoWidth/videoHeight > 0`). Chạy trực tiếp trên backend+frontend process trong CI (không cần coturn/nginx vì hai context cùng host negotiate ICE không cần TURN).
 
-**Còn lại (Plan 09-05 — full suite gate, đang tạm dừng):**
-
-- ✅ Task 1: chạy toàn bộ suite (`mvnw verify`, `npm run lint/test/build`, `npm run e2e`) — xanh.
-- ✅ Task 2: cập nhật `docs/setup.md` mô tả đủ 9 service + URL Prometheus/Grafana.
-- ⏸ Task 2b (checkpoint thủ công, chờ người thực hiện): `docker compose up --build` toàn bộ 9 service healthy, đặt cuộc gọi 1-1 thật kiểm tra không hồi quy, mở Grafana xem panel WS-sessions-per-instance và active-calls chuyển động khi gọi thật.
-
 ---
 
 ## 5. Các luồng chính
